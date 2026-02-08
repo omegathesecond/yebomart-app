@@ -28,7 +28,9 @@ export function ProductForm() {
     sellPrice: '',
     quantity: '',
     reorderAt: '10',
-    unit: 'each'
+    unit: 'each',
+    packSize: '',
+    packPrice: ''
   });
   
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -49,7 +51,9 @@ export function ProductForm() {
           sellPrice: product.sellPrice.toString(),
           quantity: product.quantity.toString(),
           reorderAt: product.reorderAt.toString(),
-          unit: product.unit
+          unit: product.unit,
+          packSize: product.packSize?.toString() || '',
+          packPrice: product.packPrice?.toString() || ''
         });
       }
     }
@@ -109,6 +113,8 @@ export function ProductForm() {
         quantity: parseInt(formData.quantity),
         reorderAt: parseInt(formData.reorderAt) || 10,
         unit: formData.unit,
+        packSize: formData.packSize ? parseInt(formData.packSize) : undefined,
+        packPrice: formData.packPrice ? parseFloat(formData.packPrice) : undefined,
         isActive: true
       };
 
@@ -288,6 +294,62 @@ export function ProductForm() {
                 { value: 'box', label: 'Box' }
               ]}
             />
+          </div>
+
+          {/* Pack Pricing (Optional) */}
+          <div className="space-y-4">
+            <div>
+              <h3 className="font-semibold text-white">Pack Pricing</h3>
+              <p className="text-sm text-slate-400 mt-1">
+                Optional: Configure if this product can be sold in packs (e.g., 6-pack of drinks)
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <Input
+                label="Pack Size"
+                name="packSize"
+                type="number"
+                min="2"
+                value={formData.packSize}
+                onChange={handleChange}
+                placeholder="e.g., 6"
+                hint="Units per pack"
+              />
+              
+              <Input
+                label="Pack Price (E)"
+                name="packPrice"
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.packPrice}
+                onChange={handleChange}
+                placeholder="e.g., 80.00"
+                hint="Price for full pack"
+              />
+            </div>
+            
+            {formData.packSize && formData.packPrice && formData.sellPrice && (
+              <div className="p-3 bg-slate-700/30 rounded-lg">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-slate-400">Pack savings</span>
+                  <span className="font-semibold text-emerald-400">
+                    {(() => {
+                      const singleTotal = parseFloat(formData.sellPrice) * parseInt(formData.packSize);
+                      const packPrice = parseFloat(formData.packPrice);
+                      const savings = singleTotal - packPrice;
+                      const savingsPercent = ((savings / singleTotal) * 100).toFixed(0);
+                      return savings > 0 
+                        ? `E${savings.toFixed(2)} off (${savingsPercent}% discount)`
+                        : savings < 0 
+                          ? `E${Math.abs(savings).toFixed(2)} premium`
+                          : 'No discount';
+                    })()}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Actions */}

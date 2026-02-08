@@ -151,41 +151,69 @@ export function POS() {
               </h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-2">
                 {categoryProducts.map((product) => {
-                  const inCart = items.find(i => i.productId === product.id);
+                  const inCart = items.find(i => i.productId === product.id && !i.isPack);
+                  const inCartPack = items.find(i => i.productId === product.id && i.isPack);
                   const isLowStock = product.quantity <= product.reorderAt;
                   const isOutOfStock = product.quantity === 0;
+                  const hasPack = product.packSize && product.packPrice;
+                  const canSellPack = hasPack && product.quantity >= (product.packSize || 0);
 
                   return (
-                    <button
-                      key={product.id}
-                      onClick={() => !isOutOfStock && addItem(product)}
-                      disabled={isOutOfStock}
-                      className={`pos-product-card text-left ${
-                        inCart ? 'border-amber-500 ring-1 ring-amber-500/30' : ''
-                      } ${isOutOfStock ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    >
-                      <div className="flex items-start justify-between gap-1">
-                        <h4 className="font-medium text-white text-sm line-clamp-2">
-                          {product.name}
-                        </h4>
-                        {inCart && (
-                          <span className="flex-shrink-0 w-5 h-5 rounded-full bg-amber-500 text-white text-xs flex items-center justify-center font-bold">
-                            {inCart.quantity}
+                    <div key={product.id} className="flex flex-col">
+                      <button
+                        onClick={() => !isOutOfStock && addItem(product)}
+                        disabled={isOutOfStock}
+                        className={`pos-product-card text-left flex-1 ${
+                          inCart ? 'border-amber-500 ring-1 ring-amber-500/30' : ''
+                        } ${isOutOfStock ? 'opacity-50 cursor-not-allowed' : ''} ${
+                          hasPack ? 'rounded-b-none' : ''
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-1">
+                          <h4 className="font-medium text-white text-sm line-clamp-2">
+                            {product.name}
+                          </h4>
+                          {inCart && (
+                            <span className="flex-shrink-0 w-5 h-5 rounded-full bg-amber-500 text-white text-xs flex items-center justify-center font-bold">
+                              {inCart.quantity}
+                            </span>
+                          )}
+                        </div>
+                        <div className="mt-2 flex items-end justify-between">
+                          <span className="text-lg font-bold text-amber-400">
+                            {formatSZL(product.sellPrice)}
                           </span>
-                        )}
-                      </div>
-                      <div className="mt-2 flex items-end justify-between">
-                        <span className="text-lg font-bold text-amber-400">
-                          {formatSZL(product.sellPrice)}
-                        </span>
-                        <span className={`text-xs ${
-                          isOutOfStock ? 'text-red-400' :
-                          isLowStock ? 'text-amber-400' : 'text-slate-500'
-                        }`}>
-                          {isOutOfStock ? 'Out' : `${product.quantity} left`}
-                        </span>
-                      </div>
-                    </button>
+                          <span className={`text-xs ${
+                            isOutOfStock ? 'text-red-400' :
+                            isLowStock ? 'text-amber-400' : 'text-slate-500'
+                          }`}>
+                            {isOutOfStock ? 'Out' : `${product.quantity} left`}
+                          </span>
+                        </div>
+                      </button>
+                      {/* Pack option */}
+                      {hasPack && (
+                        <button
+                          onClick={() => canSellPack && addItem(product, true)}
+                          disabled={!canSellPack}
+                          className={`px-3 py-1.5 text-xs font-medium rounded-b-xl border border-t-0 transition-colors ${
+                            inCartPack 
+                              ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' 
+                              : 'bg-slate-700/50 border-slate-600 text-slate-300 hover:bg-slate-700'
+                          } ${!canSellPack ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                          <span className="flex items-center justify-between">
+                            <span>📦 {product.packSize}-Pack</span>
+                            <span className="font-bold">{formatSZL(product.packPrice!)}</span>
+                            {inCartPack && (
+                              <span className="ml-1 w-4 h-4 rounded-full bg-emerald-500 text-white text-xs flex items-center justify-center">
+                                {inCartPack.quantity}
+                              </span>
+                            )}
+                          </span>
+                        </button>
+                      )}
+                    </div>
                   );
                 })}
               </div>
@@ -230,48 +258,70 @@ export function POS() {
               <p className="text-sm text-slate-500">Tap products to add them</p>
             </div>
           ) : (
-            items.map((item) => (
-              <div key={item.productId} className="pos-cart-item">
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-medium text-white truncate">{item.product.name}</h4>
-                  <p className="text-sm text-slate-400">
-                    {formatSZL(item.product.sellPrice)} each
+            items.map((item) => {
+              const unitPrice = item.isPack && item.product.packPrice 
+                ? item.product.packPrice 
+                : item.product.sellPrice;
+              const itemKey = `${item.productId}-${item.isPack ? 'pack' : 'single'}`;
+              const maxQty = item.isPack && item.product.packSize
+                ? Math.floor(item.product.quantity / item.product.packSize)
+                : item.product.quantity;
+
+              return (
+                <div key={itemKey} className="pos-cart-item">
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-medium text-white truncate">
+                      {item.product.name}
+                      {item.isPack && item.product.packSize && (
+                        <span className="ml-1 text-emerald-400 text-sm">({item.product.packSize}-Pack)</span>
+                      )}
+                    </h4>
+                    <p className="text-sm text-slate-400">
+                      {formatSZL(unitPrice)} {item.isPack ? 'per pack' : 'each'}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => updateQuantity(item.productId, item.quantity - 1, item.isPack)}
+                      className="p-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300"
+                    >
+                      <MinusIcon className="w-4 h-4" />
+                    </button>
+                    <input
+                      type="number"
+                      min="1"
+                      max={maxQty}
+                      value={item.quantity}
+                      onChange={(e) => {
+                        const qty = parseInt(e.target.value) || 0;
+                        if (qty <= 0) {
+                          removeItem(item.productId, item.isPack);
+                        } else {
+                          updateQuantity(item.productId, qty, item.isPack);
+                        }
+                      }}
+                      className="w-14 text-center font-medium text-white bg-slate-700 border border-slate-600 rounded-lg py-1 px-1 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    />
+                    <button
+                      onClick={() => updateQuantity(item.productId, item.quantity + 1, item.isPack)}
+                      disabled={item.quantity >= maxQty}
+                      className="p-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 disabled:opacity-50"
+                    >
+                      <PlusIcon className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => removeItem(item.productId, item.isPack)}
+                      className="p-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 ml-1"
+                    >
+                      <TrashIcon className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <p className="font-semibold text-amber-400 w-20 text-right">
+                    {formatSZL(unitPrice * item.quantity)}
                   </p>
                 </div>
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => updateQuantity(item.productId, item.quantity - 1)}
-                    className="p-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300"
-                  >
-                    <MinusIcon className="w-4 h-4" />
-                  </button>
-                  <input
-                    type="number"
-                    min="1"
-                    max={item.product.quantity}
-                    value={item.quantity}
-                    onChange={(e) => handleQuantityChange(item.productId, e.target.value)}
-                    className="w-14 text-center font-medium text-white bg-slate-700 border border-slate-600 rounded-lg py-1 px-1 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  />
-                  <button
-                    onClick={() => updateQuantity(item.productId, item.quantity + 1)}
-                    disabled={item.quantity >= item.product.quantity}
-                    className="p-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 disabled:opacity-50"
-                  >
-                    <PlusIcon className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => removeItem(item.productId)}
-                    className="p-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 ml-1"
-                  >
-                    <TrashIcon className="w-4 h-4" />
-                  </button>
-                </div>
-                <p className="font-semibold text-amber-400 w-20 text-right">
-                  {formatSZL(item.product.sellPrice * item.quantity)}
-                </p>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 

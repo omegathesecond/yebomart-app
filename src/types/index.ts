@@ -47,6 +47,9 @@ export interface Product {
   reorderAt: number;
   unit: string;
   imageUrl?: string;
+  // Pack pricing (optional)
+  packSize?: number;    // e.g., 6 for a 6-pack
+  packPrice?: number;   // price for the pack
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -127,6 +130,7 @@ export interface CartItem {
   productId: string;
   product: Product;
   quantity: number;
+  isPack?: boolean;  // true if selling as pack
 }
 
 // Low Stock Alert
