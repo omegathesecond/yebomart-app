@@ -102,18 +102,30 @@ export function Products() {
             
             return (
               <Card key={product.id} className="flex flex-col">
-                <div className="flex items-start justify-between gap-2 mb-3">
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-white truncate">{product.name}</h3>
-                    {product.category && (
-                      <Badge variant="default" size="sm" className="mt-1">
-                        {product.category}
-                      </Badge>
+                <div className="flex items-start gap-3 mb-3">
+                  {/* Product thumbnail */}
+                  {product.imageUrl && (
+                    <div className="w-12 h-12 rounded-lg overflow-hidden bg-slate-700 flex-shrink-0">
+                      <img 
+                        src={product.imageUrl} 
+                        alt={product.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
+                  <div className="flex items-start justify-between gap-2 flex-1 min-w-0">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-white truncate">{product.name}</h3>
+                      {product.category && (
+                        <Badge variant="default" size="sm" className="mt-1">
+                          {product.category}
+                        </Badge>
+                      )}
+                    </div>
+                    {product.barcode && (
+                      <QrCodeIcon className="w-5 h-5 text-slate-500 flex-shrink-0" />
                     )}
                   </div>
-                  {product.barcode && (
-                    <QrCodeIcon className="w-5 h-5 text-slate-500 flex-shrink-0" />
-                  )}
                 </div>
                 
                 <div className="flex-1">
