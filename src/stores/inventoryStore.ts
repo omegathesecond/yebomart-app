@@ -109,7 +109,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
 
       // Fetch staff
       const { data: staffData } = await api.getStaff();
-      const staff: User[] = (staffData?.users || []).map((u: any) => ({
+      const staff: User[] = (Array.isArray(staffData) ? staffData : []).map((u: any) => ({
         id: u.id,
         shopId: u.shopId,
         name: u.name,
