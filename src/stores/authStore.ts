@@ -12,7 +12,7 @@ interface AuthState {
   
   // Actions
   login: (phone: string, password: string) => Promise<boolean>;
-  userLogin: (phone: string, pin: string) => Promise<boolean>;
+  staffLogin: (phone: string, pin: string) => Promise<boolean>;
   logout: () => void;
   register: (data: { shopName: string; ownerName: string; phone: string; password: string }) => Promise<boolean>;
   loadUser: () => Promise<void>;
@@ -53,16 +53,14 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      userLogin: async (phone: string, pin: string) => {
+      staffLogin: async (phone: string, pin: string) => {
         try {
-          // For staff login with PIN
-          const { data, error } = await api.login(phone, pin);
+          // Staff login with phone + PIN
+          const { data, error } = await api.staffLogin(phone, pin);
           
           if (error || !data) {
             return false;
           }
-
-          api.setToken(data.token);
           
           set({ 
             user: data.user, 
@@ -73,7 +71,7 @@ export const useAuthStore = create<AuthState>()(
           
           return true;
         } catch (error) {
-          console.error('Login failed:', error);
+          console.error('Staff login failed:', error);
           return false;
         }
       },

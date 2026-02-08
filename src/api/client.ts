@@ -134,6 +134,37 @@ class ApiClient {
     return { error: response.error || 'Login failed', details: response.details };
   }
 
+  // Staff login with phone + PIN
+  async staffLogin(phone: string, pin: string) {
+    const response = await this.request<{ accessToken: string; refreshToken: string; shop: any; user: any }>('/api/auth/login/user', {
+      method: 'POST',
+      body: JSON.stringify({ phone, pin }),
+    });
+    
+    if (response.data) {
+      // Store both tokens
+      this.setToken(response.data.accessToken, response.data.refreshToken);
+      
+      return {
+        data: {
+          token: response.data.accessToken,
+          user: {
+            id: response.data.user.id,
+            shopId: response.data.shop.id,
+            name: response.data.user.name,
+            phone: response.data.user.phone,
+            pin: '',
+            role: response.data.user.role?.toLowerCase() as 'owner' | 'manager' | 'cashier',
+            isActive: true,
+            createdAt: new Date()
+          },
+          shop: response.data.shop,
+        }
+      };
+    }
+    return { error: response.error || 'Login failed', details: response.details };
+  }
+
   async register(data: { shopName: string; ownerName: string; phone: string; password: string; assistantName?: string }) {
     // Map to API expected field names
     const payload = {

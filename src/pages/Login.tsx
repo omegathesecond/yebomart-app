@@ -1,16 +1,19 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShoppingCartIcon, KeyIcon, PhoneIcon } from '@heroicons/react/24/outline';
+import { ShoppingCartIcon, KeyIcon, PhoneIcon, UserIcon, BuildingStorefrontIcon } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAuthStore } from '@/stores/authStore';
 
+type LoginMode = 'owner' | 'staff';
+
 export function Login() {
   const navigate = useNavigate();
-  const { login } = useAuthStore();
+  const { login, staffLogin } = useAuthStore();
   
+  const [mode, setMode] = useState<LoginMode>('owner');
   const [phone, setPhone] = useState('');
-  const [pin, setPin] = useState('');
+  const [credential, setCredential] = useState(''); // password for owner, PIN for staff
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -24,10 +27,12 @@ export function Login() {
       errors.phone = 'Enter a valid phone number';
     }
     
-    if (!pin) {
-      errors.pin = 'PIN is required';
-    } else if (pin.length < 4) {
-      errors.pin = 'PIN must be at least 4 characters';
+    if (!credential) {
+      errors.credential = mode === 'staff' ? 'PIN is required' : 'Password is required';
+    } else if (mode === 'staff' && credential.length !== 4) {
+      errors.credential = 'PIN must be 4 digits';
+    } else if (mode === 'owner' && credential.length < 4) {
+      errors.credential = 'Password must be at least 4 characters';
     }
     
     setFieldErrors(errors);
@@ -43,17 +48,31 @@ export function Login() {
     setIsLoading(true);
 
     try {
-      const success = await login(phone, pin);
+      let success: boolean;
+      
+      if (mode === 'staff') {
+        success = await staffLogin(phone, credential);
+      } else {
+        success = await login(phone, credential);
+      }
+      
       if (success) {
         navigate('/');
       } else {
-        setError('Invalid phone or PIN');
+        setError(mode === 'staff' ? 'Invalid phone or PIN' : 'Invalid phone or password');
       }
     } catch (err) {
       setError('Login failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const switchMode = (newMode: LoginMode) => {
+    setMode(newMode);
+    setCredential('');
+    setError('');
+    setFieldErrors({});
   };
 
   return (
@@ -76,7 +95,37 @@ export function Login() {
 
         {/* Card */}
         <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-8">
-          <h2 className="text-xl font-semibold text-white mb-6">Welcome Back</h2>
+          {/* Mode Toggle */}
+          <div className="flex gap-2 mb-6">
+            <button
+              type="button"
+              onClick={() => switchMode('owner')}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-medium transition-all ${
+                mode === 'owner'
+                  ? 'bg-amber-500 text-white'
+                  : 'bg-slate-700/50 text-slate-400 hover:text-white'
+              }`}
+            >
+              <BuildingStorefrontIcon className="w-5 h-5" />
+              Owner
+            </button>
+            <button
+              type="button"
+              onClick={() => switchMode('staff')}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-medium transition-all ${
+                mode === 'staff'
+                  ? 'bg-amber-500 text-white'
+                  : 'bg-slate-700/50 text-slate-400 hover:text-white'
+              }`}
+            >
+              <UserIcon className="w-5 h-5" />
+              Staff
+            </button>
+          </div>
+
+          <h2 className="text-xl font-semibold text-white mb-6">
+            {mode === 'staff' ? 'Staff Login' : 'Welcome Back'}
+          </h2>
 
           <form onSubmit={handleLogin} className="space-y-6">
             <Input
@@ -93,17 +142,20 @@ export function Login() {
             />
 
             <Input
-              label="PIN"
+              label={mode === 'staff' ? 'PIN (4 digits)' : 'Password'}
               type="password"
-              value={pin}
+              value={credential}
               onChange={(e) => {
-                setPin(e.target.value);
-                if (fieldErrors.pin) setFieldErrors({ ...fieldErrors, pin: '' });
+                const value = mode === 'staff' 
+                  ? e.target.value.replace(/\D/g, '').slice(0, 4) 
+                  : e.target.value;
+                setCredential(value);
+                if (fieldErrors.credential) setFieldErrors({ ...fieldErrors, credential: '' });
               }}
-              placeholder="••••"
+              placeholder={mode === 'staff' ? '••••' : '••••••'}
               leftIcon={<KeyIcon className="w-5 h-5" />}
-              maxLength={6}
-              error={fieldErrors.pin}
+              maxLength={mode === 'staff' ? 4 : undefined}
+              error={fieldErrors.credential}
             />
 
             {error && (
@@ -121,14 +173,16 @@ export function Login() {
             </Button>
           </form>
 
-          <div className="mt-6 text-center">
-            <button 
-              onClick={() => navigate('/onboarding')}
-              className="text-amber-400 hover:text-amber-300 text-sm transition-colors"
-            >
-              New shop? Set up YeboMart →
-            </button>
-          </div>
+          {mode === 'owner' && (
+            <div className="mt-6 text-center">
+              <button 
+                onClick={() => navigate('/onboarding')}
+                className="text-amber-400 hover:text-amber-300 text-sm transition-colors"
+              >
+                New shop? Set up YeboMart →
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Footer */}
