@@ -75,17 +75,26 @@ export function POS() {
     setPaymentMethod(method);
     setIsProcessing(true);
     
-    const sale = await checkout(user.id, shop.id);
-    setIsProcessing(false);
-    
-    if (sale) {
-      setLastSale({ 
-        total: sale.totalAmount, 
-        items: sale.items,
-        id: sale.id,
-        date: new Date()
-      });
-      setShowReceipt(true);
+    try {
+      const sale = await checkout(user.id, shop.id);
+      setIsProcessing(false);
+      
+      if (sale) {
+        setLastSale({ 
+          total: sale.totalAmount, 
+          items: sale.items,
+          id: sale.id,
+          date: new Date()
+        });
+        setShowReceipt(true);
+      } else {
+        // Show error from cart store
+        const error = useCartStore.getState().error;
+        alert(error || 'Sale failed. Please try again.');
+      }
+    } catch (err: any) {
+      setIsProcessing(false);
+      alert(err.message || 'An error occurred');
     }
   };
 

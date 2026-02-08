@@ -133,34 +133,37 @@ export const useCartStore = create<CartState>((set, get) => ({
         return null;
       }
 
+      // Build receipt items BEFORE clearing cart
+      const receiptItems = items.map(item => {
+        if (item.isPack && item.product.packSize && item.product.packPrice) {
+          return {
+            id: crypto.randomUUID(),
+            saleId: data.id,
+            productId: item.productId,
+            productName: `${item.product.name} (${item.product.packSize}-Pack)`,
+            quantity: item.quantity,
+            unitPrice: item.product.packPrice,
+            totalPrice: item.product.packPrice * item.quantity
+          };
+        }
+        return {
+          id: crypto.randomUUID(),
+          saleId: data.id,
+          productId: item.productId,
+          productName: item.product.name,
+          quantity: item.quantity,
+          unitPrice: item.product.sellPrice,
+          totalPrice: item.product.sellPrice * item.quantity
+        };
+      });
+
       // Clear cart on success
       set({ items: [], paymentMethod: 'cash', isProcessing: false });
 
       // Return the sale with formatted items for UI
       return {
         ...data,
-        items: items.map(item => {
-          if (item.isPack && item.product.packSize && item.product.packPrice) {
-            return {
-              id: crypto.randomUUID(),
-              saleId: data.id,
-              productId: item.productId,
-              productName: `${item.product.name} (${item.product.packSize}-Pack)`,
-              quantity: item.quantity,
-              unitPrice: item.product.packPrice,
-              totalPrice: item.product.packPrice * item.quantity
-            };
-          }
-          return {
-            id: crypto.randomUUID(),
-            saleId: data.id,
-            productId: item.productId,
-            productName: item.product.name,
-            quantity: item.quantity,
-            unitPrice: item.product.sellPrice,
-            totalPrice: item.product.sellPrice * item.quantity
-          };
-        }),
+        items: receiptItems,
         totalAmount: subtotal,
         createdAt: new Date()
       } as Sale;
