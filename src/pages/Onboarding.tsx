@@ -27,6 +27,7 @@ export function Onboarding() {
   const [shopName, setShopName] = useState('');
   const [ownerName, setOwnerName] = useState('');
   const [ownerPhone, setOwnerPhone] = useState('');
+  const [pin, setPin] = useState('');
   const [assistantName, setAssistantName] = useState('Yebo');
   
   const [isLoading, setIsLoading] = useState(false);
@@ -42,6 +43,7 @@ export function Onboarding() {
         shopName,
         ownerName,
         ownerPhone,
+        pin,
         assistantName
       });
       if (success) {
@@ -162,6 +164,10 @@ export function Onboarding() {
                   <CheckCircleIcon className="w-5 h-5 text-green-400 shrink-0" />
                   <span>WhatsApp number (for daily reports)</span>
                 </li>
+                <li className="flex items-center gap-3 text-slate-300">
+                  <CheckCircleIcon className="w-5 h-5 text-green-400 shrink-0" />
+                  <span>A 6-digit PIN (for login)</span>
+                </li>
               </ul>
             </div>
 
@@ -259,6 +265,19 @@ export function Onboarding() {
               leftIcon={<PhoneIcon className="w-5 h-5" />}
               hint="We'll send daily reports here"
               required
+            />
+
+            <Input
+              label="Create PIN"
+              type="password"
+              value={pin}
+              onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              placeholder="6-digit PIN"
+              hint="You'll use this to login"
+              required
+              minLength={6}
+              maxLength={6}
+              pattern="[0-9]{6}"
             />
 
             <Input

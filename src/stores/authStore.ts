@@ -17,7 +17,7 @@ interface AuthState {
   register: (data: { shopName: string; ownerName: string; phone: string; password: string }) => Promise<boolean>;
   loadUser: () => Promise<void>;
   updateShop: (updates: Partial<Shop>) => Promise<void>;
-  setupShop: (data: { shopName: string; ownerName: string; ownerPhone: string; assistantName: string }) => Promise<boolean>;
+  setupShop: (data: { shopName: string; ownerName: string; ownerPhone: string; pin: string; assistantName: string }) => Promise<boolean>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -162,7 +162,7 @@ export const useAuthStore = create<AuthState>()(
             shopName: data.shopName,
             ownerName: data.ownerName,
             phone: data.ownerPhone,
-            password: '123456', // Default password, user should change
+            password: data.pin,
             assistantName: data.assistantName
           });
           
