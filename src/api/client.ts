@@ -313,7 +313,9 @@ class ApiClient {
 
   // Staff/Users
   async getStaff() {
-    return this.request<{ users: any[] }>('/api/users');
+    const result = await this.request<any[]>('/api/users');
+    console.log('[API] getStaff result:', result);
+    return result;
   }
 
   async createStaff(data: { name: string; phone: string; pin: string; role: string }) {

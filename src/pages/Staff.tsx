@@ -38,6 +38,11 @@ export function Staff() {
     }
   }, [shop, loadAll]);
 
+  // Debug: log staff changes
+  useEffect(() => {
+    console.log('[Staff] staff state updated:', staff);
+  }, [staff]);
+
   const openAddModal = () => {
     setEditingStaff(null);
     setFormData({ name: '', phone: '', pin: '', role: 'cashier' });
@@ -72,9 +77,10 @@ export function Staff() {
       newErrors.phone = 'Enter a valid phone number';
     }
     
-    if (!formData.pin) {
+    // PIN required only for new staff, optional when editing
+    if (!editingStaff && !formData.pin) {
       newErrors.pin = 'PIN is required';
-    } else if (!/^\d{4}$/.test(formData.pin)) {
+    } else if (formData.pin && !/^\d{4}$/.test(formData.pin)) {
       newErrors.pin = 'PIN must be exactly 4 digits';
     }
     
@@ -90,12 +96,16 @@ export function Staff() {
     
     try {
       if (editingStaff) {
-        await updateStaff(editingStaff.id, {
+        const updates: any = {
           name: formData.name,
           phone: formData.phone,
-          pin: formData.pin,
           role: formData.role
-        });
+        };
+        // Only include PIN if changed
+        if (formData.pin) {
+          updates.pin = formData.pin;
+        }
+        await updateStaff(editingStaff.id, updates);
       } else {
         await addStaff({
           shopId: shop.id,
@@ -286,7 +296,7 @@ export function Staff() {
           />
           
           <Input
-            label="PIN (4 digits)"
+            label={editingStaff ? "PIN (leave empty to keep current)" : "PIN (4 digits)"}
             type="password"
             maxLength={4}
             value={formData.pin}
@@ -294,7 +304,7 @@ export function Staff() {
               setFormData({ ...formData, pin: e.target.value.replace(/\D/g, '') });
               if (errors.pin) setErrors({ ...errors, pin: '' });
             }}
-            placeholder="••••"
+            placeholder={editingStaff ? "••••" : "Enter 4-digit PIN"}
             error={errors.pin}
           />
           

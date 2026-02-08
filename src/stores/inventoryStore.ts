@@ -108,19 +108,30 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
       }));
 
       // Fetch staff
-      const { data: staffData } = await api.getStaff();
-      const staff: User[] = (Array.isArray(staffData) ? staffData : []).map((u: any) => ({
-        id: u.id,
-        shopId: u.shopId,
-        name: u.name,
-        phone: u.phone,
-        email: u.email,
-        pin: u.pin || '',
-        role: u.role?.toLowerCase() as any || 'cashier',
-        isActive: u.isActive ?? true,
-        lastLogin: u.lastLogin ? new Date(u.lastLogin) : undefined,
-        createdAt: new Date(u.createdAt)
-      }));
+      const { data: staffData, error: staffError } = await api.getStaff();
+      console.log('[inventoryStore] Staff API response:', { staffData, staffError });
+      const staffArray = Array.isArray(staffData) ? staffData : [];
+      let staff: User[] = [];
+      try {
+        staff = staffArray.map((u: any) => {
+          console.log('[inventoryStore] Mapping user:', u);
+          return {
+            id: u.id,
+            shopId: u.shopId || _shopId,
+            name: u.name || '',
+            phone: u.phone || '',
+            email: u.email || undefined,
+            pin: u.pin || '',
+            role: (String(u.role || 'CASHIER').toLowerCase()) as any,
+            isActive: u.isActive !== false,
+            lastLogin: u.lastLoginAt ? new Date(u.lastLoginAt) : undefined,
+            createdAt: u.createdAt ? new Date(u.createdAt) : new Date()
+          };
+        });
+      } catch (mapError) {
+        console.error('[inventoryStore] Error mapping staff:', mapError);
+      }
+      console.log('[inventoryStore] Mapped staff:', staff);
 
       // Calculate low stock alerts from products
       const alerts: LowStockAlert[] = allProducts
