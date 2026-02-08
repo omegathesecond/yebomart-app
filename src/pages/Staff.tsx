@@ -23,6 +23,7 @@ export function Staff() {
   const [showModal, setShowModal] = useState(false);
   const [editingStaff, setEditingStaff] = useState<User | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   
   const [formData, setFormData] = useState({
     name: '',
@@ -40,6 +41,7 @@ export function Staff() {
   const openAddModal = () => {
     setEditingStaff(null);
     setFormData({ name: '', phone: '', pin: '', role: 'cashier' });
+    setErrors({});
     setShowModal(true);
   };
 
@@ -51,13 +53,41 @@ export function Staff() {
       pin: member.pin || '',
       role: member.role
     });
+    setErrors({});
     setShowModal(true);
   };
 
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+    
+    if (!formData.name.trim()) {
+      newErrors.name = 'Name is required';
+    } else if (formData.name.trim().length < 2) {
+      newErrors.name = 'Name must be at least 2 characters';
+    }
+    
+    if (!formData.phone.trim()) {
+      newErrors.phone = 'Phone is required';
+    } else if (formData.phone.length < 7) {
+      newErrors.phone = 'Enter a valid phone number';
+    }
+    
+    if (!formData.pin) {
+      newErrors.pin = 'PIN is required';
+    } else if (!/^\d{4}$/.test(formData.pin)) {
+      newErrors.pin = 'PIN must be exactly 4 digits';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = async () => {
-    if (!formData.name || !formData.phone || !shop) return;
+    if (!shop || !validateForm()) return;
     
     setIsSubmitting(true);
+    setErrors({});
+    
     try {
       if (editingStaff) {
         await updateStaff(editingStaff.id, {
@@ -77,8 +107,18 @@ export function Staff() {
         });
       }
       setShowModal(false);
-    } catch (e) {
+    } catch (e: any) {
       console.error('Failed to save staff:', e);
+      // Handle API validation errors
+      if (e.details && Array.isArray(e.details)) {
+        const apiErrors: Record<string, string> = {};
+        e.details.forEach((err: { field: string; message: string }) => {
+          apiErrors[err.field] = err.message;
+        });
+        setErrors(apiErrors);
+      } else {
+        setErrors({ _form: e.message || 'Failed to save staff' });
+      }
     }
     setIsSubmitting(false);
   };
@@ -217,18 +257,32 @@ export function Staff() {
         size="md"
       >
         <div className="space-y-4">
+          {errors._form && (
+            <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm">
+              {errors._form}
+            </div>
+          )}
+          
           <Input
             label="Full Name"
             value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            onChange={(e) => {
+              setFormData({ ...formData, name: e.target.value });
+              if (errors.name) setErrors({ ...errors, name: '' });
+            }}
             placeholder="e.g., John Dlamini"
+            error={errors.name}
           />
           
           <Input
             label="Phone Number"
             value={formData.phone}
-            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+            onChange={(e) => {
+              setFormData({ ...formData, phone: e.target.value });
+              if (errors.phone) setErrors({ ...errors, phone: '' });
+            }}
             placeholder="+26876123456"
+            error={errors.phone}
           />
           
           <Input
@@ -236,8 +290,12 @@ export function Staff() {
             type="password"
             maxLength={4}
             value={formData.pin}
-            onChange={(e) => setFormData({ ...formData, pin: e.target.value.replace(/\D/g, '') })}
+            onChange={(e) => {
+              setFormData({ ...formData, pin: e.target.value.replace(/\D/g, '') });
+              if (errors.pin) setErrors({ ...errors, pin: '' });
+            }}
             placeholder="••••"
+            error={errors.pin}
           />
           
           <div>

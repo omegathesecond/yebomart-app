@@ -282,17 +282,21 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
   // Staff - Would need API endpoints
   addStaff: async (staffData) => {
     try {
-      const { data, error } = await api.createStaff({
+      const response = await api.createStaff({
         name: staffData.name,
         phone: staffData.phone,
         pin: staffData.pin,
         role: staffData.role.toUpperCase()
       });
       
-      if (error || !data) {
-        set({ error: error || 'Failed to add staff' });
-        throw new Error(error || 'Failed to add staff');
+      if (response.error || !response.data) {
+        set({ error: response.error || 'Failed to add staff' });
+        const err = new Error(response.error || 'Failed to add staff');
+        (err as any).details = response.details;
+        throw err;
       }
+      
+      const data = response.data;
       
       const staff: User = {
         id: data.id,
@@ -314,14 +318,16 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
 
   updateStaff: async (id, updates) => {
     try {
-      const { error } = await api.updateStaff(id, {
+      const response = await api.updateStaff(id, {
         ...updates,
         role: updates.role?.toUpperCase()
       });
       
-      if (error) {
-        set({ error: error || 'Failed to update staff' });
-        throw new Error(error);
+      if (response.error) {
+        set({ error: response.error || 'Failed to update staff' });
+        const err = new Error(response.error);
+        (err as any).details = response.details;
+        throw err;
       }
       
       set((state) => ({
