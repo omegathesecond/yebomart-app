@@ -100,10 +100,10 @@ export const useCartStore = create<CartState>((set, get) => ({
         unitPrice: item.product.sellPrice
       }));
 
-      // Create sale via API
+      // Create sale via API (API expects uppercase payment method)
       const { data, error } = await api.createSale({
         items: saleItems,
-        paymentMethod,
+        paymentMethod: paymentMethod.toUpperCase(),
         amountPaid: subtotal
       });
 
