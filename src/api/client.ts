@@ -143,7 +143,7 @@ class ApiClient {
 
   async updateProduct(id: string, data: any) {
     return this.request<any>(`/api/products/${id}`, {
-      method: 'PUT',
+      method: 'PATCH',
       body: JSON.stringify(data),
     });
   }
