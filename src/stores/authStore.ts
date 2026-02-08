@@ -1,0 +1,195 @@
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import type { User, Shop, Subscription } from '@/types';
+import api from '@/api/client';
+
+interface AuthState {
+  user: User | null;
+  shop: Shop | null;
+  subscription: Subscription | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  
+  // Actions
+  login: (phone: string, password: string) => Promise<boolean>;
+  userLogin: (phone: string, pin: string) => Promise<boolean>;
+  logout: () => void;
+  register: (data: { shopName: string; ownerName: string; phone: string; password: string }) => Promise<boolean>;
+  loadUser: () => Promise<void>;
+  updateShop: (updates: Partial<Shop>) => Promise<void>;
+  setupShop: (data: { shopName: string; ownerName: string; ownerPhone: string; assistantName: string }) => Promise<boolean>;
+}
+
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set, get) => ({
+      user: null,
+      shop: null,
+      subscription: null,
+      isAuthenticated: false,
+      isLoading: true,
+
+      login: async (phone: string, password: string) => {
+        try {
+          const { data, error } = await api.login(phone, password);
+          
+          if (error || !data) {
+            return false;
+          }
+
+          api.setToken(data.token);
+          
+          set({ 
+            user: data.user, 
+            shop: data.shop,
+            isAuthenticated: true, 
+            isLoading: false 
+          });
+          
+          return true;
+        } catch (error) {
+          console.error('Login failed:', error);
+          return false;
+        }
+      },
+
+      userLogin: async (phone: string, pin: string) => {
+        try {
+          // For staff login with PIN
+          const { data, error } = await api.login(phone, pin);
+          
+          if (error || !data) {
+            return false;
+          }
+
+          api.setToken(data.token);
+          
+          set({ 
+            user: data.user, 
+            shop: data.shop,
+            isAuthenticated: true, 
+            isLoading: false 
+          });
+          
+          return true;
+        } catch (error) {
+          console.error('Login failed:', error);
+          return false;
+        }
+      },
+
+      register: async (data) => {
+        try {
+          const { data: result, error } = await api.register(data);
+          
+          if (error || !result) {
+            return false;
+          }
+
+          api.setToken(result.token);
+          
+          set({ 
+            user: result.user, 
+            shop: result.shop,
+            isAuthenticated: true, 
+            isLoading: false 
+          });
+          
+          return true;
+        } catch (error) {
+          console.error('Registration failed:', error);
+          return false;
+        }
+      },
+
+      logout: () => {
+        api.clearToken();
+        set({ 
+          user: null, 
+          shop: null,
+          subscription: null,
+          isAuthenticated: false 
+        });
+      },
+
+      loadUser: async () => {
+        try {
+          set({ isLoading: true });
+          
+          const token = api.getToken();
+          if (!token) {
+            set({ isLoading: false });
+            return;
+          }
+
+          // Verify token by getting user info
+          const { data, error } = await api.getMe();
+          
+          if (error || !data) {
+            api.clearToken();
+            set({ isLoading: false, isAuthenticated: false });
+            return;
+          }
+
+          set({
+            user: data.user,
+            shop: data.shop,
+            subscription: data.subscription,
+            isAuthenticated: true,
+            isLoading: false
+          });
+        } catch (error) {
+          console.error('Failed to load user:', error);
+          api.clearToken();
+          set({ isLoading: false, isAuthenticated: false });
+        }
+      },
+
+      updateShop: async (updates: Partial<Shop>) => {
+        const { shop } = get();
+        if (!shop) return;
+        
+        // Optimistic update
+        set({ shop: { ...shop, ...updates } as Shop });
+        
+        // TODO: Call API to persist
+        // await api.updateShop(updates);
+      },
+
+      setupShop: async (data) => {
+        try {
+          const { data: result, error } = await api.register({
+            shopName: data.shopName,
+            ownerName: data.ownerName,
+            phone: data.ownerPhone,
+            password: '1234' // Default password, user should change
+          });
+          
+          if (error || !result) {
+            return false;
+          }
+
+          api.setToken(result.token);
+          
+          set({
+            shop: result.shop,
+            user: result.user,
+            isAuthenticated: true,
+            isLoading: false
+          });
+
+          return true;
+        } catch (error) {
+          console.error('Shop setup failed:', error);
+          return false;
+        }
+      }
+    }),
+    {
+      name: 'yebomart-auth',
+      partialize: (state) => ({ 
+        isAuthenticated: state.isAuthenticated 
+      })
+    }
+  )
+);

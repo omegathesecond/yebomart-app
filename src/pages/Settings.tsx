@@ -1,0 +1,319 @@
+import { useState } from 'react';
+import {
+  UserIcon,
+  BuildingOfficeIcon,
+  KeyIcon,
+  BellIcon,
+  DevicePhoneMobileIcon,
+  SparklesIcon,
+  PaintBrushIcon
+} from '@heroicons/react/24/outline';
+import { Card, CardHeader } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Badge } from '@/components/ui/Badge';
+import { useAuthStore } from '@/stores/authStore';
+import { TierSwitcher } from '@/components/subscription';
+import { useSubscriptionStore, TIERS, FEATURES, type Feature } from '@/stores/subscriptionStore';
+
+// Internal components for subscription tab
+function CurrentPlanCard() {
+  const { currentTier, hasFeature } = useSubscriptionStore();
+  const tierInfo = TIERS[currentTier];
+  
+  return (
+    <div className="p-4 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 rounded-xl">
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <h3 className="text-xl font-bold text-white">{tierInfo.name}</h3>
+            <Badge variant="warning">Active</Badge>
+          </div>
+          <p className="text-slate-400 mt-1">{tierInfo.description}</p>
+        </div>
+        <div className="text-right">
+          <p className="text-3xl font-bold text-amber-400">E{tierInfo.price}</p>
+          <p className="text-sm text-slate-500">/month</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PricingCard({ tier, features, highlight }: { 
+  tier: keyof typeof TIERS; 
+  features: Feature[];
+  highlight?: boolean;
+}) {
+  const { currentTier } = useSubscriptionStore();
+  const tierInfo = TIERS[tier];
+  const isCurrentTier = currentTier === tier;
+  
+  return (
+    <div className={`p-4 rounded-xl border ${
+      isCurrentTier 
+        ? 'border-amber-500/50 bg-amber-500/10' 
+        : highlight 
+          ? 'border-blue-500/50 bg-blue-500/5' 
+          : 'border-slate-700 bg-slate-800/30'
+    }`}>
+      <div className="flex items-center justify-between mb-3">
+        <h4 className={`font-semibold ${isCurrentTier ? 'text-amber-400' : 'text-white'}`}>
+          {tierInfo.name}
+        </h4>
+        {isCurrentTier && <Badge variant="success" size="sm">Current</Badge>}
+      </div>
+      <p className="text-2xl font-bold text-white">
+        E{tierInfo.price}
+        <span className="text-sm font-normal text-slate-400">/mo</span>
+      </p>
+      <p className="text-xs text-slate-500 mb-3">{tierInfo.description}</p>
+      <ul className="space-y-2 text-sm">
+        {features.map((featureId) => {
+          const feature = FEATURES[featureId];
+          return (
+            <li key={featureId} className="flex items-center gap-2 text-slate-300">
+              <span className="text-emerald-400">✓</span>
+              {feature.name}
+            </li>
+          );
+        })}
+      </ul>
+      {!isCurrentTier && (
+        <Button 
+          variant={highlight ? 'primary' : 'secondary'} 
+          size="sm" 
+          className="w-full mt-4"
+        >
+          {currentTier && TIERS[currentTier] && tierInfo.price > TIERS[currentTier].price 
+            ? 'Upgrade' 
+            : 'Switch'
+          }
+        </Button>
+      )}
+    </div>
+  );
+}
+
+export function Settings() {
+  const { user, shop, subscription, updateShop } = useAuthStore();
+  const [activeTab, setActiveTab] = useState('shop');
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Form state
+  const [shopName, setShopName] = useState(shop?.name || '');
+  const [ownerName, setOwnerName] = useState(shop?.ownerName || '');
+  const [assistantName, setAssistantName] = useState(shop?.assistantName || 'Yebo');
+  const [address, setAddress] = useState(shop?.address || '');
+
+  const tabs = [
+    { id: 'shop', label: 'Shop', icon: BuildingOfficeIcon },
+    { id: 'profile', label: 'Profile', icon: UserIcon },
+    { id: 'subscription', label: 'Subscription', icon: KeyIcon },
+    { id: 'notifications', label: 'Notifications', icon: BellIcon },
+    { id: 'ai', label: 'AI Assistant', icon: SparklesIcon },
+    { id: 'appearance', label: 'Appearance', icon: PaintBrushIcon }
+  ];
+
+  const handleSaveShop = async () => {
+    setIsSaving(true);
+    await updateShop({
+      name: shopName,
+      ownerName,
+      assistantName,
+      address
+    });
+    setIsSaving(false);
+  };
+
+  const getPlanBadge = () => {
+    const plan = subscription?.plan || 'free';
+    const variants: Record<string, 'success' | 'warning' | 'info'> = {
+      free: 'info',
+      pro: 'warning',
+      business: 'success'
+    };
+    return <Badge variant={variants[plan]}>{plan.toUpperCase()}</Badge>;
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold text-white">Settings</h1>
+        <p className="text-slate-400 mt-1">Manage your shop and account settings</p>
+      </div>
+
+      <div className="flex flex-col md:flex-row gap-6">
+        {/* Sidebar */}
+        <div className="md:w-64 flex-shrink-0">
+          <Card className="p-2">
+            <nav className="space-y-1">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                    activeTab === tab.id
+                      ? 'bg-amber-500/20 text-amber-400'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                  }`}
+                >
+                  <tab.icon className="w-5 h-5" />
+                  <span className="font-medium">{tab.label}</span>
+                </button>
+              ))}
+            </nav>
+          </Card>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1">
+          {activeTab === 'shop' && (
+            <Card>
+              <CardHeader title="Shop Information" subtitle="Basic details about your shop" />
+              <div className="space-y-4">
+                <Input
+                  label="Shop Name"
+                  value={shopName}
+                  onChange={(e) => setShopName(e.target.value)}
+                  placeholder="My Tuck Shop"
+                />
+                <Input
+                  label="Owner Name"
+                  value={ownerName}
+                  onChange={(e) => setOwnerName(e.target.value)}
+                  placeholder="Your name"
+                />
+                <Input
+                  label="Address"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  placeholder="Shop location"
+                />
+                <Button onClick={handleSaveShop} isLoading={isSaving}>
+                  Save Changes
+                </Button>
+              </div>
+            </Card>
+          )}
+
+          {activeTab === 'profile' && (
+            <Card>
+              <CardHeader title="Your Profile" subtitle="Your account details" />
+              <div className="space-y-4">
+                <div className="p-4 bg-slate-700/30 rounded-xl">
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 rounded-full bg-amber-500/20 flex items-center justify-center">
+                      <UserIcon className="w-8 h-8 text-amber-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-white">{user?.name}</h3>
+                      <p className="text-slate-400">{user?.phone}</p>
+                      <Badge variant="success" className="mt-1">{user?.role}</Badge>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {activeTab === 'subscription' && (
+            <div className="space-y-6">
+              <Card>
+                <CardHeader title="Current Plan" subtitle="Your subscription status" />
+                <div className="space-y-4">
+                  <CurrentPlanCard />
+                </div>
+              </Card>
+              
+              <Card>
+                <CardHeader title="Available Plans" subtitle="Choose the right plan for your business" />
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                  <PricingCard tier="lite" features={['pos', 'stock_management', 'basic_reports']} />
+                  <PricingCard tier="starter" features={['barcode_scanning', 'low_stock_alerts', 'staff_accounts']} highlight />
+                  <PricingCard tier="business" features={['whatsapp_reports', 'advanced_reports']} />
+                  <PricingCard tier="professional" features={['ai_assistant', 'multi_location', 'accounting_module']} />
+                  <PricingCard tier="enterprise" features={['api_access', 'dedicated_support']} />
+                </div>
+              </Card>
+              
+              {/* Dev testing tool */}
+              <TierSwitcher />
+            </div>
+          )}
+
+          {activeTab === 'ai' && (
+            <Card>
+              <CardHeader title="AI Assistant" subtitle="Customize your shop assistant" />
+              <div className="space-y-4">
+                <Input
+                  label="Assistant Name"
+                  value={assistantName}
+                  onChange={(e) => setAssistantName(e.target.value)}
+                  placeholder="Yebo"
+                  hint="This is how your AI assistant introduces itself"
+                />
+                <div className="p-4 bg-slate-700/30 rounded-xl">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
+                      <SparklesIcon className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-white">{assistantName}</h3>
+                      <p className="text-sm text-slate-400">
+                        "Hello! I'm {assistantName}, your AI shop assistant!"
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <Button onClick={handleSaveShop} isLoading={isSaving}>
+                  Save Changes
+                </Button>
+              </div>
+            </Card>
+          )}
+
+          {activeTab === 'notifications' && (
+            <Card>
+              <CardHeader title="Notifications" subtitle="Configure alerts and reports" />
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 bg-slate-700/30 rounded-xl">
+                  <div className="flex items-center gap-3">
+                    <DevicePhoneMobileIcon className="w-6 h-6 text-amber-400" />
+                    <div>
+                      <h3 className="font-medium text-white">WhatsApp Reports</h3>
+                      <p className="text-sm text-slate-400">Daily summary to your WhatsApp</p>
+                    </div>
+                  </div>
+                  <Badge variant={subscription?.hasWhatsApp ? 'success' : 'info'}>
+                    {subscription?.hasWhatsApp ? 'Enabled' : 'Pro Plan'}
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between p-4 bg-slate-700/30 rounded-xl">
+                  <div className="flex items-center gap-3">
+                    <BellIcon className="w-6 h-6 text-amber-400" />
+                    <div>
+                      <h3 className="font-medium text-white">Low Stock Alerts</h3>
+                      <p className="text-sm text-slate-400">Get notified when products run low</p>
+                    </div>
+                  </div>
+                  <Badge variant="success">Enabled</Badge>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {activeTab === 'appearance' && (
+            <Card>
+              <CardHeader title="Appearance" subtitle="Customize how YeboMart looks" />
+              <div className="space-y-4">
+                <p className="text-slate-400">Coming soon! You'll be able to customize themes and colors.</p>
+              </div>
+            </Card>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
