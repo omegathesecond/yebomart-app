@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/authStore';
 import { Layout } from '@/components/layout/Layout';
+import { Onboarding } from '@/pages/Onboarding';
 import { Login } from '@/pages/Login';
 import { Dashboard } from '@/pages/Dashboard';
 import { POS } from '@/pages/POS';
@@ -38,7 +39,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (!shop) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/onboarding" replace />;
   }
 
   if (!isAuthenticated) {
@@ -57,6 +58,15 @@ function AppRoutes() {
 
   return (
     <Routes>
+      {/* Onboarding - entry point for new users */}
+      <Route
+        path="/onboarding"
+        element={
+          isAuthenticated && shop ? <Navigate to="/" replace /> : <Onboarding />
+        }
+      />
+      
+      {/* Login - for returning users */}
       <Route
         path="/login"
         element={
@@ -64,6 +74,7 @@ function AppRoutes() {
         }
       />
       
+      {/* Protected routes */}
       <Route
         path="/"
         element={
@@ -83,7 +94,8 @@ function AppRoutes() {
         <Route path="settings" element={<Settings />} />
       </Route>
 
-      <Route path="*" element={<Navigate to="/" replace />} />
+      {/* Catch all - redirect to onboarding */}
+      <Route path="*" element={<Navigate to="/onboarding" replace />} />
     </Routes>
   );
 }
