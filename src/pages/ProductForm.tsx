@@ -8,7 +8,6 @@ import { BarcodeScanner } from '@/components/scanner/BarcodeScanner';
 import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
 import { PRODUCT_CATEGORIES } from '@/types';
-import { db } from '@/lib/db';
 
 export function ProductForm() {
   const navigate = useNavigate();
@@ -34,25 +33,27 @@ export function ProductForm() {
   
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Load product data if editing
+  // Get products from store
+  const { products } = useInventoryStore();
+
+  // Load product data if editing (from store)
   useEffect(() => {
     if (isEdit && id) {
-      db.products.get(id).then(product => {
-        if (product) {
-          setFormData({
-            name: product.name,
-            category: product.category || '',
-            barcode: product.barcode || '',
-            costPrice: product.costPrice.toString(),
-            sellPrice: product.sellPrice.toString(),
-            quantity: product.quantity.toString(),
-            reorderAt: product.reorderAt.toString(),
-            unit: product.unit
-          });
-        }
-      });
+      const product = products.find(p => p.id === id);
+      if (product) {
+        setFormData({
+          name: product.name,
+          category: product.category || '',
+          barcode: product.barcode || '',
+          costPrice: product.costPrice.toString(),
+          sellPrice: product.sellPrice.toString(),
+          quantity: product.quantity.toString(),
+          reorderAt: product.reorderAt.toString(),
+          unit: product.unit
+        });
+      }
     }
-  }, [isEdit, id]);
+  }, [isEdit, id, products]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;

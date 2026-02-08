@@ -9,7 +9,6 @@ import type {
   User,
   Expense
 } from '@/types';
-import { db, addToSyncQueue, checkLowStock } from '@/lib/db';
 import api from '@/api/client';
 
 interface InventoryState {
@@ -23,11 +22,12 @@ interface InventoryState {
   isLoading: boolean;
   lastSync: Date | null;
   isOnline: boolean;
+  error: string | null;
   
   // Actions
   loadAll: (shopId: string) => Promise<void>;
-  syncFromServer: (shopId: string) => Promise<void>;
   setOnlineStatus: (online: boolean) => void;
+  clearError: () => void;
   
   // Products
   addProduct: (product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => Promise<string>;
@@ -60,6 +60,7 @@ interface InventoryState {
   getDashboardMetrics: (shopId: string) => Promise<DashboardMetrics>;
   
   // Sales
+  createSale: (items: any[], paymentMethod: string, amountPaid: number) => Promise<Sale | null>;
   getSalesByDateRange: (shopId: string, startDate: Date, endDate: Date) => Promise<Sale[]>;
 }
 
@@ -74,127 +75,126 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
   isLoading: false,
   lastSync: null,
   isOnline: navigator.onLine,
+  error: null,
 
-  loadAll: async (shopId: string) => {
-    set({ isLoading: true });
+  // Load all data directly from API
+  loadAll: async (_shopId: string) => {
+    set({ isLoading: true, error: null });
     try {
-      const [products, sales, stockLogs, alerts, insights, staff, expenses] = await Promise.all([
-        db.products.where('shopId').equals(shopId).and(p => p.isActive).toArray(),
-        db.sales.where('shopId').equals(shopId).reverse().sortBy('createdAt'),
-        db.stockLogs.orderBy('createdAt').reverse().limit(100).toArray(),
-        db.lowStockAlerts.filter(a => !a.acknowledgedAt).toArray(),
-        db.aiInsights.filter(i => !i.isRead).toArray(),
-        db.users.where('shopId').equals(shopId).toArray(),
-        db.expenses.where('shopId').equals(shopId).toArray()
-      ]);
-
-      set({
-        products,
-        sales: sales.slice(0, 50),
-        stockLogs,
-        alerts,
-        insights,
-        staff,
-        expenses,
-        isLoading: false
-      });
-      
-      // Auto-sync from server if local products are empty and we're online
-      if (products.length === 0 && navigator.onLine) {
-        console.log('No local products, syncing from server...');
-        get().syncFromServer(shopId);
-      }
-    } catch (error) {
-      console.error('Failed to load inventory data:', error);
-      set({ isLoading: false });
-    }
-  },
-
-  setOnlineStatus: (online: boolean) => set({ isOnline: online }),
-
-  // Sync products from server to local IndexedDB
-  syncFromServer: async (shopId: string) => {
-    try {
-      set({ isLoading: true });
-      
-      // Fetch all products from server (paginated)
+      // Fetch products from API
       let allProducts: Product[] = [];
       let page = 1;
       let hasMore = true;
       
       while (hasMore) {
         const { data, error } = await api.getProducts({ page, limit: 100 });
-        if (error || !data) break;
+        if (error || !data) {
+          if (error) set({ error });
+          break;
+        }
         
         allProducts = [...allProducts, ...data];
         hasMore = data.length === 100;
         page++;
       }
-      
-      if (allProducts.length > 0) {
-        // Clear existing products for this shop
-        await db.products.where('shopId').equals(shopId).delete();
-        
-        // Add all products from server
-        const productsWithDates = allProducts.map(p => ({
-          ...p,
-          createdAt: new Date(p.createdAt),
-          updatedAt: new Date(p.updatedAt),
+
+      // Fetch sales
+      const { data: salesData } = await api.getSales();
+      const sales = (salesData || []).map((s: any) => ({
+        ...s,
+        createdAt: new Date(s.createdAt),
+      }));
+
+      // Calculate low stock alerts from products
+      const alerts: LowStockAlert[] = allProducts
+        .filter(p => p.isActive && p.quantity <= p.reorderAt)
+        .map(p => ({
+          id: `alert-${p.id}`,
+          productId: p.id,
+          productName: p.name,
+          currentQty: p.quantity,
+          reorderAt: p.reorderAt,
+          severity: p.quantity === 0 ? 'out' as const : 
+                   p.quantity <= p.reorderAt * 0.5 ? 'critical' as const : 'low' as const,
+          createdAt: new Date()
         }));
-        await db.products.bulkAdd(productsWithDates);
-        
-        // Update state
-        set({ 
-          products: productsWithDates.filter(p => p.isActive),
-          lastSync: new Date(),
-          isLoading: false 
-        });
-        
-        console.log(`Synced ${allProducts.length} products from server`);
-      } else {
-        set({ isLoading: false });
-      }
+
+      set({
+        products: allProducts.filter(p => p.isActive),
+        sales: sales.slice(0, 50),
+        alerts,
+        isLoading: false,
+        lastSync: new Date()
+      });
+      
     } catch (error) {
-      console.error('Sync from server failed:', error);
-      set({ isLoading: false });
+      console.error('Failed to load inventory data:', error);
+      set({ isLoading: false, error: 'Failed to load data. Check your connection.' });
     }
   },
 
+  setOnlineStatus: (online: boolean) => set({ isOnline: online }),
+  clearError: () => set({ error: null }),
+
+  // Products - Direct API calls
   addProduct: async (productData) => {
-    const id = crypto.randomUUID();
-    const product: Product = {
-      ...productData,
-      id,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-    
-    await db.products.add(product);
-    await addToSyncQueue('products', 'create', product);
-    
-    set((state) => ({ products: [...state.products, product] }));
-    return id;
+    set({ isLoading: true, error: null });
+    try {
+      const { data, error } = await api.createProduct(productData);
+      if (error || !data) {
+        set({ error: error || 'Failed to create product', isLoading: false });
+        throw new Error(error || 'Failed to create product');
+      }
+      
+      set((state) => ({ 
+        products: [...state.products, data],
+        isLoading: false 
+      }));
+      return data.id;
+    } catch (err) {
+      set({ isLoading: false });
+      throw err;
+    }
   },
 
   updateProduct: async (id, updates) => {
-    const updatedData = { ...updates, updatedAt: new Date() };
-    await db.products.update(id, updatedData);
-    await addToSyncQueue('products', 'update', { id, ...updatedData });
-    
-    set((state) => ({
-      products: state.products.map((p) =>
-        p.id === id ? { ...p, ...updatedData } : p
-      )
-    }));
+    set({ isLoading: true, error: null });
+    try {
+      const { data, error } = await api.updateProduct(id, updates);
+      if (error || !data) {
+        set({ error: error || 'Failed to update product', isLoading: false });
+        throw new Error(error || 'Failed to update product');
+      }
+      
+      set((state) => ({
+        products: state.products.map((p) =>
+          p.id === id ? { ...p, ...data } : p
+        ),
+        isLoading: false
+      }));
+    } catch (err) {
+      set({ isLoading: false });
+      throw err;
+    }
   },
 
   deleteProduct: async (id) => {
-    await db.products.update(id, { isActive: false });
-    await addToSyncQueue('products', 'delete', { id });
-    
-    set((state) => ({
-      products: state.products.filter((p) => p.id !== id)
-    }));
+    set({ isLoading: true, error: null });
+    try {
+      const { error } = await api.deleteProduct(id);
+      if (error) {
+        set({ error, isLoading: false });
+        throw new Error(error);
+      }
+      
+      set((state) => ({
+        products: state.products.filter((p) => p.id !== id),
+        isLoading: false
+      }));
+    } catch (err) {
+      set({ isLoading: false });
+      throw err;
+    }
   },
 
   searchProducts: (query: string) => {
@@ -211,52 +211,31 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
     return get().products.find(p => p.barcode === barcode);
   },
 
-  adjustStock: async (productId, quantity, type, note, userId = 'system') => {
-    const product = await db.products.get(productId);
-    if (!product) throw new Error('Product not found');
-    
-    const previousQty = product.quantity;
-    let newQty: number;
-    
-    if (type === 'restock') {
-      newQty = previousQty + Math.abs(quantity);
-    } else if (type === 'adjustment') {
-      newQty = quantity; // Absolute value
-    } else {
-      newQty = previousQty - Math.abs(quantity);
-    }
-    
-    newQty = Math.max(0, newQty);
-    
-    await db.products.update(productId, {
-      quantity: newQty,
-      updatedAt: new Date()
-    });
-
-    const stockLog: StockLog = {
-      id: crypto.randomUUID(),
-      productId,
-      type,
-      quantity: type === 'restock' ? Math.abs(quantity) : -Math.abs(quantity),
-      previousQty,
-      newQty,
-      note,
-      userId,
-      createdAt: new Date()
-    };
-    
-    await db.stockLogs.add(stockLog);
-    await addToSyncQueue('stockLogs', 'create', stockLog);
-    
-    // Check for low stock
-    const shop = await db.shop.toCollection().first();
-    if (shop) {
-      await checkLowStock(shop.id);
-    }
-    
-    // Refresh data
-    if (shop) {
-      await get().loadAll(shop.id);
+  // Stock - Direct API calls
+  adjustStock: async (productId, quantity, type, note, _userId = 'system') => {
+    set({ isLoading: true, error: null });
+    try {
+      const { data, error } = await api.adjustStock(productId, {
+        type,
+        quantity,
+        note
+      });
+      
+      if (error || !data) {
+        set({ error: error || 'Failed to adjust stock', isLoading: false });
+        throw new Error(error || 'Failed to adjust stock');
+      }
+      
+      // Update local state with new product data
+      set((state) => ({
+        products: state.products.map((p) =>
+          p.id === productId ? { ...p, quantity: data.product?.quantity ?? p.quantity } : p
+        ),
+        isLoading: false
+      }));
+    } catch (err) {
+      set({ isLoading: false });
+      throw err;
     }
   },
 
@@ -264,47 +243,38 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
     await get().adjustStock(productId, quantity, 'restock', note, userId);
   },
 
+  // Alerts - Local only (calculated from products)
   acknowledgeAlert: async (alertId) => {
-    await db.lowStockAlerts.update(alertId, { acknowledgedAt: new Date() });
     set((state) => ({
       alerts: state.alerts.filter((a) => a.id !== alertId)
     }));
   },
 
   dismissAllAlerts: async () => {
-    const alerts = get().alerts;
-    for (const alert of alerts) {
-      await db.lowStockAlerts.update(alert.id, { acknowledgedAt: new Date() });
-    }
     set({ alerts: [] });
   },
 
+  // Insights - Local only for now
   markInsightRead: async (insightId) => {
-    await db.aiInsights.update(insightId, { isRead: true });
     set((state) => ({
       insights: state.insights.filter((i) => i.id !== insightId)
     }));
   },
 
+  // Staff - Would need API endpoints
   addStaff: async (staffData) => {
+    // TODO: Add API endpoint for staff
     const id = crypto.randomUUID();
     const staff: User = {
       ...staffData,
       id,
       createdAt: new Date()
     };
-    
-    await db.users.add(staff);
-    await addToSyncQueue('users', 'create', staff);
-    
     set((state) => ({ staff: [...state.staff, staff] }));
     return id;
   },
 
   updateStaff: async (id, updates) => {
-    await db.users.update(id, updates);
-    await addToSyncQueue('users', 'update', { id, ...updates });
-    
     set((state) => ({
       staff: state.staff.map((s) =>
         s.id === id ? { ...s, ...updates } : s
@@ -313,59 +283,61 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
   },
 
   deleteStaff: async (id) => {
-    await db.users.update(id, { isActive: false });
-    await addToSyncQueue('users', 'delete', { id });
-    
     set((state) => ({
       staff: state.staff.filter((s) => s.id !== id)
     }));
   },
 
+  // Expenses - Would need API endpoints
   addExpense: async (expenseData) => {
+    // TODO: Add API endpoint for expenses
     const id = crypto.randomUUID();
     const expense: Expense = {
       ...expenseData,
       id,
       createdAt: new Date()
     };
-    
-    await db.expenses.add(expense);
-    await addToSyncQueue('expenses', 'create', expense);
-    
     set((state) => ({ expenses: [...state.expenses, expense] }));
     return id;
   },
 
   deleteExpense: async (id) => {
-    await db.expenses.delete(id);
-    await addToSyncQueue('expenses', 'delete', { id });
-    
     set((state) => ({
       expenses: state.expenses.filter((e) => e.id !== id)
     }));
   },
 
-  getDashboardMetrics: async (shopId: string) => {
+  // Dashboard metrics from API
+  getDashboardMetrics: async (_shopId: string) => {
+    try {
+      const { data } = await api.getDailyReport();
+      if (data) {
+        return {
+          todaySales: data.totalSales || 0,
+          todayTransactions: data.transactionCount || 0,
+          todayProfit: data.profit || 0,
+          weekSales: 0,
+          monthSales: 0,
+          topProducts: data.topProducts || [],
+          lowStockCount: get().alerts.filter(a => a.severity === 'low').length,
+          criticalStockCount: get().alerts.filter(a => a.severity === 'critical' || a.severity === 'out').length,
+          recentSales: get().sales.slice(0, 10)
+        };
+      }
+    } catch (e) {
+      console.error('Failed to get dashboard metrics:', e);
+    }
+    
+    // Fallback: calculate from local state
+    const products = get().products;
+    const sales = get().sales;
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const weekStart = new Date(todayStart.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-
-    const allSales = await db.sales.where('shopId').equals(shopId).toArray();
     
-    const todaySales = allSales.filter(s => new Date(s.createdAt) >= todayStart);
-    const weekSales = allSales.filter(s => new Date(s.createdAt) >= weekStart);
-    const monthSales = allSales.filter(s => new Date(s.createdAt) >= monthStart);
-
-    // Calculate totals
+    const todaySales = sales.filter(s => new Date(s.createdAt) >= todayStart);
     const todayTotal = todaySales.reduce((sum, s) => sum + s.totalAmount, 0);
-    const weekTotal = weekSales.reduce((sum, s) => sum + s.totalAmount, 0);
-    const monthTotal = monthSales.reduce((sum, s) => sum + s.totalAmount, 0);
-
-    // Calculate profit (simplified - actual would need cost price)
-    const products = await db.products.where('shopId').equals(shopId).toArray();
-    let todayProfit = 0;
     
+    let todayProfit = 0;
     for (const sale of todaySales) {
       for (const item of sale.items) {
         const product = products.find(p => p.id === item.productId);
@@ -375,16 +347,11 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
       }
     }
 
-    // Top products
     const productSales: Record<string, { name: string; quantity: number; revenue: number }> = {};
     for (const sale of todaySales) {
       for (const item of sale.items) {
         if (!productSales[item.productId]) {
-          productSales[item.productId] = {
-            name: item.productName,
-            quantity: 0,
-            revenue: 0
-          };
+          productSales[item.productId] = { name: item.productName, quantity: 0, revenue: 0 };
         }
         productSales[item.productId].quantity += item.quantity;
         productSales[item.productId].revenue += item.totalPrice;
@@ -395,30 +362,62 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 5);
 
-    // Low stock count
-    const alerts = await db.lowStockAlerts.filter(a => !a.acknowledgedAt).toArray();
-
     return {
       todaySales: todayTotal,
       todayTransactions: todaySales.length,
       todayProfit,
-      weekSales: weekTotal,
-      monthSales: monthTotal,
+      weekSales: 0,
+      monthSales: 0,
       topProducts,
-      lowStockCount: alerts.filter(a => a.severity === 'low').length,
-      criticalStockCount: alerts.filter(a => a.severity === 'critical' || a.severity === 'out').length,
+      lowStockCount: get().alerts.filter(a => a.severity === 'low').length,
+      criticalStockCount: get().alerts.filter(a => a.severity === 'critical' || a.severity === 'out').length,
       recentSales: todaySales.slice(0, 10)
     };
   },
 
-  getSalesByDateRange: async (shopId: string, startDate: Date, endDate: Date) => {
-    return db.sales
-      .where('shopId')
-      .equals(shopId)
-      .and(s => {
-        const date = new Date(s.createdAt);
-        return date >= startDate && date <= endDate;
-      })
-      .toArray();
+  // Create sale via API
+  createSale: async (items, paymentMethod, amountPaid) => {
+    set({ isLoading: true, error: null });
+    try {
+      const { data, error } = await api.createSale({ items, paymentMethod, amountPaid });
+      if (error || !data) {
+        set({ error: error || 'Failed to create sale', isLoading: false });
+        return null;
+      }
+      
+      // Update local state
+      set((state) => ({
+        sales: [data, ...state.sales].slice(0, 50),
+        // Update product quantities
+        products: state.products.map(p => {
+          const soldItem = items.find((i: any) => i.productId === p.id);
+          if (soldItem) {
+            return { ...p, quantity: Math.max(0, p.quantity - soldItem.quantity) };
+          }
+          return p;
+        }),
+        isLoading: false
+      }));
+      
+      return data;
+    } catch (err) {
+      set({ isLoading: false, error: 'Failed to process sale' });
+      return null;
+    }
+  },
+
+  getSalesByDateRange: async (_shopId: string, startDate: Date, endDate: Date) => {
+    try {
+      const { data } = await api.getSales({
+        startDate: startDate.toISOString().split('T')[0],
+        endDate: endDate.toISOString().split('T')[0]
+      });
+      return (data || []).map((s: any) => ({
+        ...s,
+        createdAt: new Date(s.createdAt)
+      }));
+    } catch {
+      return [];
+    }
   }
 }));

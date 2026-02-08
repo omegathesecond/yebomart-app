@@ -1,10 +1,12 @@
 import { create } from 'zustand';
 import type { CartItem, Product, PaymentMethod, Sale, SaleItem } from '@/types';
-import { db, addToSyncQueue, checkLowStock } from '@/lib/db';
+import api from '@/api/client';
 
 interface CartState {
   items: CartItem[];
   paymentMethod: PaymentMethod;
+  isProcessing: boolean;
+  error: string | null;
   
   // Computed
   totalItems: number;
@@ -22,6 +24,8 @@ interface CartState {
 export const useCartStore = create<CartState>((set, get) => ({
   items: [],
   paymentMethod: 'cash',
+  isProcessing: false,
+  error: null,
 
   get totalItems() {
     return get().items.reduce((sum, item) => sum + item.quantity, 0);
@@ -76,82 +80,60 @@ export const useCartStore = create<CartState>((set, get) => ({
   },
 
   clear: () => {
-    set({ items: [], paymentMethod: 'cash' });
+    set({ items: [], paymentMethod: 'cash', error: null });
   },
 
-  checkout: async (userId: string, shopId: string) => {
-    const { items, paymentMethod, subtotal } = get();
+  // Checkout via API
+  checkout: async (_userId: string, _shopId: string) => {
+    const { items, paymentMethod } = get();
+    const subtotal = items.reduce((sum, item) => sum + (item.product.sellPrice * item.quantity), 0);
     
     if (items.length === 0) return null;
     
+    set({ isProcessing: true, error: null });
+    
     try {
-      const saleId = crypto.randomUUID();
-      const now = new Date();
-      
-      // Create sale items
-      const saleItems: SaleItem[] = items.map(item => ({
-        id: crypto.randomUUID(),
-        saleId,
+      // Format items for API
+      const saleItems = items.map(item => ({
         productId: item.productId,
-        productName: item.product.name,
         quantity: item.quantity,
-        unitPrice: item.product.sellPrice,
-        totalPrice: item.product.sellPrice * item.quantity
+        unitPrice: item.product.sellPrice
       }));
 
-      // Create sale
-      const sale: Sale = {
-        id: saleId,
-        shopId,
-        userId,
-        totalAmount: subtotal,
-        paymentMethod,
+      // Create sale via API
+      const { data, error } = await api.createSale({
         items: saleItems,
-        createdAt: now
-      };
+        paymentMethod,
+        amountPaid: subtotal
+      });
 
-      // Save to database
-      await db.sales.add(sale);
-      for (const item of saleItems) {
-        await db.saleItems.add(item);
+      if (error || !data) {
+        set({ isProcessing: false, error: error || 'Failed to process sale' });
+        return null;
       }
 
-      // Update product quantities and create stock logs
-      for (const item of items) {
-        const product = await db.products.get(item.productId);
-        if (product) {
-          const newQty = Math.max(0, product.quantity - item.quantity);
-          
-          await db.products.update(item.productId, {
-            quantity: newQty,
-            updatedAt: now
-          });
+      // Clear cart on success
+      set({ items: [], paymentMethod: 'cash', isProcessing: false });
 
-          await db.stockLogs.add({
-            id: crypto.randomUUID(),
-            productId: item.productId,
-            type: 'sale',
-            quantity: -item.quantity,
-            previousQty: product.quantity,
-            newQty,
-            userId,
-            createdAt: now
-          });
-        }
-      }
-
-      // Check for low stock alerts
-      await checkLowStock(shopId);
-
-      // Add to sync queue for when online
-      await addToSyncQueue('sales', 'create', sale);
-
-      // Clear cart
-      set({ items: [], paymentMethod: 'cash' });
-
-      return sale;
+      // Return the sale with formatted items for UI
+      return {
+        ...data,
+        items: items.map(item => ({
+          id: crypto.randomUUID(),
+          saleId: data.id,
+          productId: item.productId,
+          productName: item.product.name,
+          quantity: item.quantity,
+          unitPrice: item.product.sellPrice,
+          totalPrice: item.product.sellPrice * item.quantity
+        })),
+        totalAmount: subtotal,
+        createdAt: new Date()
+      } as Sale;
+      
     } catch (error) {
       console.error('Checkout failed:', error);
+      set({ isProcessing: false, error: 'Failed to process sale. Please try again.' });
       return null;
     }
   }
