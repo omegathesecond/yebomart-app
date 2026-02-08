@@ -6,15 +6,19 @@ import {
   ExclamationTriangleIcon,
   MagnifyingGlassIcon,
   ArrowUpIcon,
-  ArrowDownIcon
+  ArrowDownIcon,
+  XMarkIcon,
+  ClockIcon
 } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { Card, CardHeader } from '@/components/ui/Card';
+import { Modal } from '@/components/ui/Modal';
 import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
-import { formatSZL, formatRelativeTime } from '@/types';
+import { formatSZL, formatRelativeTime, type Product, type StockLog } from '@/types';
+import api from '@/api/client';
 
 export function Stock() {
   const { shop } = useAuthStore();
@@ -22,12 +26,36 @@ export function Stock() {
   
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<'all' | 'low' | 'out'>('all');
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [productHistory, setProductHistory] = useState<StockLog[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   useEffect(() => {
     if (shop) {
       loadAll(shop.id);
     }
   }, [shop, loadAll]);
+
+  // Load product history when selected
+  const handleProductClick = async (product: Product) => {
+    setSelectedProduct(product);
+    setLoadingHistory(true);
+    
+    try {
+      const { data } = await api.getStockLogs(product.id);
+      setProductHistory(data || []);
+    } catch (e) {
+      // Fallback to local stock logs filtered by product
+      setProductHistory(stockLogs.filter(log => log.productId === product.id));
+    }
+    
+    setLoadingHistory(false);
+  };
+
+  const closeHistory = () => {
+    setSelectedProduct(null);
+    setProductHistory([]);
+  };
 
   // Filter products
   const filteredProducts = products.filter(p => {
@@ -170,7 +198,8 @@ export function Stock() {
                 return (
                   <tr 
                     key={product.id} 
-                    className="border-b border-slate-700/50 table-row-hover"
+                    className="border-b border-slate-700/50 table-row-hover cursor-pointer hover:bg-slate-700/50 transition-colors"
+                    onClick={() => handleProductClick(product)}
                   >
                     <td className="py-3 px-4">
                       <div>
@@ -265,6 +294,119 @@ export function Stock() {
           </div>
         </Card>
       )}
+
+      {/* Product History Modal */}
+      <Modal
+        isOpen={!!selectedProduct}
+        onClose={closeHistory}
+        title={selectedProduct?.name || 'Product History'}
+        size="lg"
+      >
+        {selectedProduct && (
+          <div className="space-y-6">
+            {/* Product Summary */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="bg-slate-700/30 p-3 rounded-lg">
+                <p className="text-xs text-slate-400">Current Stock</p>
+                <p className="text-xl font-bold text-white">{selectedProduct.quantity}</p>
+              </div>
+              <div className="bg-slate-700/30 p-3 rounded-lg">
+                <p className="text-xs text-slate-400">Reorder At</p>
+                <p className="text-xl font-bold text-amber-400">{selectedProduct.reorderAt}</p>
+              </div>
+              <div className="bg-slate-700/30 p-3 rounded-lg">
+                <p className="text-xs text-slate-400">Cost Price</p>
+                <p className="text-xl font-bold text-white">{formatSZL(selectedProduct.costPrice)}</p>
+              </div>
+              <div className="bg-slate-700/30 p-3 rounded-lg">
+                <p className="text-xs text-slate-400">Sell Price</p>
+                <p className="text-xl font-bold text-emerald-400">{formatSZL(selectedProduct.sellPrice)}</p>
+              </div>
+            </div>
+
+            {/* Stock History */}
+            <div>
+              <h3 className="text-sm font-medium text-slate-400 mb-3 flex items-center gap-2">
+                <ClockIcon className="w-4 h-4" />
+                Stock History
+              </h3>
+              
+              {loadingHistory ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"></div>
+                </div>
+              ) : productHistory.length > 0 ? (
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {productHistory.map((log, idx) => {
+                    const isIncrease = log.quantity > 0;
+                    return (
+                      <div 
+                        key={log.id || idx}
+                        className="flex items-center justify-between p-3 rounded-lg bg-slate-700/30"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`p-2 rounded-lg ${
+                            isIncrease ? 'bg-emerald-500/20' : 'bg-red-500/20'
+                          }`}>
+                            {isIncrease ? (
+                              <ArrowUpIcon className="w-4 h-4 text-emerald-400" />
+                            ) : (
+                              <ArrowDownIcon className="w-4 h-4 text-red-400" />
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-medium text-white capitalize">
+                              {log.type}
+                            </p>
+                            {log.note && (
+                              <p className="text-xs text-slate-400">{log.note}</p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className={`font-semibold ${
+                            isIncrease ? 'text-emerald-400' : 'text-red-400'
+                          }`}>
+                            {isIncrease ? '+' : ''}{log.quantity}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            {log.previousQty} → {log.newQty}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            {formatRelativeTime(log.createdAt)}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-slate-400">
+                  <ClockIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                  <p>No history yet</p>
+                  <p className="text-sm text-slate-500">Stock movements will appear here</p>
+                </div>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3 pt-4 border-t border-slate-700">
+              <Button
+                variant="secondary"
+                className="flex-1"
+                onClick={closeHistory}
+              >
+                Close
+              </Button>
+              <Link to={`/products/${selectedProduct.id}`} className="flex-1">
+                <Button variant="primary" className="w-full">
+                  Edit Product
+                </Button>
+              </Link>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
