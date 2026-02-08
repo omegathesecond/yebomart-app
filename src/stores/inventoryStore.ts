@@ -10,6 +10,7 @@ import type {
   Expense
 } from '@/types';
 import { db, addToSyncQueue, checkLowStock } from '@/lib/db';
+import api from '@/api/client';
 
 interface InventoryState {
   products: Product[];
@@ -25,6 +26,7 @@ interface InventoryState {
   
   // Actions
   loadAll: (shopId: string) => Promise<void>;
+  syncFromServer: (shopId: string) => Promise<void>;
   setOnlineStatus: (online: boolean) => void;
   
   // Products
@@ -96,6 +98,12 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
         expenses,
         isLoading: false
       });
+      
+      // Auto-sync from server if local products are empty and we're online
+      if (products.length === 0 && navigator.onLine) {
+        console.log('No local products, syncing from server...');
+        get().syncFromServer(shopId);
+      }
     } catch (error) {
       console.error('Failed to load inventory data:', error);
       set({ isLoading: false });
@@ -103,6 +111,54 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
   },
 
   setOnlineStatus: (online: boolean) => set({ isOnline: online }),
+
+  // Sync products from server to local IndexedDB
+  syncFromServer: async (shopId: string) => {
+    try {
+      set({ isLoading: true });
+      
+      // Fetch all products from server (paginated)
+      let allProducts: Product[] = [];
+      let page = 1;
+      let hasMore = true;
+      
+      while (hasMore) {
+        const { data, error } = await api.getProducts({ page, limit: 100 });
+        if (error || !data) break;
+        
+        allProducts = [...allProducts, ...data];
+        hasMore = data.length === 100;
+        page++;
+      }
+      
+      if (allProducts.length > 0) {
+        // Clear existing products for this shop
+        await db.products.where('shopId').equals(shopId).delete();
+        
+        // Add all products from server
+        const productsWithDates = allProducts.map(p => ({
+          ...p,
+          createdAt: new Date(p.createdAt),
+          updatedAt: new Date(p.updatedAt),
+        }));
+        await db.products.bulkAdd(productsWithDates);
+        
+        // Update state
+        set({ 
+          products: productsWithDates.filter(p => p.isActive),
+          lastSync: new Date(),
+          isLoading: false 
+        });
+        
+        console.log(`Synced ${allProducts.length} products from server`);
+      } else {
+        set({ isLoading: false });
+      }
+    } catch (error) {
+      console.error('Sync from server failed:', error);
+      set({ isLoading: false });
+    }
+  },
 
   addProduct: async (productData) => {
     const id = crypto.randomUUID();

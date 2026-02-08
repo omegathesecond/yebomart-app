@@ -130,8 +130,9 @@ class ApiClient {
   }
 
   // Products
-  async getProducts() {
-    return this.request<any[]>('/api/products');
+  async getProducts(params?: { page?: number; limit?: number }) {
+    const query = params ? `?page=${params.page || 1}&limit=${params.limit || 20}` : '';
+    return this.request<any[]>(`/api/products${query}`);
   }
 
   async createProduct(data: any) {
