@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import {
   ArrowDownTrayIcon,
   AdjustmentsHorizontalIcon,
@@ -7,8 +6,8 @@ import {
   MagnifyingGlassIcon,
   ArrowUpIcon,
   ArrowDownIcon,
-  XMarkIcon,
-  ClockIcon
+  ClockIcon,
+  CheckCircleIcon
 } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -22,13 +21,23 @@ import api from '@/api/client';
 
 export function Stock() {
   const { shop } = useAuthStore();
-  const { products, stockLogs, alerts, loadAll } = useInventoryStore();
+  const { products, stockLogs, alerts, loadAll, adjustStock } = useInventoryStore();
   
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<'all' | 'low' | 'out'>('all');
+  
+  // Product history modal
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [productHistory, setProductHistory] = useState<StockLog[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  
+  // Receive stock modal
+  const [showReceive, setShowReceive] = useState(false);
+  const [receiveProduct, setReceiveProduct] = useState<string>('');
+  const [receiveQty, setReceiveQty] = useState('');
+  const [receiveNote, setReceiveNote] = useState('');
+  const [isReceiving, setIsReceiving] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
     if (shop) {
@@ -45,7 +54,6 @@ export function Stock() {
       const { data } = await api.getStockLogs(product.id);
       setProductHistory(data || []);
     } catch (e) {
-      // Fallback to local stock logs filtered by product
       setProductHistory(stockLogs.filter(log => log.productId === product.id));
     }
     
@@ -55,6 +63,28 @@ export function Stock() {
   const closeHistory = () => {
     setSelectedProduct(null);
     setProductHistory([]);
+  };
+
+  // Receive stock handler
+  const handleReceiveStock = async () => {
+    if (!receiveProduct || !receiveQty || parseInt(receiveQty) <= 0) return;
+    
+    setIsReceiving(true);
+    try {
+      await adjustStock(receiveProduct, parseInt(receiveQty), 'restock', receiveNote || 'Stock received');
+      setShowReceive(false);
+      setReceiveProduct('');
+      setReceiveQty('');
+      setReceiveNote('');
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 2000);
+      
+      // Reload data
+      if (shop) loadAll(shop.id);
+    } catch (e) {
+      console.error('Failed to receive stock:', e);
+    }
+    setIsReceiving(false);
   };
 
   // Filter products
@@ -75,6 +105,9 @@ export function Stock() {
   const lowStockCount = products.filter(p => p.quantity > 0 && p.quantity <= p.reorderAt).length;
   const outOfStockCount = products.filter(p => p.quantity === 0).length;
 
+  // Get low stock alerts from products
+  const lowStockAlerts = products.filter(p => p.quantity <= p.reorderAt);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -86,16 +119,13 @@ export function Stock() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Link to="/stock/receive">
-            <Button variant="primary" leftIcon={<ArrowDownTrayIcon className="w-5 h-5" />}>
-              Receive Stock
-            </Button>
-          </Link>
-          <Link to="/stock/adjust">
-            <Button variant="secondary" leftIcon={<AdjustmentsHorizontalIcon className="w-5 h-5" />}>
-              Adjust
-            </Button>
-          </Link>
+          <Button 
+            variant="primary" 
+            leftIcon={<ArrowDownTrayIcon className="w-5 h-5" />}
+            onClick={() => setShowReceive(true)}
+          >
+            Receive Stock
+          </Button>
         </div>
       </div>
 
@@ -119,26 +149,49 @@ export function Stock() {
         </Card>
       </div>
 
-      {/* Alerts Banner */}
-      {alerts.length > 0 && (
-        <Link to="/stock/alerts">
-          <Card className="bg-red-500/10 border-red-500/30 hover:bg-red-500/20 transition-colors">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <ExclamationTriangleIcon className="w-6 h-6 text-red-400" />
-                <div>
-                  <p className="font-semibold text-white">
-                    {alerts.length} Stock Alert{alerts.length > 1 ? 's' : ''}
+      {/* Stock Alerts Banner */}
+      {lowStockAlerts.length > 0 && (
+        <Card className="bg-red-500/10 border-red-500/30">
+          <div className="flex items-start gap-3">
+            <ExclamationTriangleIcon className="w-6 h-6 text-red-400 flex-shrink-0 mt-1" />
+            <div className="flex-1">
+              <p className="font-semibold text-white mb-2">
+                ⚠️ {lowStockAlerts.length} Stock Alert{lowStockAlerts.length > 1 ? 's' : ''}
+              </p>
+              <div className="space-y-2">
+                {lowStockAlerts.slice(0, 5).map(p => (
+                  <div key={p.id} className="flex items-center justify-between bg-slate-800/50 p-2 rounded-lg">
+                    <div>
+                      <p className="text-white font-medium">{p.name}</p>
+                      <p className="text-xs text-slate-400">{p.category}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className={`font-bold ${p.quantity === 0 ? 'text-red-400' : 'text-amber-400'}`}>
+                        {p.quantity === 0 ? 'OUT OF STOCK' : `Only ${p.quantity} left`}
+                      </p>
+                      <Button 
+                        size="sm" 
+                        variant="primary"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setReceiveProduct(p.id);
+                          setShowReceive(true);
+                        }}
+                      >
+                        Restock
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+                {lowStockAlerts.length > 5 && (
+                  <p className="text-sm text-slate-400 text-center">
+                    +{lowStockAlerts.length - 5} more items need attention
                   </p>
-                  <p className="text-sm text-slate-400">
-                    Products need your attention
-                  </p>
-                </div>
+                )}
               </div>
-              <span className="text-amber-400">View all →</span>
             </div>
-          </Card>
-        </Link>
+          </div>
+        </Card>
       )}
 
       {/* Search and Filter */}
@@ -198,7 +251,7 @@ export function Stock() {
                 return (
                   <tr 
                     key={product.id} 
-                    className="border-b border-slate-700/50 table-row-hover cursor-pointer hover:bg-slate-700/50 transition-colors"
+                    className="border-b border-slate-700/50 cursor-pointer hover:bg-slate-700/50 transition-colors"
                     onClick={() => handleProductClick(product)}
                   >
                     <td className="py-3 px-4">
@@ -294,6 +347,81 @@ export function Stock() {
           </div>
         </Card>
       )}
+
+      {/* Receive Stock Modal */}
+      <Modal
+        isOpen={showReceive}
+        onClose={() => setShowReceive(false)}
+        title="Receive Stock"
+        size="md"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              Select Product
+            </label>
+            <select
+              value={receiveProduct}
+              onChange={(e) => setReceiveProduct(e.target.value)}
+              className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+            >
+              <option value="">Choose a product...</option>
+              {products.map(p => (
+                <option key={p.id} value={p.id}>
+                  {p.name} (Current: {p.quantity})
+                </option>
+              ))}
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              Quantity Received
+            </label>
+            <input
+              type="number"
+              min="1"
+              value={receiveQty}
+              onChange={(e) => setReceiveQty(e.target.value)}
+              placeholder="Enter quantity"
+              className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              Note (optional)
+            </label>
+            <input
+              type="text"
+              value={receiveNote}
+              onChange={(e) => setReceiveNote(e.target.value)}
+              placeholder="e.g., Supplier delivery"
+              className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+            />
+          </div>
+          
+          <div className="flex gap-3 pt-4">
+            <Button
+              variant="secondary"
+              className="flex-1"
+              onClick={() => setShowReceive(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              className="flex-1"
+              onClick={handleReceiveStock}
+              isLoading={isReceiving}
+              disabled={!receiveProduct || !receiveQty}
+            >
+              <ArrowDownTrayIcon className="w-5 h-5" />
+              Receive Stock
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Product History Modal */}
       <Modal
@@ -398,15 +526,30 @@ export function Stock() {
               >
                 Close
               </Button>
-              <Link to={`/products/${selectedProduct.id}`} className="flex-1">
-                <Button variant="primary" className="w-full">
-                  Edit Product
-                </Button>
-              </Link>
+              <Button
+                variant="primary"
+                className="flex-1"
+                onClick={() => {
+                  setReceiveProduct(selectedProduct.id);
+                  closeHistory();
+                  setShowReceive(true);
+                }}
+              >
+                <ArrowDownTrayIcon className="w-5 h-5" />
+                Receive Stock
+              </Button>
             </div>
           </div>
         )}
       </Modal>
+
+      {/* Success Toast */}
+      {showSuccess && (
+        <div className="fixed bottom-4 right-4 bg-emerald-500 text-white px-6 py-3 rounded-xl shadow-lg flex items-center gap-3 z-50">
+          <CheckCircleIcon className="w-6 h-6" />
+          <span className="font-medium">Stock received successfully!</span>
+        </div>
+      )}
     </div>
   );
 }
