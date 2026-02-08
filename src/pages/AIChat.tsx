@@ -81,7 +81,7 @@ export function AIChat() {
           assistantName: shop?.assistantName
         });
       } else {
-        responseContent = data?.response || 'I understand. Is there anything else you need help with?';
+        responseContent = data?.response || data?.message || 'I understand. Is there anything else you need help with?';
       }
       
       const assistantMessage: Message = {

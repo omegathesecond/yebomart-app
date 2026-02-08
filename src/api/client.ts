@@ -227,7 +227,7 @@ class ApiClient {
 
   // AI Assistant
   async chat(message: string, context?: any) {
-    return this.request<{ response: string; suggestions?: string[] }>('/api/ai/chat', {
+    return this.request<{ response?: string; message?: string; suggestions?: string[]; assistantName?: string }>('/api/ai/chat', {
       method: 'POST',
       body: JSON.stringify({ message, context }),
     });
