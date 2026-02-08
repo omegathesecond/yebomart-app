@@ -1,5 +1,5 @@
 // YeboMart API Client
-const API_URL = import.meta.env.VITE_API_URL || 'https://yebomart-api-723719806278.europe-west1.run.app';
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.yebomart.com';
 
 interface ApiResponse<T> {
   data?: T;
