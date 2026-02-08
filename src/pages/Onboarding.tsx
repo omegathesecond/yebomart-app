@@ -39,17 +39,17 @@ export function Onboarding() {
     setError('');
 
     try {
-      const success = await setupShop({
+      const result = await setupShop({
         shopName,
         ownerName,
         ownerPhone,
         pin,
         assistantName
       });
-      if (success) {
+      if (result.success) {
         navigate('/');
       } else {
-        setError('Setup failed. Please try again.');
+        setError(result.error || 'Setup failed. Please try again.');
       }
     } catch (err) {
       setError('Setup failed. Please try again.');

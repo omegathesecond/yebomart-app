@@ -17,7 +17,7 @@ interface AuthState {
   register: (data: { shopName: string; ownerName: string; phone: string; password: string }) => Promise<boolean>;
   loadUser: () => Promise<void>;
   updateShop: (updates: Partial<Shop>) => Promise<void>;
-  setupShop: (data: { shopName: string; ownerName: string; ownerPhone: string; pin: string; assistantName: string }) => Promise<boolean>;
+  setupShop: (data: { shopName: string; ownerName: string; ownerPhone: string; pin: string; assistantName: string }) => Promise<{ success: boolean; error?: string }>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -167,7 +167,7 @@ export const useAuthStore = create<AuthState>()(
           });
           
           if (error || !result) {
-            return false;
+            return { success: false, error: error || 'Registration failed' };
           }
 
           api.setToken(result.token);
@@ -179,10 +179,10 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false
           });
 
-          return true;
+          return { success: true };
         } catch (error) {
           console.error('Shop setup failed:', error);
-          return false;
+          return { success: false, error: 'Something went wrong. Please try again.' };
         }
       }
     }),

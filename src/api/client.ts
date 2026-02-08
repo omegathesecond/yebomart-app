@@ -4,6 +4,8 @@ const API_URL = import.meta.env.VITE_API_URL || 'https://api.yebomart.com';
 interface ApiResponse<T> {
   data?: T;
   error?: string;
+  message?: string;
+  details?: any; // validation errors, field-specific errors
 }
 
 class ApiClient {
@@ -48,11 +50,17 @@ class ApiClient {
       const json = await response.json();
 
       if (!response.ok || json.success === false) {
-        return { error: json.message || 'Request failed' };
+        // Handle validation errors with details
+        const errorMessage = json.message || json.error || 'Request failed';
+        const details = json.details || json.errors;
+        return { 
+          error: errorMessage,
+          details 
+        };
       }
 
       // API returns { success, data, message } - unwrap the data
-      return { data: json.data ?? json };
+      return { data: json.data ?? json, message: json.message };
     } catch (error) {
       return { error: 'Network error. Please try again.' };
     }
@@ -74,7 +82,7 @@ class ApiClient {
         }
       };
     }
-    return { error: response.error || 'Login failed' };
+    return { error: response.error || 'Login failed', details: response.details };
   }
 
   async register(data: { shopName: string; ownerName: string; phone: string; password: string; assistantName?: string }) {
@@ -100,7 +108,7 @@ class ApiClient {
         }
       };
     }
-    return { error: response.error || 'Registration failed' };
+    return { error: response.error || 'Registration failed', details: response.details };
   }
 
   // Products
