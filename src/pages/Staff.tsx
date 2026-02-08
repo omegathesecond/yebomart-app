@@ -330,7 +330,7 @@ export function Staff() {
               className="flex-1"
               onClick={handleSubmit}
               isLoading={isSubmitting}
-              disabled={!formData.name || !formData.phone}
+              disabled={!formData.name || !formData.phone || (!editingStaff && !formData.pin)}
             >
               {editingStaff ? 'Save Changes' : 'Add Staff'}
             </Button>
