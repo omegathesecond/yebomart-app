@@ -59,22 +59,24 @@ class ApiClient {
 
   // Auth
   async login(phone: string, password: string) {
-    const response = await this.request<{ accessToken: string; refreshToken: string; shop: any; user?: any }>('/api/auth/login', {
+    const response = await this.request<{ success: boolean; data: { accessToken: string; refreshToken: string; shop: any; user?: any }; message: string }>('/api/auth/login', {
       method: 'POST',
       body: JSON.stringify({ phone, password }),
     });
     
     // Normalize response to expected format
-    if (response.data) {
+    // API returns: { success, data: { shop, accessToken, refreshToken }, message }
+    if (response.data?.success && response.data?.data) {
+      const apiData = response.data.data;
       return {
         data: {
-          token: response.data.accessToken,
-          user: response.data.user || { id: response.data.shop.id, phone, role: 'OWNER' },
-          shop: response.data.shop,
+          token: apiData.accessToken,
+          user: apiData.user || { id: apiData.shop.id, phone, role: 'OWNER' },
+          shop: apiData.shop,
         }
       };
     }
-    return response as any;
+    return { error: response.data?.message || response.error || 'Login failed' };
   }
 
   async register(data: { shopName: string; ownerName: string; phone: string; password: string; assistantName?: string }) {
@@ -86,22 +88,24 @@ class ApiClient {
       password: data.password,
       assistantName: data.assistantName,
     };
-    const response = await this.request<{ accessToken: string; refreshToken: string; shop: any }>('/api/auth/register', {
+    const response = await this.request<{ success: boolean; data: { accessToken: string; refreshToken: string; shop: any }; message: string }>('/api/auth/register', {
       method: 'POST',
       body: JSON.stringify(payload),
     });
     
     // Normalize response to expected format
-    if (response.data) {
+    // API returns: { success, data: { shop, accessToken, refreshToken }, message }
+    if (response.data?.success && response.data?.data) {
+      const apiData = response.data.data;
       return {
         data: {
-          token: response.data.accessToken,
-          user: { id: response.data.shop.id, phone: data.phone, role: 'OWNER' },
-          shop: response.data.shop,
+          token: apiData.accessToken,
+          user: { id: apiData.shop.id, phone: data.phone, role: 'OWNER' },
+          shop: apiData.shop,
         }
       };
     }
-    return response as any;
+    return { error: response.data?.message || response.error || 'Registration failed' };
   }
 
   // Products
