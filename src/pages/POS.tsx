@@ -70,7 +70,19 @@ export function POS() {
 
   // Direct checkout with payment method
   const handlePayment = async (method: 'cash' | 'card' | 'momo' | 'emali') => {
-    if (!user || !shop || items.length === 0) return;
+    // Debug: check why payment might not work
+    if (!user) {
+      alert('Please log in first');
+      return;
+    }
+    if (!shop) {
+      alert('Shop not loaded');
+      return;
+    }
+    if (items.length === 0) {
+      alert('Cart is empty');
+      return;
+    }
     
     setPaymentMethod(method);
     setIsProcessing(true);
