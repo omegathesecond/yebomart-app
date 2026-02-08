@@ -233,7 +233,7 @@ export function Settings() {
                   <PricingCard tier="lite" features={['pos', 'stock_management', 'basic_reports']} />
                   <PricingCard tier="starter" features={['barcode_scanning', 'low_stock_alerts', 'staff_accounts']} highlight />
                   <PricingCard tier="business" features={['whatsapp_reports', 'advanced_reports']} />
-                  <PricingCard tier="professional" features={['ai_assistant', 'multi_location', 'accounting_module']} />
+                  <PricingCard tier="pro" features={['ai_assistant', 'multi_location', 'accounting_module']} />
                   <PricingCard tier="enterprise" features={['api_access', 'dedicated_support']} />
                 </div>
               </Card>

@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 // Subscription tiers with pricing
-export type SubscriptionTier = 'lite' | 'starter' | 'business' | 'professional' | 'enterprise';
+export type SubscriptionTier = 'lite' | 'starter' | 'business' | 'pro' | 'enterprise';
 
 export interface TierInfo {
   id: SubscriptionTier;
@@ -34,8 +34,8 @@ export const TIERS: Record<SubscriptionTier, TierInfo> = {
     description: 'Advanced insights & reports',
     color: 'purple'
   },
-  professional: {
-    id: 'professional',
+  pro: {
+    id: 'pro',
     name: 'Professional',
     price: 7999,
     description: 'AI-powered automation',
@@ -134,19 +134,19 @@ export const FEATURES: Record<Feature, FeatureInfo> = {
     id: 'ai_assistant',
     name: 'AI Assistant',
     description: 'Smart business insights',
-    minTier: 'professional'
+    minTier: 'pro'
   },
   multi_location: {
     id: 'multi_location',
     name: 'Multi-Location',
     description: 'Manage multiple stores',
-    minTier: 'professional'
+    minTier: 'pro'
   },
   accounting_module: {
     id: 'accounting_module',
     name: 'Accounting Module',
     description: 'Full financial tracking',
-    minTier: 'professional'
+    minTier: 'pro'
   },
   
   // Enterprise features
@@ -165,7 +165,7 @@ export const FEATURES: Record<Feature, FeatureInfo> = {
 };
 
 // Tier hierarchy for comparison
-const TIER_ORDER: SubscriptionTier[] = ['lite', 'starter', 'business', 'professional', 'enterprise'];
+const TIER_ORDER: SubscriptionTier[] = ['lite', 'starter', 'business', 'pro', 'enterprise'];
 
 export function getTierLevel(tier: SubscriptionTier): number {
   return TIER_ORDER.indexOf(tier);

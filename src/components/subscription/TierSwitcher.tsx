@@ -8,7 +8,7 @@ import { CheckIcon, BeakerIcon } from '@heroicons/react/24/outline';
 export function TierSwitcher() {
   const { currentTier, setTier } = useSubscriptionStore();
 
-  const tiers: SubscriptionTier[] = ['lite', 'starter', 'business', 'professional', 'enterprise'];
+  const tiers: SubscriptionTier[] = ['lite', 'starter', 'business', 'pro', 'enterprise'];
 
   return (
     <div className="bg-slate-800/50 rounded-2xl p-6 border border-slate-700/50">
