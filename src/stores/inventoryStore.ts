@@ -107,6 +107,21 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
         items: s.items || [],
       }));
 
+      // Fetch staff
+      const { data: staffData } = await api.getStaff();
+      const staff: User[] = (staffData?.users || []).map((u: any) => ({
+        id: u.id,
+        shopId: u.shopId,
+        name: u.name,
+        phone: u.phone,
+        email: u.email,
+        pin: u.pin || '',
+        role: u.role?.toLowerCase() as any || 'cashier',
+        isActive: u.isActive ?? true,
+        lastLogin: u.lastLogin ? new Date(u.lastLogin) : undefined,
+        createdAt: new Date(u.createdAt)
+      }));
+
       // Calculate low stock alerts from products
       const alerts: LowStockAlert[] = allProducts
         .filter(p => p.isActive && p.quantity <= p.reorderAt)
@@ -124,6 +139,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
       set({
         products: allProducts.filter(p => p.isActive),
         sales: sales.slice(0, 50),
+        staff,
         alerts,
         isLoading: false,
         lastSync: new Date()
@@ -265,29 +281,76 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
 
   // Staff - Would need API endpoints
   addStaff: async (staffData) => {
-    // TODO: Add API endpoint for staff
-    const id = crypto.randomUUID();
-    const staff: User = {
-      ...staffData,
-      id,
-      createdAt: new Date()
-    };
-    set((state) => ({ staff: [...state.staff, staff] }));
-    return id;
+    try {
+      const { data, error } = await api.createStaff({
+        name: staffData.name,
+        phone: staffData.phone,
+        pin: staffData.pin,
+        role: staffData.role.toUpperCase()
+      });
+      
+      if (error || !data) {
+        set({ error: error || 'Failed to add staff' });
+        throw new Error(error || 'Failed to add staff');
+      }
+      
+      const staff: User = {
+        id: data.id,
+        shopId: staffData.shopId,
+        name: data.name,
+        phone: data.phone,
+        pin: data.pin || '',
+        role: data.role?.toLowerCase() as any || 'cashier',
+        isActive: data.isActive ?? true,
+        createdAt: new Date(data.createdAt)
+      };
+      set((state) => ({ staff: [...state.staff, staff] }));
+      return data.id;
+    } catch (e: any) {
+      console.error('Failed to add staff:', e);
+      throw e;
+    }
   },
 
   updateStaff: async (id, updates) => {
-    set((state) => ({
-      staff: state.staff.map((s) =>
-        s.id === id ? { ...s, ...updates } : s
-      )
-    }));
+    try {
+      const { error } = await api.updateStaff(id, {
+        ...updates,
+        role: updates.role?.toUpperCase()
+      });
+      
+      if (error) {
+        set({ error: error || 'Failed to update staff' });
+        throw new Error(error);
+      }
+      
+      set((state) => ({
+        staff: state.staff.map((s) =>
+          s.id === id ? { ...s, ...updates } : s
+        )
+      }));
+    } catch (e: any) {
+      console.error('Failed to update staff:', e);
+      throw e;
+    }
   },
 
   deleteStaff: async (id) => {
-    set((state) => ({
-      staff: state.staff.filter((s) => s.id !== id)
-    }));
+    try {
+      const { error } = await api.deleteStaff(id);
+      
+      if (error) {
+        set({ error: error || 'Failed to delete staff' });
+        throw new Error(error);
+      }
+      
+      set((state) => ({
+        staff: state.staff.filter((s) => s.id !== id)
+      }));
+    } catch (e: any) {
+      console.error('Failed to delete staff:', e);
+      throw e;
+    }
   },
 
   // Expenses - Would need API endpoints

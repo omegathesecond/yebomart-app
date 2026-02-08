@@ -280,6 +280,31 @@ class ApiClient {
     return this.request<{ insights: string[]; alerts: any[] }>('/api/ai/insights');
   }
 
+  // Staff/Users
+  async getStaff() {
+    return this.request<{ users: any[] }>('/api/users');
+  }
+
+  async createStaff(data: { name: string; phone: string; pin: string; role: string }) {
+    return this.request<any>('/api/users', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateStaff(id: string, data: Partial<{ name: string; phone: string; pin: string; role: string; isActive: boolean }>) {
+    return this.request<any>(`/api/users/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteStaff(id: string) {
+    return this.request<any>(`/api/users/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
   // Get current user info
   async getMe() {
     return this.request<{ user: any; shop: any; subscription: any }>('/api/auth/me');
