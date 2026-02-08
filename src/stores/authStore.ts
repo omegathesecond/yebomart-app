@@ -123,7 +123,17 @@ export const useAuthStore = create<AuthState>()(
           }
 
           // Verify token by getting user info
-          const { data, error } = await api.getMe();
+          let { data, error } = await api.getMe();
+          
+          // If token expired, try refreshing
+          if (error && api.getRefreshToken()) {
+            const refreshed = await api.refreshAccessToken();
+            if (refreshed) {
+              const retry = await api.getMe();
+              data = retry.data;
+              error = retry.error;
+            }
+          }
           
           if (error || !data) {
             api.clearToken();

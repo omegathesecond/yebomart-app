@@ -10,10 +10,15 @@ interface ApiResponse<T> {
 
 class ApiClient {
   private token: string | null = null;
+  private refreshToken: string | null = null;
 
-  setToken(token: string) {
+  setToken(token: string, refresh?: string) {
     this.token = token;
     localStorage.setItem('yebomart_token', token);
+    if (refresh) {
+      this.refreshToken = refresh;
+      localStorage.setItem('yebomart_refresh_token', refresh);
+    }
   }
 
   getToken(): string | null {
@@ -23,9 +28,41 @@ class ApiClient {
     return this.token;
   }
 
+  getRefreshToken(): string | null {
+    if (!this.refreshToken) {
+      this.refreshToken = localStorage.getItem('yebomart_refresh_token');
+    }
+    return this.refreshToken;
+  }
+
   clearToken() {
     this.token = null;
+    this.refreshToken = null;
     localStorage.removeItem('yebomart_token');
+    localStorage.removeItem('yebomart_refresh_token');
+  }
+
+  // Refresh the access token using refresh token
+  async refreshAccessToken(): Promise<boolean> {
+    const refresh = this.getRefreshToken();
+    if (!refresh) return false;
+
+    try {
+      const response = await fetch(`${API_URL}/api/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken: refresh })
+      });
+      
+      const json = await response.json();
+      if (json.success && json.data?.accessToken) {
+        this.setToken(json.data.accessToken, json.data.refreshToken);
+        return true;
+      }
+    } catch (e) {
+      console.error('Token refresh failed:', e);
+    }
+    return false;
   }
 
   private async request<T>(
@@ -74,6 +111,9 @@ class ApiClient {
     });
     
     if (response.data) {
+      // Store both tokens
+      this.setToken(response.data.accessToken, response.data.refreshToken);
+      
       return {
         data: {
           token: response.data.accessToken,
@@ -109,6 +149,9 @@ class ApiClient {
     });
     
     if (response.data) {
+      // Store both tokens
+      this.setToken(response.data.accessToken, response.data.refreshToken);
+      
       return {
         data: {
           token: response.data.accessToken,
