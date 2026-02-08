@@ -145,7 +145,7 @@ export function Products() {
                     </Badge>
                   </div>
                   <div className="flex gap-2">
-                    <Link to={`/products/${product.id}/edit`} className="flex-1">
+                    <Link to={`/products/${product.id}`} className="flex-1">
                       <Button variant="secondary" size="sm" className="w-full">
                         <PencilIcon className="w-4 h-4" />
                         Edit
