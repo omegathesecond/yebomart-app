@@ -162,7 +162,8 @@ export const useAuthStore = create<AuthState>()(
             shopName: data.shopName,
             ownerName: data.ownerName,
             phone: data.ownerPhone,
-            password: '1234' // Default password, user should change
+            password: '123456', // Default password, user should change
+            assistantName: data.assistantName
           });
           
           if (error || !result) {

@@ -65,10 +65,18 @@ class ApiClient {
     });
   }
 
-  async register(data: { shopName: string; ownerName: string; phone: string; password: string }) {
+  async register(data: { shopName: string; ownerName: string; phone: string; password: string; assistantName?: string }) {
+    // Map to API expected field names
+    const payload = {
+      name: data.shopName,
+      ownerName: data.ownerName,
+      ownerPhone: data.phone.startsWith('+') ? data.phone : `+268${data.phone.replace(/^0/, '')}`,
+      password: data.password,
+      assistantName: data.assistantName,
+    };
     return this.request<{ token: string; user: any; shop: any }>('/api/auth/register', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     });
   }
 
