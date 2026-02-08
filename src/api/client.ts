@@ -77,7 +77,16 @@ class ApiClient {
       return {
         data: {
           token: response.data.accessToken,
-          user: response.data.user || { id: response.data.shop.id, phone, role: 'OWNER' },
+          user: response.data.user || { 
+            id: response.data.shop.id, 
+            shopId: response.data.shop.id,
+            name: response.data.shop.ownerName || '',
+            phone, 
+            pin: '',
+            role: 'owner' as const,
+            isActive: true,
+            createdAt: new Date()
+          },
           shop: response.data.shop,
         }
       };
@@ -103,7 +112,16 @@ class ApiClient {
       return {
         data: {
           token: response.data.accessToken,
-          user: { id: response.data.shop.id, phone: data.phone, role: 'OWNER' },
+          user: { 
+            id: response.data.shop.id, 
+            shopId: response.data.shop.id,
+            name: data.ownerName,
+            phone: data.phone, 
+            pin: '',
+            role: 'owner' as const,
+            isActive: true,
+            createdAt: new Date()
+          },
           shop: response.data.shop,
         }
       };
