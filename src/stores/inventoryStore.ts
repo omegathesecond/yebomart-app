@@ -103,6 +103,8 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
       const sales = (salesData || []).map((s: any) => ({
         ...s,
         createdAt: new Date(s.createdAt),
+        paymentMethod: s.paymentMethod?.toLowerCase() || 'cash',
+        items: s.items || [],
       }));
 
       // Calculate low stock alerts from products
