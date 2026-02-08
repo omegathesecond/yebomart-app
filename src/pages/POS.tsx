@@ -5,20 +5,19 @@ import {
   MinusIcon,
   TrashIcon,
   QrCodeIcon,
-  CreditCardIcon,
   BanknotesIcon,
-  DevicePhoneMobileIcon,
   CheckCircleIcon,
-  LockClosedIcon
+  LockClosedIcon,
+  PrinterIcon,
+  XMarkIcon
 } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
-import { Card } from '@/components/ui/Card';
 import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
 import { useCartStore, useCartTotal } from '@/stores/cartStore';
-import { formatSZL, type PaymentMethod, type Product, PAYMENT_METHODS } from '@/types';
+import { formatSZL, type Product, PAYMENT_METHODS } from '@/types';
 import { BarcodeScanner } from '@/components/scanner/BarcodeScanner';
 import { FeatureGate, FeatureCheck } from '@/components/subscription/FeatureGate';
 import { TIERS } from '@/stores/subscriptionStore';
@@ -26,15 +25,14 @@ import { TIERS } from '@/stores/subscriptionStore';
 export function POS() {
   const { user, shop } = useAuthStore();
   const { products, loadAll, getProductByBarcode } = useInventoryStore();
-  const { items, addItem, removeItem, updateQuantity, setPaymentMethod, checkout, clear, paymentMethod } = useCartStore();
+  const { items, addItem, removeItem, updateQuantity, setPaymentMethod, checkout, clear } = useCartStore();
   const cartTotal = useCartTotal();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [showScanner, setShowScanner] = useState(false);
-  const [showCheckout, setShowCheckout] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [showReceipt, setShowReceipt] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [lastSale, setLastSale] = useState<{ total: number; items: number } | null>(null);
+  const [lastSale, setLastSale] = useState<{ total: number; items: any[]; id: string; date: Date } | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -66,23 +64,47 @@ export function POS() {
       addItem(product);
       setShowScanner(false);
     } else {
-      // Show not found message
       alert(`Product not found: ${barcode}`);
     }
   };
 
-  const handleCheckout = async () => {
+  // Direct checkout with payment method
+  const handlePayment = async (method: 'cash' | 'card' | 'momo' | 'emali') => {
     if (!user || !shop || items.length === 0) return;
     
+    setPaymentMethod(method);
     setIsProcessing(true);
+    
     const sale = await checkout(user.id, shop.id);
     setIsProcessing(false);
     
     if (sale) {
-      setLastSale({ total: sale.totalAmount, items: sale.items.length });
-      setShowCheckout(false);
-      setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 3000);
+      setLastSale({ 
+        total: sale.totalAmount, 
+        items: sale.items,
+        id: sale.id,
+        date: new Date()
+      });
+      setShowReceipt(true);
+    }
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleCloseReceipt = () => {
+    setShowReceipt(false);
+    setLastSale(null);
+  };
+
+  // Handle quantity input change
+  const handleQuantityChange = (productId: string, value: string) => {
+    const qty = parseInt(value) || 0;
+    if (qty <= 0) {
+      removeItem(productId);
+    } else {
+      updateQuantity(productId, qty);
     }
   };
 
@@ -216,16 +238,21 @@ export function POS() {
                     {formatSZL(item.product.sellPrice)} each
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
                   <button
                     onClick={() => updateQuantity(item.productId, item.quantity - 1)}
                     className="p-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300"
                   >
                     <MinusIcon className="w-4 h-4" />
                   </button>
-                  <span className="w-8 text-center font-medium text-white">
-                    {item.quantity}
-                  </span>
+                  <input
+                    type="number"
+                    min="1"
+                    max={item.product.quantity}
+                    value={item.quantity}
+                    onChange={(e) => handleQuantityChange(item.productId, e.target.value)}
+                    className="w-14 text-center font-medium text-white bg-slate-700 border border-slate-600 rounded-lg py-1 px-1 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
                   <button
                     onClick={() => updateQuantity(item.productId, item.quantity + 1)}
                     disabled={item.quantity >= item.product.quantity}
@@ -235,7 +262,7 @@ export function POS() {
                   </button>
                   <button
                     onClick={() => removeItem(item.productId)}
-                    className="p-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400"
+                    className="p-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 ml-1"
                   >
                     <TrashIcon className="w-4 h-4" />
                   </button>
@@ -248,7 +275,7 @@ export function POS() {
           )}
         </div>
 
-        {/* Cart Footer */}
+        {/* Cart Footer - Payment Buttons */}
         {items.length > 0 && (
           <div className="p-4 border-t border-slate-700 space-y-4">
             <div className="flex items-center justify-between">
@@ -257,14 +284,46 @@ export function POS() {
                 {formatSZL(cartTotal)}
               </span>
             </div>
-            <Button 
-              variant="primary" 
-              size="lg"
-              className="w-full"
-              onClick={() => setShowCheckout(true)}
-            >
-              Checkout
-            </Button>
+            
+            {/* Payment Method Buttons */}
+            <div className="grid grid-cols-2 gap-2">
+              <Button 
+                variant="success" 
+                size="lg"
+                className="w-full"
+                onClick={() => handlePayment('cash')}
+                isLoading={isProcessing}
+              >
+                💵 Cash
+              </Button>
+              <Button 
+                variant="primary" 
+                size="lg"
+                className="w-full"
+                onClick={() => handlePayment('card')}
+                isLoading={isProcessing}
+              >
+                💳 Card
+              </Button>
+              <Button 
+                variant="secondary" 
+                size="lg"
+                className="w-full"
+                onClick={() => handlePayment('momo')}
+                isLoading={isProcessing}
+              >
+                📱 MoMo
+              </Button>
+              <Button 
+                variant="secondary" 
+                size="lg"
+                className="w-full"
+                onClick={() => handlePayment('emali')}
+                isLoading={isProcessing}
+              >
+                📲 eMali
+              </Button>
+            </div>
           </div>
         )}
       </div>
@@ -279,81 +338,80 @@ export function POS() {
         )}
       </FeatureGate>
 
-      {/* Checkout Modal */}
+      {/* Receipt Modal */}
       <Modal 
-        isOpen={showCheckout} 
-        onClose={() => setShowCheckout(false)}
-        title="Complete Sale"
+        isOpen={showReceipt} 
+        onClose={handleCloseReceipt}
+        title="Sale Complete!"
         size="md"
       >
         <div className="space-y-6">
-          {/* Order Summary */}
-          <div className="p-4 bg-slate-700/30 rounded-xl">
-            <div className="flex justify-between items-center">
-              <span className="text-slate-400">Items</span>
-              <span className="text-white">{items.length}</span>
-            </div>
-            <div className="flex justify-between items-center mt-2">
-              <span className="text-lg font-semibold text-white">Total</span>
-              <span className="text-2xl font-bold text-amber-400">{formatSZL(cartTotal)}</span>
+          {/* Success Icon */}
+          <div className="flex justify-center">
+            <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center">
+              <CheckCircleIcon className="w-10 h-10 text-green-500" />
             </div>
           </div>
 
-          {/* Payment Method */}
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-3">
-              Payment Method
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              {PAYMENT_METHODS.map((method) => (
-                <button
-                  key={method.value}
-                  onClick={() => setPaymentMethod(method.value)}
-                  className={`p-4 rounded-xl border-2 transition-all ${
-                    paymentMethod === method.value
-                      ? 'border-amber-500 bg-amber-500/10'
-                      : 'border-slate-700 hover:border-slate-600'
-                  }`}
-                >
-                  <span className="text-2xl mb-2 block">{method.icon}</span>
-                  <span className={`font-medium ${
-                    paymentMethod === method.value ? 'text-amber-400' : 'text-white'
-                  }`}>
-                    {method.label}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
+          {/* Receipt Preview */}
+          {lastSale && (
+            <div className="bg-white text-black p-4 rounded-lg font-mono text-sm print:shadow-none" id="receipt">
+              <div className="text-center border-b border-dashed border-gray-300 pb-3 mb-3">
+                <h3 className="font-bold text-lg">{shop?.name || 'YeboMart'}</h3>
+                <p className="text-xs text-gray-500">{shop?.address || ''}</p>
+                <p className="text-xs text-gray-500">Tel: {shop?.ownerPhone || ''}</p>
+              </div>
+              
+              <div className="text-xs text-gray-500 mb-3">
+                <p>Date: {lastSale.date.toLocaleDateString()} {lastSale.date.toLocaleTimeString()}</p>
+                <p>Receipt #: {lastSale.id.slice(-8).toUpperCase()}</p>
+              </div>
 
-          {/* Complete Button */}
-          <Button 
-            variant="success" 
-            size="lg" 
-            className="w-full"
-            onClick={handleCheckout}
-            isLoading={isProcessing}
-          >
-            <CheckCircleIcon className="w-5 h-5" />
-            Complete Sale - {formatSZL(cartTotal)}
-          </Button>
+              <div className="border-b border-dashed border-gray-300 pb-3 mb-3">
+                {lastSale.items.map((item, idx) => (
+                  <div key={idx} className="flex justify-between py-1">
+                    <span className="flex-1">{item.productName}</span>
+                    <span className="w-8 text-center">x{item.quantity}</span>
+                    <span className="w-20 text-right">{formatSZL(item.totalPrice)}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex justify-between font-bold text-lg">
+                <span>TOTAL</span>
+                <span>{formatSZL(lastSale.total)}</span>
+              </div>
+
+              <div className="text-center mt-4 pt-3 border-t border-dashed border-gray-300">
+                <p className="text-xs text-gray-500">Thank you for shopping with us!</p>
+                <p className="text-xs text-gray-400">Powered by YeboMart</p>
+              </div>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex gap-3">
+            <Button 
+              variant="secondary" 
+              size="lg"
+              className="flex-1"
+              onClick={handleCloseReceipt}
+            >
+              <XMarkIcon className="w-5 h-5" />
+              Close
+            </Button>
+            <Button 
+              variant="primary" 
+              size="lg"
+              className="flex-1"
+              onClick={handlePrint}
+            >
+              <PrinterIcon className="w-5 h-5" />
+              Print Receipt
+            </Button>
+          </div>
         </div>
       </Modal>
-
-      {/* Success Toast */}
-      {showSuccess && lastSale && (
-        <div className="toast-success">
-          <div className="flex items-center gap-3">
-            <CheckCircleIcon className="w-6 h-6" />
-            <div>
-              <p className="font-semibold">Sale Complete!</p>
-              <p className="text-sm opacity-90">
-                {lastSale.items} item{lastSale.items > 1 ? 's' : ''} • {formatSZL(lastSale.total)}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
