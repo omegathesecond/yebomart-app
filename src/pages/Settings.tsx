@@ -99,12 +99,18 @@ export function Settings() {
   const { user, shop, subscription, updateShop } = useAuthStore();
   const [activeTab, setActiveTab] = useState('shop');
   const [isSaving, setIsSaving] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   // Form state
   const [shopName, setShopName] = useState(shop?.name || '');
   const [ownerName, setOwnerName] = useState(shop?.ownerName || '');
   const [assistantName, setAssistantName] = useState(shop?.assistantName || 'Yebo');
   const [address, setAddress] = useState(shop?.address || '');
+  
+  const clearError = (field: string) => {
+    if (errors[field]) setErrors({ ...errors, [field]: '' });
+  };
 
   const tabs = [
     { id: 'shop', label: 'Shop', icon: BuildingOfficeIcon },
@@ -115,8 +121,25 @@ export function Settings() {
     { id: 'appearance', label: 'Appearance', icon: PaintBrushIcon }
   ];
 
+  const validateShop = (): boolean => {
+    const newErrors: Record<string, string> = {};
+    
+    if (!shopName.trim()) {
+      newErrors.shopName = 'Shop name is required';
+    }
+    if (!ownerName.trim()) {
+      newErrors.ownerName = 'Owner name is required';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSaveShop = async () => {
+    if (!validateShop()) return;
+    
     setIsSaving(true);
+    setSaveSuccess(false);
     await updateShop({
       name: shopName,
       ownerName,
@@ -124,6 +147,8 @@ export function Settings() {
       address
     });
     setIsSaving(false);
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 3000);
   };
 
   const getPlanBadge = () => {
@@ -173,23 +198,30 @@ export function Settings() {
             <Card>
               <CardHeader title="Shop Information" subtitle="Basic details about your shop" />
               <div className="space-y-4">
+                {saveSuccess && (
+                  <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg text-green-400 text-sm">
+                    Settings saved successfully!
+                  </div>
+                )}
                 <Input
                   label="Shop Name"
                   value={shopName}
-                  onChange={(e) => setShopName(e.target.value)}
+                  onChange={(e) => { setShopName(e.target.value); clearError('shopName'); }}
                   placeholder="My Tuck Shop"
+                  error={errors.shopName}
                 />
                 <Input
                   label="Owner Name"
                   value={ownerName}
-                  onChange={(e) => setOwnerName(e.target.value)}
+                  onChange={(e) => { setOwnerName(e.target.value); clearError('ownerName'); }}
                   placeholder="Your name"
+                  error={errors.ownerName}
                 />
                 <Input
                   label="Address"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
-                  placeholder="Shop location"
+                  placeholder="Shop location (optional)"
                 />
                 <Button onClick={handleSaveShop} isLoading={isSaving}>
                   Save Changes

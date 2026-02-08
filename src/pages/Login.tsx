@@ -13,11 +13,34 @@ export function Login() {
   const [pin, setPin] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  const validate = (): boolean => {
+    const errors: Record<string, string> = {};
+    
+    if (!phone.trim()) {
+      errors.phone = 'Phone number is required';
+    } else if (phone.length < 7) {
+      errors.phone = 'Enter a valid phone number';
+    }
+    
+    if (!pin) {
+      errors.pin = 'PIN is required';
+    } else if (pin.length < 4) {
+      errors.pin = 'PIN must be at least 4 characters';
+    }
+    
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setError('');
+    
+    if (!validate()) return;
+    
+    setIsLoading(true);
 
     try {
       const success = await login(phone, pin);
@@ -60,21 +83,27 @@ export function Login() {
               label="Phone Number"
               type="tel"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={(e) => {
+                setPhone(e.target.value);
+                if (fieldErrors.phone) setFieldErrors({ ...fieldErrors, phone: '' });
+              }}
               placeholder="+268 7xxx xxxx"
               leftIcon={<PhoneIcon className="w-5 h-5" />}
-              required
+              error={fieldErrors.phone}
             />
 
             <Input
               label="PIN"
               type="password"
               value={pin}
-              onChange={(e) => setPin(e.target.value)}
+              onChange={(e) => {
+                setPin(e.target.value);
+                if (fieldErrors.pin) setFieldErrors({ ...fieldErrors, pin: '' });
+              }}
               placeholder="••••"
               leftIcon={<KeyIcon className="w-5 h-5" />}
               maxLength={6}
-              required
+              error={fieldErrors.pin}
             />
 
             {error && (

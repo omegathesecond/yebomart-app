@@ -38,6 +38,7 @@ export function Stock() {
   const [receiveNote, setReceiveNote] = useState('');
   const [isReceiving, setIsReceiving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [receiveErrors, setReceiveErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (shop) {
@@ -65,9 +66,26 @@ export function Stock() {
     setProductHistory([]);
   };
 
+  // Receive stock validation
+  const validateReceive = (): boolean => {
+    const errors: Record<string, string> = {};
+    
+    if (!receiveProduct) {
+      errors.product = 'Please select a product';
+    }
+    if (!receiveQty) {
+      errors.quantity = 'Quantity is required';
+    } else if (parseInt(receiveQty) <= 0) {
+      errors.quantity = 'Quantity must be greater than 0';
+    }
+    
+    setReceiveErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   // Receive stock handler
   const handleReceiveStock = async () => {
-    if (!receiveProduct || !receiveQty || parseInt(receiveQty) <= 0) return;
+    if (!validateReceive()) return;
     
     setIsReceiving(true);
     try {
@@ -76,6 +94,7 @@ export function Stock() {
       setReceiveProduct('');
       setReceiveQty('');
       setReceiveNote('');
+      setReceiveErrors({});
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 2000);
       
@@ -351,7 +370,7 @@ export function Stock() {
       {/* Receive Stock Modal */}
       <Modal
         isOpen={showReceive}
-        onClose={() => setShowReceive(false)}
+        onClose={() => { setShowReceive(false); setReceiveErrors({}); }}
         title="Receive Stock"
         size="md"
       >
@@ -362,8 +381,10 @@ export function Stock() {
             </label>
             <select
               value={receiveProduct}
-              onChange={(e) => setReceiveProduct(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+              onChange={(e) => { setReceiveProduct(e.target.value); if (receiveErrors.product) setReceiveErrors({...receiveErrors, product: ''}); }}
+              className={`w-full px-4 py-3 bg-slate-700 border rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500 ${
+                receiveErrors.product ? 'border-red-500' : 'border-slate-600'
+              }`}
             >
               <option value="">Choose a product...</option>
               {products.map(p => (
@@ -372,6 +393,9 @@ export function Stock() {
                 </option>
               ))}
             </select>
+            {receiveErrors.product && (
+              <p className="text-red-400 text-sm mt-1">{receiveErrors.product}</p>
+            )}
           </div>
           
           <div>
@@ -382,10 +406,15 @@ export function Stock() {
               type="number"
               min="1"
               value={receiveQty}
-              onChange={(e) => setReceiveQty(e.target.value)}
+              onChange={(e) => { setReceiveQty(e.target.value); if (receiveErrors.quantity) setReceiveErrors({...receiveErrors, quantity: ''}); }}
               placeholder="Enter quantity"
-              className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className={`w-full px-4 py-3 bg-slate-700 border rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500 ${
+                receiveErrors.quantity ? 'border-red-500' : 'border-slate-600'
+              }`}
             />
+            {receiveErrors.quantity && (
+              <p className="text-red-400 text-sm mt-1">{receiveErrors.quantity}</p>
+            )}
           </div>
           
           <div>
@@ -405,7 +434,7 @@ export function Stock() {
             <Button
               variant="secondary"
               className="flex-1"
-              onClick={() => setShowReceive(false)}
+              onClick={() => { setShowReceive(false); setReceiveErrors({}); }}
             >
               Cancel
             </Button>
@@ -414,7 +443,6 @@ export function Stock() {
               className="flex-1"
               onClick={handleReceiveStock}
               isLoading={isReceiving}
-              disabled={!receiveProduct || !receiveQty}
             >
               <ArrowDownTrayIcon className="w-5 h-5" />
               Receive Stock

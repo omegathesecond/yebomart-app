@@ -32,11 +32,50 @@ export function Onboarding() {
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  const validate = (): boolean => {
+    const errors: Record<string, string> = {};
+    
+    if (!shopName.trim()) {
+      errors.shopName = 'Shop name is required';
+    } else if (shopName.trim().length < 2) {
+      errors.shopName = 'Shop name must be at least 2 characters';
+    }
+    
+    if (!ownerName.trim()) {
+      errors.ownerName = 'Your name is required';
+    }
+    
+    if (!ownerPhone.trim()) {
+      errors.ownerPhone = 'Phone number is required';
+    } else if (ownerPhone.length < 7) {
+      errors.ownerPhone = 'Enter a valid phone number';
+    }
+    
+    if (!pin) {
+      errors.pin = 'PIN is required';
+    } else if (!/^\d{6}$/.test(pin)) {
+      errors.pin = 'PIN must be exactly 6 digits';
+    }
+    
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const clearFieldError = (field: string) => {
+    if (fieldErrors[field]) {
+      setFieldErrors({ ...fieldErrors, [field]: '' });
+    }
+  };
 
   const handleSetup = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setError('');
+    
+    if (!validate()) return;
+    
+    setIsLoading(true);
 
     try {
       const result = await setupShop({
@@ -242,42 +281,40 @@ export function Onboarding() {
             <Input
               label="Shop Name"
               value={shopName}
-              onChange={(e) => setShopName(e.target.value)}
+              onChange={(e) => { setShopName(e.target.value); clearFieldError('shopName'); }}
               placeholder="e.g., Thandi's Tuck Shop"
-              required
+              error={fieldErrors.shopName}
             />
 
             <Input
               label="Your Name"
               value={ownerName}
-              onChange={(e) => setOwnerName(e.target.value)}
+              onChange={(e) => { setOwnerName(e.target.value); clearFieldError('ownerName'); }}
               placeholder="Your full name"
               leftIcon={<UserPlusIcon className="w-5 h-5" />}
-              required
+              error={fieldErrors.ownerName}
             />
 
             <Input
               label="WhatsApp Number"
               type="tel"
               value={ownerPhone}
-              onChange={(e) => setOwnerPhone(e.target.value)}
+              onChange={(e) => { setOwnerPhone(e.target.value); clearFieldError('ownerPhone'); }}
               placeholder="+268 7xxx xxxx"
               leftIcon={<PhoneIcon className="w-5 h-5" />}
-              hint="We'll send daily reports here"
-              required
+              hint={!fieldErrors.ownerPhone ? "We'll send daily reports here" : undefined}
+              error={fieldErrors.ownerPhone}
             />
 
             <Input
               label="Create PIN"
               type="password"
               value={pin}
-              onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              onChange={(e) => { setPin(e.target.value.replace(/\D/g, '').slice(0, 6)); clearFieldError('pin'); }}
               placeholder="6-digit PIN"
-              hint="You'll use this to login"
-              required
-              minLength={6}
+              hint={!fieldErrors.pin ? "You'll use this to login" : undefined}
               maxLength={6}
-              pattern="[0-9]{6}"
+              error={fieldErrors.pin}
             />
 
             <Input
@@ -285,7 +322,7 @@ export function Onboarding() {
               value={assistantName}
               onChange={(e) => setAssistantName(e.target.value)}
               placeholder="Yebo"
-              hint="Give your shop's AI a name"
+              hint="Give your shop's AI a name (optional)"
             />
 
             {error && (
