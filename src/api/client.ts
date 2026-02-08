@@ -59,10 +59,22 @@ class ApiClient {
 
   // Auth
   async login(phone: string, password: string) {
-    return this.request<{ token: string; user: any; shop: any }>('/api/auth/login', {
+    const response = await this.request<{ accessToken: string; refreshToken: string; shop: any; user?: any }>('/api/auth/login', {
       method: 'POST',
       body: JSON.stringify({ phone, password }),
     });
+    
+    // Normalize response to expected format
+    if (response.data) {
+      return {
+        data: {
+          token: response.data.accessToken,
+          user: response.data.user || { id: response.data.shop.id, phone, role: 'OWNER' },
+          shop: response.data.shop,
+        }
+      };
+    }
+    return response as any;
   }
 
   async register(data: { shopName: string; ownerName: string; phone: string; password: string; assistantName?: string }) {
@@ -74,10 +86,22 @@ class ApiClient {
       password: data.password,
       assistantName: data.assistantName,
     };
-    return this.request<{ token: string; user: any; shop: any }>('/api/auth/register', {
+    const response = await this.request<{ accessToken: string; refreshToken: string; shop: any }>('/api/auth/register', {
       method: 'POST',
       body: JSON.stringify(payload),
     });
+    
+    // Normalize response to expected format
+    if (response.data) {
+      return {
+        data: {
+          token: response.data.accessToken,
+          user: { id: response.data.shop.id, phone: data.phone, role: 'OWNER' },
+          shop: response.data.shop,
+        }
+      };
+    }
+    return response as any;
   }
 
   // Products
