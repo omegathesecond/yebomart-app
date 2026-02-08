@@ -10,6 +10,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { useAuthStore } from '@/stores/authStore';
 import api from '@/api/client';
+import { getSmartErrorResponse } from '@/utils/errorMessages';
 
 interface Message {
   id: string;
@@ -72,21 +73,34 @@ export function AIChat() {
     try {
       const { data, error } = await api.chat(messageText);
       
+      let responseContent: string;
+      if (error) {
+        // Use smart error processor for helpful responses
+        responseContent = getSmartErrorResponse(error, {
+          shopName: shop?.name,
+          assistantName: shop?.assistantName
+        });
+      } else {
+        responseContent = data?.response || 'I understand. Is there anything else you need help with?';
+      }
+      
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: error 
-          ? 'Sorry, I had trouble processing that. Please try again.'
-          : data?.response || 'I understand. Is there anything else you need help with?',
+        content: responseContent,
         timestamp: new Date()
       };
 
       setMessages(prev => [...prev, assistantMessage]);
     } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Network error';
       setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: 'Sorry, something went wrong. Please try again.',
+        content: getSmartErrorResponse(errorMessage, {
+          shopName: shop?.name,
+          assistantName: shop?.assistantName
+        }),
         timestamp: new Date()
       }]);
     } finally {
