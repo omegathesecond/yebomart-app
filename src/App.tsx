@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/authStore';
 import { Layout } from '@/components/layout/Layout';
+import { InitialSync } from '@/components/InitialSync';
 import { Onboarding } from '@/pages/Onboarding';
 import { Login } from '@/pages/Login';
 import { Dashboard } from '@/pages/Dashboard';
@@ -82,7 +83,9 @@ function AppRoutes() {
         path="/"
         element={
           <ProtectedRoute>
-            <Layout />
+            <InitialSync>
+              <Layout />
+            </InitialSync>
           </ProtectedRoute>
         }
       >
