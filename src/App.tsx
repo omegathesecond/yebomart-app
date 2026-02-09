@@ -15,6 +15,7 @@ import { Settings } from '@/pages/Settings';
 import { AIChat } from '@/pages/AIChat';
 import { Reports } from '@/pages/Reports';
 import { Staff } from '@/pages/Staff';
+import { StaffDetail } from '@/pages/StaffDetail';
 import './index.css';
 
 const queryClient = new QueryClient({
@@ -94,6 +95,7 @@ function AppRoutes() {
         <Route path="sales" element={<Sales />} />
         <Route path="reports" element={<Reports />} />
         <Route path="staff" element={<Staff />} />
+        <Route path="staff/:id" element={<StaffDetail />} />
         <Route path="assistant" element={<AIChat />} />
         <Route path="settings" element={<Settings />} />
       </Route>

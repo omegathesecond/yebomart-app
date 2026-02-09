@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   UserPlusIcon,
   PencilIcon,
   TrashIcon,
   UserCircleIcon,
   PhoneIcon,
-  ShieldCheckIcon
+  ShieldCheckIcon,
+  ChartBarIcon
 } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -17,6 +19,7 @@ import { useInventoryStore } from '@/stores/inventoryStore';
 import type { User } from '@/types';
 
 export function Staff() {
+  const navigate = useNavigate();
   const { shop } = useAuthStore();
   const { staff, loadAll, addStaff, updateStaff, deleteStaff } = useInventoryStore();
   
@@ -186,13 +189,20 @@ export function Staff() {
             
             <div className="flex gap-2 mt-4 pt-4 border-t border-slate-700">
               <Button
-                variant="secondary"
+                variant="primary"
                 size="sm"
                 className="flex-1"
+                onClick={() => navigate(`/staff/${member.id}`)}
+              >
+                <ChartBarIcon className="w-4 h-4" />
+                Stats
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={() => openEditModal(member)}
               >
                 <PencilIcon className="w-4 h-4" />
-                Edit
               </Button>
               {member.role !== 'owner' && (
                 <Button

@@ -318,6 +318,10 @@ class ApiClient {
     return result;
   }
 
+  async getStaffDetail(userId: string, days: number = 30) {
+    return this.request<any>(`/api/users/${userId}/detail?days=${days}`);
+  }
+
   async createStaff(data: { name: string; phone: string; pin: string; role: string }) {
     return this.request<any>('/api/users', {
       method: 'POST',
