@@ -1,13 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeftIcon, QrCodeIcon, CheckIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, QrCodeIcon, CheckIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/Button';
 import { Input, Select, Textarea } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 import { BarcodeScanner } from '@/components/scanner/BarcodeScanner';
 import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
-import { getDefaultCategories } from '@/data/shopTypes';
+import { getDefaultCategories, getCategoryAttributes, hasAttributes, type AttributeField } from '@/data/shopTypes';
 
 export function ProductForm() {
   const navigate = useNavigate();
@@ -34,6 +34,13 @@ export function ProductForm() {
   });
   
   const [errors, setErrors] = useState<Record<string, string>>({});
+  
+  // Dynamic attributes state
+  const [attributes, setAttributes] = useState<Record<string, string>>({});
+  const [customAttributes, setCustomAttributes] = useState<Array<{ key: string; value: string }>>([]);
+  const [showAddCustom, setShowAddCustom] = useState(false);
+  const [newCustomKey, setNewCustomKey] = useState('');
+  const [newCustomValue, setNewCustomValue] = useState('');
 
   // Get products from store
   const { products } = useInventoryStore();
@@ -42,6 +49,11 @@ export function ProductForm() {
   const categories = useMemo(() => {
     return shop?.businessType ? getDefaultCategories(shop.businessType) : getDefaultCategories('general');
   }, [shop?.businessType]);
+  
+  // Get attribute fields for the selected category
+  const categoryAttributeFields = useMemo(() => {
+    return formData.category ? getCategoryAttributes(formData.category) : [];
+  }, [formData.category]);
 
   // Load product data if editing (from store)
   useEffect(() => {
@@ -60,9 +72,37 @@ export function ProductForm() {
           packSize: product.packSize?.toString() || '',
           packPrice: product.packPrice?.toString() || ''
         });
+        
+        // Load existing attributes
+        if (product.attributes) {
+          const definedFields = getCategoryAttributes(product.category || '');
+          const definedKeys = definedFields.map(f => f.key);
+          
+          // Separate defined attributes from custom ones
+          const defined: Record<string, string> = {};
+          const custom: Array<{ key: string; value: string }> = [];
+          
+          Object.entries(product.attributes).forEach(([key, value]) => {
+            if (definedKeys.includes(key)) {
+              defined[key] = String(value);
+            } else {
+              custom.push({ key, value: String(value) });
+            }
+          });
+          
+          setAttributes(defined);
+          setCustomAttributes(custom);
+        }
       }
     }
   }, [isEdit, id, products]);
+  
+  // Reset attributes when category changes (but keep custom ones)
+  useEffect(() => {
+    if (!isEdit) {
+      setAttributes({});
+    }
+  }, [formData.category, isEdit]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -108,11 +148,20 @@ export function ProductForm() {
     setIsSaving(true);
     
     try {
+      // Combine defined attributes and custom attributes
+      const allAttributes: Record<string, string | number> = { ...attributes };
+      customAttributes.forEach(attr => {
+        if (attr.key && attr.value) {
+          allAttributes[attr.key] = attr.value;
+        }
+      });
+      
       const productData = {
         shopId: shop.id,
         name: formData.name.trim(),
         category: formData.category || undefined,
         barcode: formData.barcode || undefined,
+        attributes: Object.keys(allAttributes).length > 0 ? allAttributes : undefined,
         costPrice: parseFloat(formData.costPrice),
         sellPrice: parseFloat(formData.sellPrice),
         quantity: parseInt(formData.quantity),
@@ -190,6 +239,102 @@ export function ProductForm() {
                 ...categories.map(cat => ({ value: cat, label: cat }))
               ]}
             />
+            
+            {/* Dynamic Attributes based on Category */}
+            {formData.category && categoryAttributeFields.length > 0 && (
+              <div className="p-4 bg-slate-700/30 rounded-xl space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-medium text-amber-400">
+                    📋 {formData.category} Details
+                  </h4>
+                  <span className="text-xs text-slate-500">Optional</span>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  {categoryAttributeFields.map((field) => (
+                    <div key={field.key}>
+                      <label className="block text-xs font-medium text-slate-400 mb-1">
+                        {field.label} {field.unit && <span className="text-slate-500">({field.unit})</span>}
+                      </label>
+                      {field.type === 'select' && field.options ? (
+                        <select
+                          value={attributes[field.key] || ''}
+                          onChange={(e) => setAttributes(prev => ({ ...prev, [field.key]: e.target.value }))}
+                          className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        >
+                          <option value="">Select...</option>
+                          {field.options.map(opt => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          type={field.type}
+                          value={attributes[field.key] || ''}
+                          onChange={(e) => setAttributes(prev => ({ ...prev, [field.key]: e.target.value }))}
+                          placeholder={field.placeholder}
+                          className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {/* Custom Attributes */}
+            {formData.category && (
+              <div className="space-y-3">
+                {customAttributes.map((attr, idx) => (
+                  <div key={idx} className="flex gap-2 items-end">
+                    <div className="flex-1">
+                      <label className="block text-xs text-slate-400 mb-1">Attribute</label>
+                      <input
+                        type="text"
+                        value={attr.key}
+                        onChange={(e) => {
+                          const updated = [...customAttributes];
+                          updated[idx].key = e.target.value;
+                          setCustomAttributes(updated);
+                        }}
+                        placeholder="e.g., Color"
+                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-xs text-slate-400 mb-1">Value</label>
+                      <input
+                        type="text"
+                        value={attr.value}
+                        onChange={(e) => {
+                          const updated = [...customAttributes];
+                          updated[idx].value = e.target.value;
+                          setCustomAttributes(updated);
+                        }}
+                        placeholder="e.g., Black"
+                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setCustomAttributes(prev => prev.filter((_, i) => i !== idx))}
+                      className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg"
+                    >
+                      <XMarkIcon className="w-5 h-5" />
+                    </button>
+                  </div>
+                ))}
+                
+                <button
+                  type="button"
+                  onClick={() => setCustomAttributes(prev => [...prev, { key: '', value: '' }])}
+                  className="flex items-center gap-2 text-sm text-amber-400 hover:text-amber-300"
+                >
+                  <PlusIcon className="w-4 h-4" />
+                  Add custom attribute
+                </button>
+              </div>
+            )}
             
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-1.5">

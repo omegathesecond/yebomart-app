@@ -47,6 +47,7 @@ export interface Product {
   barcode?: string;
   name: string;
   category?: string;
+  attributes?: Record<string, string | number>;  // Dynamic product attributes
   costPrice: number;
   sellPrice: number;
   quantity: number;

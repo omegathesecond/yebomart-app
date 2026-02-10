@@ -1116,3 +1116,311 @@ export const shopTypeSectors = [
     types: ['general']
   }
 ];
+
+// ==================== CATEGORY ATTRIBUTES ====================
+// Define suggested attributes for product categories
+// These are optional - users can skip or add custom ones
+
+export interface AttributeField {
+  key: string;
+  label: string;
+  type: 'text' | 'number' | 'select';
+  placeholder?: string;
+  options?: string[];  // For select type
+  unit?: string;       // e.g., "mm", "%", "V"
+}
+
+export const categoryAttributes: Record<string, AttributeField[]> = {
+  // ==================== TYRE SHOP ====================
+  'New Tyres - Car': [
+    { key: 'size', label: 'Tyre Size', type: 'text', placeholder: '205/55R16' },
+    { key: 'brand', label: 'Brand', type: 'text', placeholder: 'Goodyear' },
+    { key: 'speedRating', label: 'Speed Rating', type: 'select', options: ['H', 'T', 'V', 'W', 'Y', 'Z'] },
+    { key: 'loadIndex', label: 'Load Index', type: 'number', placeholder: '91' },
+    { key: 'season', label: 'Season', type: 'select', options: ['All Season', 'Summer', 'Winter'] },
+  ],
+  'New Tyres - SUV/4x4': [
+    { key: 'size', label: 'Tyre Size', type: 'text', placeholder: '265/70R16' },
+    { key: 'brand', label: 'Brand', type: 'text' },
+    { key: 'terrain', label: 'Terrain', type: 'select', options: ['All Terrain', 'Mud Terrain', 'Highway'] },
+    { key: 'loadIndex', label: 'Load Index', type: 'number' },
+  ],
+  'New Tyres - Truck': [
+    { key: 'size', label: 'Tyre Size', type: 'text', placeholder: '315/80R22.5' },
+    { key: 'brand', label: 'Brand', type: 'text' },
+    { key: 'position', label: 'Position', type: 'select', options: ['Steer', 'Drive', 'Trailer', 'All Position'] },
+    { key: 'plyRating', label: 'Ply Rating', type: 'text' },
+  ],
+  'New Tyres - Motorcycle': [
+    { key: 'size', label: 'Tyre Size', type: 'text', placeholder: '120/70ZR17' },
+    { key: 'brand', label: 'Brand', type: 'text' },
+    { key: 'position', label: 'Position', type: 'select', options: ['Front', 'Rear'] },
+  ],
+  'Used Tyres': [
+    { key: 'size', label: 'Tyre Size', type: 'text', placeholder: '205/55R16' },
+    { key: 'brand', label: 'Brand', type: 'text' },
+    { key: 'treadPercent', label: 'Tread Remaining', type: 'number', unit: '%', placeholder: '70' },
+    { key: 'condition', label: 'Condition', type: 'select', options: ['Excellent', 'Good', 'Fair'] },
+  ],
+  'Rims & Mags': [
+    { key: 'size', label: 'Rim Size', type: 'text', placeholder: '17 inch' },
+    { key: 'pcd', label: 'PCD', type: 'text', placeholder: '5x114.3' },
+    { key: 'width', label: 'Width', type: 'text', placeholder: '7J' },
+    { key: 'offset', label: 'Offset (ET)', type: 'number' },
+    { key: 'material', label: 'Material', type: 'select', options: ['Alloy', 'Steel', 'Chrome'] },
+  ],
+  'Batteries': [
+    { key: 'voltage', label: 'Voltage', type: 'select', options: ['12V', '24V'] },
+    { key: 'ampHours', label: 'Amp Hours (Ah)', type: 'number', placeholder: '60' },
+    { key: 'cca', label: 'Cold Cranking Amps', type: 'number', placeholder: '540' },
+    { key: 'brand', label: 'Brand', type: 'text' },
+    { key: 'warranty', label: 'Warranty', type: 'text', placeholder: '2 years' },
+  ],
+  
+  // ==================== AUTO PARTS ====================
+  'Engine Parts': [
+    { key: 'partNumber', label: 'Part Number', type: 'text' },
+    { key: 'brand', label: 'Brand', type: 'text' },
+    { key: 'compatibility', label: 'Fits (Make/Model)', type: 'text', placeholder: 'Toyota Corolla 2015-2020' },
+    { key: 'oem', label: 'OEM/Aftermarket', type: 'select', options: ['OEM', 'Aftermarket'] },
+  ],
+  'Filters - Oil': [
+    { key: 'partNumber', label: 'Part Number', type: 'text' },
+    { key: 'brand', label: 'Brand', type: 'text' },
+    { key: 'compatibility', label: 'Fits', type: 'text' },
+  ],
+  'Filters - Air': [
+    { key: 'partNumber', label: 'Part Number', type: 'text' },
+    { key: 'brand', label: 'Brand', type: 'text' },
+    { key: 'compatibility', label: 'Fits', type: 'text' },
+  ],
+  'Oils & Lubricants': [
+    { key: 'viscosity', label: 'Viscosity', type: 'text', placeholder: '5W-30' },
+    { key: 'brand', label: 'Brand', type: 'text' },
+    { key: 'volume', label: 'Volume', type: 'text', placeholder: '5L' },
+    { key: 'type', label: 'Type', type: 'select', options: ['Synthetic', 'Semi-Synthetic', 'Mineral'] },
+  ],
+
+  // ==================== ELECTRONICS ====================
+  'Smartphones': [
+    { key: 'brand', label: 'Brand', type: 'text', placeholder: 'Samsung' },
+    { key: 'model', label: 'Model', type: 'text', placeholder: 'Galaxy A54' },
+    { key: 'storage', label: 'Storage', type: 'select', options: ['32GB', '64GB', '128GB', '256GB', '512GB'] },
+    { key: 'ram', label: 'RAM', type: 'select', options: ['2GB', '4GB', '6GB', '8GB', '12GB'] },
+    { key: 'color', label: 'Color', type: 'text' },
+    { key: 'warranty', label: 'Warranty', type: 'text' },
+  ],
+  'Feature Phones': [
+    { key: 'brand', label: 'Brand', type: 'text' },
+    { key: 'model', label: 'Model', type: 'text' },
+    { key: 'color', label: 'Color', type: 'text' },
+  ],
+  'Laptops': [
+    { key: 'brand', label: 'Brand', type: 'text' },
+    { key: 'model', label: 'Model', type: 'text' },
+    { key: 'processor', label: 'Processor', type: 'text', placeholder: 'Intel i5' },
+    { key: 'ram', label: 'RAM', type: 'text', placeholder: '8GB' },
+    { key: 'storage', label: 'Storage', type: 'text', placeholder: '256GB SSD' },
+    { key: 'screenSize', label: 'Screen Size', type: 'text', placeholder: '15.6"' },
+  ],
+  'TVs & Audio': [
+    { key: 'brand', label: 'Brand', type: 'text' },
+    { key: 'model', label: 'Model', type: 'text' },
+    { key: 'screenSize', label: 'Screen Size', type: 'text', placeholder: '55"' },
+    { key: 'resolution', label: 'Resolution', type: 'select', options: ['HD', 'Full HD', '4K UHD', '8K'] },
+    { key: 'smartTv', label: 'Smart TV', type: 'select', options: ['Yes', 'No'] },
+  ],
+
+  // ==================== CLOTHING & FASHION ====================
+  "Men's Wear": [
+    { key: 'size', label: 'Size', type: 'select', options: ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'] },
+    { key: 'color', label: 'Color', type: 'text' },
+    { key: 'material', label: 'Material', type: 'text', placeholder: 'Cotton' },
+    { key: 'brand', label: 'Brand', type: 'text' },
+  ],
+  "Women's Wear": [
+    { key: 'size', label: 'Size', type: 'select', options: ['XS', 'S', 'M', 'L', 'XL', 'XXL'] },
+    { key: 'color', label: 'Color', type: 'text' },
+    { key: 'material', label: 'Material', type: 'text' },
+    { key: 'brand', label: 'Brand', type: 'text' },
+  ],
+  "Kids' Wear": [
+    { key: 'age', label: 'Age Range', type: 'text', placeholder: '3-4 years' },
+    { key: 'size', label: 'Size', type: 'text' },
+    { key: 'color', label: 'Color', type: 'text' },
+    { key: 'gender', label: 'Gender', type: 'select', options: ['Boys', 'Girls', 'Unisex'] },
+  ],
+  'Shoes - Men': [
+    { key: 'size', label: 'Size (UK)', type: 'number', placeholder: '9' },
+    { key: 'color', label: 'Color', type: 'text' },
+    { key: 'brand', label: 'Brand', type: 'text' },
+    { key: 'material', label: 'Material', type: 'select', options: ['Leather', 'Canvas', 'Synthetic', 'Suede'] },
+  ],
+  'Shoes - Women': [
+    { key: 'size', label: 'Size (UK)', type: 'number', placeholder: '6' },
+    { key: 'color', label: 'Color', type: 'text' },
+    { key: 'brand', label: 'Brand', type: 'text' },
+    { key: 'heelHeight', label: 'Heel Height', type: 'select', options: ['Flat', 'Low', 'Medium', 'High'] },
+  ],
+  'Sneakers': [
+    { key: 'size', label: 'Size (UK)', type: 'number' },
+    { key: 'color', label: 'Color', type: 'text' },
+    { key: 'brand', label: 'Brand', type: 'text' },
+  ],
+
+  // ==================== PHARMACY ====================
+  'Prescription Medicines': [
+    { key: 'activeIngredient', label: 'Active Ingredient', type: 'text' },
+    { key: 'dosage', label: 'Dosage', type: 'text', placeholder: '500mg' },
+    { key: 'quantity', label: 'Pack Size', type: 'text', placeholder: '30 tablets' },
+    { key: 'manufacturer', label: 'Manufacturer', type: 'text' },
+  ],
+  'Over-the-Counter': [
+    { key: 'activeIngredient', label: 'Active Ingredient', type: 'text' },
+    { key: 'dosage', label: 'Dosage', type: 'text' },
+    { key: 'quantity', label: 'Pack Size', type: 'text' },
+  ],
+  'Vitamins & Supplements': [
+    { key: 'type', label: 'Type', type: 'text', placeholder: 'Vitamin C' },
+    { key: 'dosage', label: 'Dosage', type: 'text', placeholder: '1000mg' },
+    { key: 'quantity', label: 'Pack Size', type: 'text', placeholder: '60 capsules' },
+    { key: 'brand', label: 'Brand', type: 'text' },
+  ],
+
+  // ==================== BEAUTY & COSMETICS ====================
+  'Makeup - Face': [
+    { key: 'brand', label: 'Brand', type: 'text' },
+    { key: 'shade', label: 'Shade', type: 'text' },
+    { key: 'skinType', label: 'Skin Type', type: 'select', options: ['All', 'Oily', 'Dry', 'Combination'] },
+  ],
+  'Makeup - Eyes': [
+    { key: 'brand', label: 'Brand', type: 'text' },
+    { key: 'shade', label: 'Shade/Color', type: 'text' },
+    { key: 'type', label: 'Type', type: 'text' },
+  ],
+  'Makeup - Lips': [
+    { key: 'brand', label: 'Brand', type: 'text' },
+    { key: 'shade', label: 'Shade', type: 'text' },
+    { key: 'finish', label: 'Finish', type: 'select', options: ['Matte', 'Glossy', 'Satin', 'Shimmer'] },
+  ],
+  'Fragrances - Women': [
+    { key: 'brand', label: 'Brand', type: 'text' },
+    { key: 'name', label: 'Fragrance Name', type: 'text' },
+    { key: 'volume', label: 'Volume', type: 'text', placeholder: '100ml' },
+    { key: 'type', label: 'Type', type: 'select', options: ['EDP', 'EDT', 'Parfum', 'Body Mist'] },
+  ],
+  'Fragrances - Men': [
+    { key: 'brand', label: 'Brand', type: 'text' },
+    { key: 'name', label: 'Fragrance Name', type: 'text' },
+    { key: 'volume', label: 'Volume', type: 'text', placeholder: '100ml' },
+    { key: 'type', label: 'Type', type: 'select', options: ['EDP', 'EDT', 'Parfum', 'Cologne'] },
+  ],
+  'Hair Care': [
+    { key: 'brand', label: 'Brand', type: 'text' },
+    { key: 'hairType', label: 'Hair Type', type: 'select', options: ['All', 'Natural', 'Relaxed', 'Color-Treated'] },
+    { key: 'volume', label: 'Volume', type: 'text' },
+  ],
+  'Wigs': [
+    { key: 'length', label: 'Length', type: 'select', options: ['Short', 'Medium', 'Long', 'Extra Long'] },
+    { key: 'style', label: 'Style', type: 'text' },
+    { key: 'material', label: 'Material', type: 'select', options: ['Human Hair', 'Synthetic', 'Blend'] },
+    { key: 'color', label: 'Color', type: 'text' },
+    { key: 'capSize', label: 'Cap Size', type: 'select', options: ['Small', 'Medium', 'Large'] },
+  ],
+  'Hair Extensions': [
+    { key: 'length', label: 'Length', type: 'text', placeholder: '18 inches' },
+    { key: 'material', label: 'Material', type: 'select', options: ['Human Hair', 'Synthetic', 'Blend'] },
+    { key: 'color', label: 'Color', type: 'text' },
+    { key: 'texture', label: 'Texture', type: 'select', options: ['Straight', 'Wavy', 'Curly', 'Kinky'] },
+  ],
+
+  // ==================== FURNITURE ====================
+  'Living Room': [
+    { key: 'dimensions', label: 'Dimensions (L×W×H)', type: 'text', placeholder: '200×80×45 cm' },
+    { key: 'material', label: 'Material', type: 'text' },
+    { key: 'color', label: 'Color', type: 'text' },
+    { key: 'seating', label: 'Seating Capacity', type: 'number' },
+  ],
+  'Bedroom': [
+    { key: 'dimensions', label: 'Dimensions', type: 'text' },
+    { key: 'material', label: 'Material', type: 'text' },
+    { key: 'color', label: 'Color', type: 'text' },
+  ],
+  'Mattresses': [
+    { key: 'size', label: 'Size', type: 'select', options: ['Single', 'Three-Quarter', 'Double', 'Queen', 'King'] },
+    { key: 'thickness', label: 'Thickness', type: 'text', placeholder: '25cm' },
+    { key: 'type', label: 'Type', type: 'select', options: ['Foam', 'Spring', 'Memory Foam', 'Hybrid'] },
+    { key: 'firmness', label: 'Firmness', type: 'select', options: ['Soft', 'Medium', 'Firm', 'Extra Firm'] },
+  ],
+
+  // ==================== HARDWARE ====================
+  'Power Tools': [
+    { key: 'brand', label: 'Brand', type: 'text' },
+    { key: 'power', label: 'Power', type: 'text', placeholder: '750W' },
+    { key: 'voltage', label: 'Voltage', type: 'select', options: ['220V', 'Battery'] },
+    { key: 'warranty', label: 'Warranty', type: 'text' },
+  ],
+  'Paint & Supplies': [
+    { key: 'color', label: 'Color', type: 'text' },
+    { key: 'finish', label: 'Finish', type: 'select', options: ['Matte', 'Satin', 'Semi-Gloss', 'Gloss'] },
+    { key: 'volume', label: 'Volume', type: 'text', placeholder: '5L' },
+    { key: 'brand', label: 'Brand', type: 'text' },
+  ],
+
+  // ==================== JEWELLERY ====================
+  'Rings - Gold': [
+    { key: 'karat', label: 'Karat', type: 'select', options: ['9K', '14K', '18K', '22K', '24K'] },
+    { key: 'size', label: 'Ring Size', type: 'text' },
+    { key: 'weight', label: 'Weight (grams)', type: 'number' },
+    { key: 'stone', label: 'Stone', type: 'text' },
+  ],
+  'Rings - Silver': [
+    { key: 'purity', label: 'Purity', type: 'select', options: ['925 Sterling', '950', '999'] },
+    { key: 'size', label: 'Ring Size', type: 'text' },
+    { key: 'stone', label: 'Stone', type: 'text' },
+  ],
+  'Watches - Men': [
+    { key: 'brand', label: 'Brand', type: 'text' },
+    { key: 'movement', label: 'Movement', type: 'select', options: ['Quartz', 'Automatic', 'Manual'] },
+    { key: 'caseMaterial', label: 'Case Material', type: 'text' },
+    { key: 'strapMaterial', label: 'Strap', type: 'select', options: ['Leather', 'Metal', 'Rubber', 'Fabric'] },
+    { key: 'waterResistant', label: 'Water Resistant', type: 'text', placeholder: '50m' },
+  ],
+  'Watches - Women': [
+    { key: 'brand', label: 'Brand', type: 'text' },
+    { key: 'movement', label: 'Movement', type: 'select', options: ['Quartz', 'Automatic'] },
+    { key: 'caseMaterial', label: 'Case Material', type: 'text' },
+    { key: 'strapMaterial', label: 'Strap', type: 'select', options: ['Leather', 'Metal', 'Rubber', 'Fabric'] },
+  ],
+
+  // ==================== AGRICULTURAL ====================
+  'Seeds - Vegetables': [
+    { key: 'variety', label: 'Variety', type: 'text', placeholder: 'Roma Tomato' },
+    { key: 'quantity', label: 'Quantity', type: 'text', placeholder: '100 seeds' },
+    { key: 'season', label: 'Season', type: 'select', options: ['Summer', 'Winter', 'All Year'] },
+  ],
+  'Fertilizers': [
+    { key: 'npk', label: 'NPK Ratio', type: 'text', placeholder: '10-10-10' },
+    { key: 'weight', label: 'Weight', type: 'text', placeholder: '25kg' },
+    { key: 'type', label: 'Type', type: 'select', options: ['Organic', 'Synthetic', 'Slow Release'] },
+  ],
+  'Animal Feed - Poultry': [
+    { key: 'type', label: 'Type', type: 'select', options: ['Starter', 'Grower', 'Layer', 'Broiler Finisher'] },
+    { key: 'weight', label: 'Weight', type: 'text', placeholder: '50kg' },
+    { key: 'brand', label: 'Brand', type: 'text' },
+  ],
+};
+
+/**
+ * Get suggested attributes for a category
+ */
+export const getCategoryAttributes = (category: string): AttributeField[] => {
+  return categoryAttributes[category] || [];
+};
+
+/**
+ * Check if a category has defined attributes
+ */
+export const hasAttributes = (category: string): boolean => {
+  return category in categoryAttributes && categoryAttributes[category].length > 0;
+};
