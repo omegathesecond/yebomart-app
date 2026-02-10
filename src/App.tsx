@@ -1,23 +1,25 @@
-import { useEffect } from 'react';
+import { useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/authStore';
 import { Layout } from '@/components/layout/Layout';
 import { InitialSync } from '@/components/InitialSync';
-import { Onboarding } from '@/pages/Onboarding';
-import { Login } from '@/pages/Login';
-import { Dashboard } from '@/pages/Dashboard';
-import { POS } from '@/pages/POS';
-import { Products } from '@/pages/Products';
-import { ProductForm } from '@/pages/ProductForm';
-import { Stock } from '@/pages/Stock';
-import { Sales } from '@/pages/Sales';
-import { Settings } from '@/pages/Settings';
-import { AIChat } from '@/pages/AIChat';
-import { Reports } from '@/pages/Reports';
-import { Staff } from '@/pages/Staff';
-import { StaffDetail } from '@/pages/StaffDetail';
 import './index.css';
+
+// Lazy load all pages
+const Onboarding = lazy(() => import('@/pages/Onboarding').then(m => ({ default: m.Onboarding })));
+const Login = lazy(() => import('@/pages/Login').then(m => ({ default: m.Login })));
+const Dashboard = lazy(() => import('@/pages/Dashboard').then(m => ({ default: m.Dashboard })));
+const POS = lazy(() => import('@/pages/POS').then(m => ({ default: m.POS })));
+const Products = lazy(() => import('@/pages/Products').then(m => ({ default: m.Products })));
+const ProductForm = lazy(() => import('@/pages/ProductForm').then(m => ({ default: m.ProductForm })));
+const Stock = lazy(() => import('@/pages/Stock').then(m => ({ default: m.Stock })));
+const Sales = lazy(() => import('@/pages/Sales').then(m => ({ default: m.Sales })));
+const Settings = lazy(() => import('@/pages/Settings').then(m => ({ default: m.Settings })));
+const AIChat = lazy(() => import('@/pages/AIChat').then(m => ({ default: m.AIChat })));
+const Reports = lazy(() => import('@/pages/Reports').then(m => ({ default: m.Reports })));
+const Staff = lazy(() => import('@/pages/Staff').then(m => ({ default: m.Staff })));
+const StaffDetail = lazy(() => import('@/pages/StaffDetail').then(m => ({ default: m.StaffDetail })));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -28,18 +30,32 @@ const queryClient = new QueryClient({
   },
 });
 
+// Loading spinner for lazy-loaded pages
+function PageLoader() {
+  return (
+    <div className="min-h-[50vh] flex items-center justify-center">
+      <div className="w-10 h-10 border-3 border-amber-500 border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+}
+
+// Full-screen loader for initial app load
+function AppLoader() {
+  return (
+    <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+      <div className="text-center">
+        <div className="w-16 h-16 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        <p className="text-slate-400">Loading...</p>
+      </div>
+    </div>
+  );
+}
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, shop } = useAuthStore();
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-slate-400">Loading...</p>
-        </div>
-      </div>
-    );
+    return <AppLoader />;
   }
 
   if (!shop) {
@@ -61,51 +77,53 @@ function AppRoutes() {
   }, [loadUser]);
 
   return (
-    <Routes>
-      {/* Onboarding - entry point for new users */}
-      <Route
-        path="/onboarding"
-        element={
-          isAuthenticated && shop ? <Navigate to="/" replace /> : <Onboarding />
-        }
-      />
-      
-      {/* Login - for returning users */}
-      <Route
-        path="/login"
-        element={
-          isAuthenticated && shop ? <Navigate to="/" replace /> : <Login />
-        }
-      />
-      
-      {/* Protected routes */}
-      <Route
-        path="/"
-        element={
-          <ProtectedRoute>
-            <InitialSync>
-              <Layout />
-            </InitialSync>
-          </ProtectedRoute>
-        }
-      >
-        <Route index element={<Dashboard />} />
-        <Route path="pos" element={<POS />} />
-        <Route path="products" element={<Products />} />
-        <Route path="products/new" element={<ProductForm />} />
-        <Route path="products/:id" element={<ProductForm />} />
-        <Route path="stock" element={<Stock />} />
-        <Route path="sales" element={<Sales />} />
-        <Route path="reports" element={<Reports />} />
-        <Route path="staff" element={<Staff />} />
-        <Route path="staff/:id" element={<StaffDetail />} />
-        <Route path="assistant" element={<AIChat />} />
-        <Route path="settings" element={<Settings />} />
-      </Route>
+    <Suspense fallback={<AppLoader />}>
+      <Routes>
+        {/* Onboarding - entry point for new users */}
+        <Route
+          path="/onboarding"
+          element={
+            isAuthenticated && shop ? <Navigate to="/" replace /> : <Onboarding />
+          }
+        />
+        
+        {/* Login - for returning users */}
+        <Route
+          path="/login"
+          element={
+            isAuthenticated && shop ? <Navigate to="/" replace /> : <Login />
+          }
+        />
+        
+        {/* Protected routes */}
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <InitialSync>
+                <Layout />
+              </InitialSync>
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Suspense fallback={<PageLoader />}><Dashboard /></Suspense>} />
+          <Route path="pos" element={<Suspense fallback={<PageLoader />}><POS /></Suspense>} />
+          <Route path="products" element={<Suspense fallback={<PageLoader />}><Products /></Suspense>} />
+          <Route path="products/new" element={<Suspense fallback={<PageLoader />}><ProductForm /></Suspense>} />
+          <Route path="products/:id" element={<Suspense fallback={<PageLoader />}><ProductForm /></Suspense>} />
+          <Route path="stock" element={<Suspense fallback={<PageLoader />}><Stock /></Suspense>} />
+          <Route path="sales" element={<Suspense fallback={<PageLoader />}><Sales /></Suspense>} />
+          <Route path="reports" element={<Suspense fallback={<PageLoader />}><Reports /></Suspense>} />
+          <Route path="staff" element={<Suspense fallback={<PageLoader />}><Staff /></Suspense>} />
+          <Route path="staff/:id" element={<Suspense fallback={<PageLoader />}><StaffDetail /></Suspense>} />
+          <Route path="assistant" element={<Suspense fallback={<PageLoader />}><AIChat /></Suspense>} />
+          <Route path="settings" element={<Suspense fallback={<PageLoader />}><Settings /></Suspense>} />
+        </Route>
 
-      {/* Catch all - redirect to onboarding */}
-      <Route path="*" element={<Navigate to="/onboarding" replace />} />
-    </Routes>
+        {/* Catch all - redirect to onboarding */}
+        <Route path="*" element={<Navigate to="/onboarding" replace />} />
+      </Routes>
+    </Suspense>
   );
 }
 
