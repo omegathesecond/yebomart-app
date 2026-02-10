@@ -116,24 +116,24 @@ export const useAuthStore = create<AuthState>()(
           
           const token = api.getToken();
           if (!token) {
-            set({ isLoading: false });
+            set({ isLoading: false, isAuthenticated: false });
+            return;
+          }
+
+          // Ensure token is valid before making request
+          const hasValidToken = await api.ensureValidToken();
+          if (!hasValidToken) {
+            api.clearToken();
+            set({ isLoading: false, isAuthenticated: false });
             return;
           }
 
           // Verify token by getting user info
-          let { data, error } = await api.getMe();
-          
-          // If token expired, try refreshing
-          if (error && api.getRefreshToken()) {
-            const refreshed = await api.refreshAccessToken();
-            if (refreshed) {
-              const retry = await api.getMe();
-              data = retry.data;
-              error = retry.error;
-            }
-          }
+          const { data, error } = await api.getMe();
           
           if (error || !data) {
+            // The request method already handles token refresh on 401
+            // If we still got an error, the session is truly invalid
             api.clearToken();
             set({ isLoading: false, isAuthenticated: false });
             return;

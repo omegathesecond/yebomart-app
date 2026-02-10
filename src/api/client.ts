@@ -28,6 +28,31 @@ class ApiClient {
     return this.token;
   }
 
+  // Check if token is expired or about to expire (within 5 minutes)
+  isTokenExpired(): boolean {
+    const token = this.getToken();
+    if (!token) return true;
+    
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const expiresAt = payload.exp * 1000; // Convert to milliseconds
+      const fiveMinutes = 5 * 60 * 1000;
+      return Date.now() > expiresAt - fiveMinutes;
+    } catch {
+      return true;
+    }
+  }
+
+  // Proactively refresh token if it's about to expire
+  async ensureValidToken(): Promise<boolean> {
+    if (!this.getToken()) return false;
+    
+    if (this.isTokenExpired()) {
+      return this.tryRefreshToken();
+    }
+    return true;
+  }
+
   getRefreshToken(): string | null {
     if (!this.refreshToken) {
       this.refreshToken = localStorage.getItem('yebomart_refresh_token');
@@ -65,9 +90,13 @@ class ApiClient {
     return false;
   }
 
+  private isRefreshing = false;
+  private refreshPromise: Promise<boolean> | null = null;
+
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    isRetry = false
   ): Promise<ApiResponse<T>> {
     const url = `${API_URL}${endpoint}`;
     const token = this.getToken();
@@ -86,6 +115,18 @@ class ApiClient {
 
       const json = await response.json();
 
+      // Handle 401 Unauthorized - try to refresh token
+      if (response.status === 401 && !isRetry && !endpoint.includes('/auth/')) {
+        const refreshed = await this.tryRefreshToken();
+        if (refreshed) {
+          // Retry the original request with new token
+          return this.request<T>(endpoint, options, true);
+        }
+        // Refresh failed - clear tokens and return error
+        this.clearToken();
+        return { error: 'Session expired. Please login again.' };
+      }
+
       if (!response.ok || json.success === false) {
         // Handle validation errors with details
         const errorMessage = json.message || json.error || 'Request failed';
@@ -100,6 +141,24 @@ class ApiClient {
       return { data: json.data ?? json, message: json.message };
     } catch (error) {
       return { error: 'Network error. Please try again.' };
+    }
+  }
+
+  // Prevent multiple simultaneous refresh attempts
+  private async tryRefreshToken(): Promise<boolean> {
+    if (this.isRefreshing && this.refreshPromise) {
+      return this.refreshPromise;
+    }
+
+    this.isRefreshing = true;
+    this.refreshPromise = this.refreshAccessToken();
+    
+    try {
+      const result = await this.refreshPromise;
+      return result;
+    } finally {
+      this.isRefreshing = false;
+      this.refreshPromise = null;
     }
   }
 
