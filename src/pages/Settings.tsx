@@ -6,7 +6,8 @@ import {
   BellIcon,
   DevicePhoneMobileIcon,
   SparklesIcon,
-  PaintBrushIcon
+  PaintBrushIcon,
+  TagIcon
 } from '@heroicons/react/24/outline';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -15,6 +16,7 @@ import { Badge } from '@/components/ui/Badge';
 import { useAuthStore } from '@/stores/authStore';
 import { TierSwitcher } from '@/components/subscription';
 import { useSubscriptionStore, TIERS, FEATURES, type Feature } from '@/stores/subscriptionStore';
+import { getShopType } from '@/data/shopTypes';
 
 // Internal components for subscription tab
 function CurrentPlanCard() {
@@ -203,6 +205,27 @@ export function Settings() {
                     Settings saved successfully!
                   </div>
                 )}
+                
+                {/* Business Type Display */}
+                {shop?.businessType && (
+                  <div className="p-4 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 rounded-xl">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center">
+                        <TagIcon className="w-6 h-6 text-amber-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-slate-400">Business Type</p>
+                        <h3 className="text-lg font-semibold text-white">
+                          {getShopType(shop.businessType)?.name || shop.businessType}
+                        </h3>
+                        <p className="text-sm text-slate-500">
+                          {getShopType(shop.businessType)?.description}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
                 <Input
                   label="Shop Name"
                   value={shopName}
@@ -246,6 +269,28 @@ export function Settings() {
                     </div>
                   </div>
                 </div>
+                
+                {/* Shop Info */}
+                {shop && (
+                  <div className="p-4 bg-slate-700/30 rounded-xl">
+                    <div className="flex items-center gap-4">
+                      <div className="w-16 h-16 rounded-full bg-slate-600/50 flex items-center justify-center">
+                        <BuildingOfficeIcon className="w-8 h-8 text-slate-400" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-white">{shop.name}</h3>
+                        {shop.businessType && (
+                          <p className="text-amber-400">
+                            {getShopType(shop.businessType)?.name || shop.businessType}
+                          </p>
+                        )}
+                        {shop.address && (
+                          <p className="text-sm text-slate-500">{shop.address}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </Card>
           )}

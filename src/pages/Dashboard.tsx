@@ -19,6 +19,7 @@ import { useInventoryStore } from '@/stores/inventoryStore';
 import { formatSZL, formatRelativeTime, type DashboardMetrics } from '@/types';
 import { FeatureCheck } from '@/components/subscription/FeatureGate';
 import { useSubscriptionStore, TIERS } from '@/stores/subscriptionStore';
+import { getShopType } from '@/data/shopTypes';
 
 export function Dashboard() {
   const { shop } = useAuthStore();
@@ -77,9 +78,16 @@ export function Dashboard() {
           <h1 className="text-2xl font-bold text-white">
             {getGreeting()}, {shop?.ownerName?.split(' ')[0] || 'Boss'}! 👋
           </h1>
-          <p className="text-slate-400 mt-1">
-            Here's what's happening at {shop?.name || 'your shop'} today.
-          </p>
+          <div className="flex items-center gap-2 mt-1">
+            <p className="text-slate-400">
+              Here's what's happening at {shop?.name || 'your shop'} today.
+            </p>
+            {shop?.businessType && (
+              <Badge variant="info" size="sm">
+                {getShopType(shop.businessType)?.name || shop.businessType}
+              </Badge>
+            )}
+          </div>
         </div>
         <Link to="/pos">
           <Button 
