@@ -165,7 +165,7 @@ class ApiClient {
     return { error: response.error || 'Login failed', details: response.details };
   }
 
-  async register(data: { shopName: string; ownerName: string; phone: string; password: string; assistantName?: string }) {
+  async register(data: { shopName: string; ownerName: string; phone: string; password: string; assistantName?: string; businessType?: string }) {
     // Map to API expected field names
     const payload = {
       name: data.shopName,
@@ -173,6 +173,7 @@ class ApiClient {
       ownerPhone: data.phone.startsWith('+') ? data.phone : `+268${data.phone.replace(/^0/, '')}`,
       password: data.password,
       assistantName: data.assistantName,
+      businessType: data.businessType || 'general',
     };
     const response = await this.request<{ accessToken: string; refreshToken: string; shop: any }>('/api/auth/register', {
       method: 'POST',

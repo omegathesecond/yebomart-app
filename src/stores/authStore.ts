@@ -17,7 +17,7 @@ interface AuthState {
   register: (data: { shopName: string; ownerName: string; phone: string; password: string }) => Promise<boolean>;
   loadUser: () => Promise<void>;
   updateShop: (updates: Partial<Shop>) => Promise<void>;
-  setupShop: (data: { shopName: string; ownerName: string; ownerPhone: string; pin: string; assistantName: string }) => Promise<{ success: boolean; error?: string }>;
+  setupShop: (data: { shopName: string; ownerName: string; ownerPhone: string; pin: string; assistantName: string; businessType?: string }) => Promise<{ success: boolean; error?: string }>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -171,7 +171,8 @@ export const useAuthStore = create<AuthState>()(
             ownerName: data.ownerName,
             phone: data.ownerPhone,
             password: data.pin,
-            assistantName: data.assistantName
+            assistantName: data.assistantName,
+            businessType: data.businessType
           });
           
           if (error || !result) {
