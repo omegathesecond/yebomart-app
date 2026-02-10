@@ -9,31 +9,58 @@ import {
   CheckCircleIcon,
   LockClosedIcon,
   PrinterIcon,
-  XMarkIcon
+  XMarkIcon,
+  ReceiptPercentIcon
 } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
-import { useCartStore, useCartTotal } from '@/stores/cartStore';
+import { useCartStore, useCartTotal, useCartSubtotal, useCartDiscount } from '@/stores/cartStore';
 import { formatSZL, type Product, PAYMENT_METHODS } from '@/types';
 import { BarcodeScanner } from '@/components/scanner/BarcodeScanner';
 import { FeatureGate, FeatureCheck } from '@/components/subscription/FeatureGate';
 import { TIERS } from '@/stores/subscriptionStore';
 
+// Discount reasons for quick selection
+const DISCOUNT_REASONS = [
+  'Loyal customer',
+  'Negotiated price',
+  'Bulk purchase',
+  'Damaged item',
+  'Price match',
+  'Promotion',
+  'Other'
+];
+
 export function POS() {
   const { user, shop } = useAuthStore();
   const { products, loadAll, getProductByBarcode } = useInventoryStore();
-  const { items, addItem, removeItem, updateQuantity, setPaymentMethod, checkout, clear } = useCartStore();
+  const { 
+    items, addItem, removeItem, updateQuantity, setPaymentMethod, checkout, clear,
+    setDiscountPercent, setDiscountAmount, clearDiscount
+  } = useCartStore();
   const cartTotal = useCartTotal();
+  const cartSubtotal = useCartSubtotal();
+  const discount = useCartDiscount();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [showScanner, setShowScanner] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [lastSale, setLastSale] = useState<{ total: number; items: any[]; id: string; date: Date } | null>(null);
+  const [lastSale, setLastSale] = useState<{ total: number; subtotal: number; discount: number; items: any[]; id: string; date: Date } | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+  
+  // Discount modal state
+  const [showDiscountModal, setShowDiscountModal] = useState(false);
+  const [discountType, setDiscountType] = useState<'percent' | 'amount'>('percent');
+  const [discountValue, setDiscountValue] = useState('');
+  const [discountReason, setDiscountReason] = useState('');
+  
+  // Check if user can apply discounts
+  const canDiscount = user?.role === 'owner' || user?.role === 'manager' || user?.canDiscount;
+  const maxDiscountPercent = user?.role === 'owner' ? 100 : (user?.maxDiscountPercent ?? 20);
 
   useEffect(() => {
     if (shop) {
@@ -93,7 +120,9 @@ export function POS() {
       
       if (sale) {
         setLastSale({ 
-          total: sale.totalAmount, 
+          total: sale.totalAmount,
+          subtotal: sale.subtotal || sale.totalAmount,
+          discount: sale.discount || 0,
           items: sale.items,
           id: sale.id,
           date: new Date()
@@ -348,16 +377,54 @@ export function POS() {
 
         {/* Cart Footer - Payment Buttons */}
         {items.length > 0 && (
-          <div className="p-4 border-t border-slate-700 space-y-4">
+          <div className="p-4 border-t border-slate-700 space-y-3">
+            {/* Subtotal */}
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-slate-400">Subtotal</span>
+              <span className="text-slate-300">{formatSZL(cartSubtotal)}</span>
+            </div>
+            
+            {/* Discount Row */}
             <div className="flex items-center justify-between">
-              <span className="text-slate-400">Total</span>
+              <div className="flex items-center gap-2">
+                <span className="text-slate-400 text-sm">Discount</span>
+                {canDiscount && (
+                  <button
+                    onClick={() => setShowDiscountModal(true)}
+                    className="text-xs text-amber-400 hover:text-amber-300"
+                  >
+                    {discount ? 'Edit' : '+ Add'}
+                  </button>
+                )}
+              </div>
+              {discount ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-emerald-400 font-medium">
+                    -{formatSZL(discount.amount)}
+                    {discount.percent && <span className="text-xs ml-1">({discount.percent}%)</span>}
+                  </span>
+                  <button 
+                    onClick={clearDiscount}
+                    className="text-red-400 hover:text-red-300"
+                  >
+                    <XMarkIcon className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <span className="text-slate-500 text-sm">-</span>
+              )}
+            </div>
+            
+            {/* Total */}
+            <div className="flex items-center justify-between pt-2 border-t border-slate-600">
+              <span className="text-white font-medium">Total</span>
               <span className="text-2xl font-bold text-white">
                 {formatSZL(cartTotal)}
               </span>
             </div>
             
             {/* Payment Method Buttons */}
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2 pt-2">
               <Button 
                 variant="success" 
                 size="lg"
@@ -448,7 +515,20 @@ export function POS() {
                 ))}
               </div>
 
-              <div className="flex justify-between font-bold text-lg">
+              <div className="space-y-1 mb-2">
+                <div className="flex justify-between text-sm">
+                  <span>Subtotal</span>
+                  <span>{formatSZL(lastSale.subtotal || lastSale.total)}</span>
+                </div>
+                {lastSale.discount > 0 && (
+                  <div className="flex justify-between text-sm text-green-600">
+                    <span>Discount</span>
+                    <span>-{formatSZL(lastSale.discount)}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-between font-bold text-lg border-t border-gray-300 pt-2">
                 <span>TOTAL</span>
                 <span>{formatSZL(lastSale.total)}</span>
               </div>
@@ -479,6 +559,182 @@ export function POS() {
             >
               <PrinterIcon className="w-5 h-5" />
               Print Receipt
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Discount Modal */}
+      <Modal
+        isOpen={showDiscountModal}
+        onClose={() => {
+          setShowDiscountModal(false);
+          setDiscountValue('');
+          setDiscountReason('');
+        }}
+        title="Apply Discount"
+        size="sm"
+      >
+        <div className="space-y-4">
+          {/* Discount Type Toggle */}
+          <div className="flex rounded-lg bg-slate-700/50 p-1">
+            <button
+              onClick={() => setDiscountType('percent')}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                discountType === 'percent' 
+                  ? 'bg-amber-500 text-white' 
+                  : 'text-slate-300 hover:text-white'
+              }`}
+            >
+              Percentage (%)
+            </button>
+            <button
+              onClick={() => setDiscountType('amount')}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                discountType === 'amount' 
+                  ? 'bg-amber-500 text-white' 
+                  : 'text-slate-300 hover:text-white'
+              }`}
+            >
+              Fixed Amount (E)
+            </button>
+          </div>
+
+          {/* Discount Value Input */}
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              {discountType === 'percent' ? 'Discount Percentage' : 'Discount Amount'}
+            </label>
+            <div className="relative">
+              <input
+                type="number"
+                min="0"
+                max={discountType === 'percent' ? maxDiscountPercent : cartSubtotal}
+                step={discountType === 'percent' ? '1' : '0.01'}
+                value={discountValue}
+                onChange={(e) => setDiscountValue(e.target.value)}
+                placeholder={discountType === 'percent' ? 'e.g., 10' : 'e.g., 50.00'}
+                className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
+              />
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
+                {discountType === 'percent' ? '%' : 'E'}
+              </span>
+            </div>
+            {discountType === 'percent' && maxDiscountPercent < 100 && (
+              <p className="text-xs text-slate-400 mt-1">
+                Maximum discount allowed: {maxDiscountPercent}%
+              </p>
+            )}
+          </div>
+
+          {/* Quick Discount Buttons */}
+          {discountType === 'percent' && (
+            <div className="flex gap-2 flex-wrap">
+              {[5, 10, 15, 20].filter(p => p <= maxDiscountPercent).map(percent => (
+                <button
+                  key={percent}
+                  onClick={() => setDiscountValue(percent.toString())}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
+                    discountValue === percent.toString()
+                      ? 'bg-amber-500/20 border-amber-500 text-amber-400'
+                      : 'border-slate-600 text-slate-300 hover:border-slate-500'
+                  }`}
+                >
+                  {percent}%
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Discount Reason */}
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              Reason (required)
+            </label>
+            <select
+              value={discountReason}
+              onChange={(e) => setDiscountReason(e.target.value)}
+              className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+            >
+              <option value="">Select reason...</option>
+              {DISCOUNT_REASONS.map(reason => (
+                <option key={reason} value={reason}>{reason}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Preview */}
+          {discountValue && (
+            <div className="bg-slate-700/30 rounded-lg p-3 space-y-1">
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-400">Subtotal</span>
+                <span className="text-white">{formatSZL(cartSubtotal)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-400">Discount</span>
+                <span className="text-emerald-400">
+                  -{formatSZL(
+                    discountType === 'percent' 
+                      ? cartSubtotal * (parseFloat(discountValue) || 0) / 100
+                      : parseFloat(discountValue) || 0
+                  )}
+                </span>
+              </div>
+              <div className="flex justify-between font-medium border-t border-slate-600 pt-1">
+                <span className="text-white">New Total</span>
+                <span className="text-white">
+                  {formatSZL(Math.max(0, 
+                    cartSubtotal - (discountType === 'percent' 
+                      ? cartSubtotal * (parseFloat(discountValue) || 0) / 100
+                      : parseFloat(discountValue) || 0)
+                  ))}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-2">
+            <Button
+              variant="secondary"
+              className="flex-1"
+              onClick={() => {
+                setShowDiscountModal(false);
+                setDiscountValue('');
+                setDiscountReason('');
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              className="flex-1"
+              disabled={!discountValue || !discountReason || parseFloat(discountValue) <= 0}
+              onClick={() => {
+                const value = parseFloat(discountValue);
+                if (value > 0 && discountReason) {
+                  if (discountType === 'percent') {
+                    // Check if within allowed limit
+                    if (value > maxDiscountPercent) {
+                      alert(`Maximum discount is ${maxDiscountPercent}%`);
+                      return;
+                    }
+                    setDiscountPercent(value, discountReason);
+                  } else {
+                    // Check if amount exceeds subtotal
+                    if (value > cartSubtotal) {
+                      alert('Discount cannot exceed subtotal');
+                      return;
+                    }
+                    setDiscountAmount(value, discountReason);
+                  }
+                  setShowDiscountModal(false);
+                  setDiscountValue('');
+                  setDiscountReason('');
+                }
+              }}
+            >
+              Apply Discount
             </Button>
           </div>
         </div>

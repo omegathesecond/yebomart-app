@@ -224,6 +224,7 @@ export async function seedDemoData() {
         productId: product.id,
         productName: product.name,
         quantity: qty,
+        originalPrice: product.sellPrice,
         unitPrice: product.sellPrice,
         totalPrice: itemTotal
       });
@@ -235,6 +236,8 @@ export async function seedDemoData() {
       id: saleId,
       shopId,
       userId,
+      subtotal: total,
+      discount: 0,
       totalAmount: total,
       paymentMethod: i % 3 === 0 ? 'momo' : 'cash',
       items,

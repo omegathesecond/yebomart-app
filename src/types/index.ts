@@ -33,6 +33,11 @@ export interface User {
   isActive: boolean;
   lastLogin?: Date;
   createdAt: Date;
+  // Permissions
+  canDiscount?: boolean;      // Can apply discounts
+  maxDiscountPercent?: number; // Max discount allowed (0-100), null = unlimited for owners
+  canVoid?: boolean;          // Can void sales
+  canRefund?: boolean;        // Can process refunds
 }
 
 // Product
@@ -61,7 +66,12 @@ export interface Sale {
   id: string;
   shopId: string;
   userId: string;
-  totalAmount: number;
+  subtotal: number;           // Before discount
+  discount: number;           // Discount amount
+  discountPercent?: number;   // Discount as percentage (for display)
+  discountReason?: string;    // Why discount was applied (audit)
+  discountApprovedBy?: string; // Manager ID if override was needed
+  totalAmount: number;        // Final amount after discount
   paymentMethod: PaymentMethod;
   items: SaleItem[];
   createdAt: Date;
@@ -75,8 +85,10 @@ export interface SaleItem {
   productId: string;
   productName: string;
   quantity: number;
-  unitPrice: number;
+  originalPrice: number;      // Original product price
+  unitPrice: number;          // Actual price charged (may differ if negotiated)
   totalPrice: number;
+  itemDiscount?: number;      // Discount on this specific item
 }
 
 // Stock Log
@@ -131,7 +143,9 @@ export interface CartItem {
   productId: string;
   product: Product;
   quantity: number;
-  isPack?: boolean;  // true if selling as pack
+  isPack?: boolean;       // true if selling as pack
+  customPrice?: number;   // Override price (for negotiated sales)
+  itemNote?: string;      // Reason for custom price
 }
 
 // Low Stock Alert

@@ -270,7 +270,16 @@ class ApiClient {
     return this.request<any[]>(`/api/sales${query}`);
   }
 
-  async createSale(data: { items: any[]; paymentMethod: string; amountPaid: number }) {
+  async createSale(data: { 
+    items: any[]; 
+    paymentMethod: string; 
+    amountPaid: number;
+    subtotal?: number;
+    discount?: number;
+    discountPercent?: number;
+    discountReason?: string;
+    discountApprovedBy?: string;
+  }) {
     return this.request<any>('/api/sales', {
       method: 'POST',
       body: JSON.stringify(data),
