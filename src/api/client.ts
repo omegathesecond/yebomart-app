@@ -45,9 +45,13 @@ class ApiClient {
 
   // Proactively refresh token if it's about to expire
   async ensureValidToken(): Promise<boolean> {
-    if (!this.getToken()) return false;
+    const token = this.getToken();
+    console.log('[ApiClient] ensureValidToken called, hasToken:', !!token);
+    if (!token) return false;
     
-    if (this.isTokenExpired()) {
+    const expired = this.isTokenExpired();
+    console.log('[ApiClient] isTokenExpired:', expired);
+    if (expired) {
       return this.tryRefreshToken();
     }
     return true;
@@ -76,6 +80,8 @@ class ApiClient {
 
   // Force logout and redirect
   forceLogout() {
+    console.log('[ApiClient] forceLogout called');
+    console.trace('[ApiClient] forceLogout stack trace');
     this.clearToken();
     if (this.onSessionExpired) {
       this.onSessionExpired();
@@ -85,6 +91,7 @@ class ApiClient {
   // Refresh the access token using refresh token
   async refreshAccessToken(): Promise<boolean> {
     const refresh = this.getRefreshToken();
+    console.log('[ApiClient] refreshAccessToken called, hasRefreshToken:', !!refresh);
     if (!refresh) return false;
 
     try {
@@ -95,12 +102,13 @@ class ApiClient {
       });
       
       const json = await response.json();
+      console.log('[ApiClient] refresh response:', json.success);
       if (json.success && json.data?.accessToken) {
         this.setToken(json.data.accessToken, json.data.refreshToken);
         return true;
       }
     } catch (e) {
-      console.error('Token refresh failed:', e);
+      console.error('[ApiClient] Token refresh failed:', e);
     }
     return false;
   }

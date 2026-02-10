@@ -30,13 +30,8 @@ export const useAuthStore = create<AuthState>()(
       if (!storeInitialized) {
         storeInitialized = true;
         api.setSessionExpiredCallback(() => {
-          set({ 
-            user: null, 
-            shop: null, 
-            subscription: null, 
-            isAuthenticated: false,
-            isLoading: false
-          });
+          console.log('[AuthStore] Session expired callback triggered');
+          get().logout();
         });
       }
 
