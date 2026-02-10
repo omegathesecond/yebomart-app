@@ -3,6 +3,9 @@ import { persist } from 'zustand/middleware';
 import type { User, Shop, Subscription } from '@/types';
 import api from '@/api/client';
 
+// Flag to prevent circular dependency issues
+let storeInitialized = false;
+
 interface AuthState {
   user: User | null;
   shop: Shop | null;
@@ -22,7 +25,22 @@ interface AuthState {
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set, get) => ({
+    (set, get) => {
+      // Register session expired callback once store is created
+      if (!storeInitialized) {
+        storeInitialized = true;
+        api.setSessionExpiredCallback(() => {
+          set({ 
+            user: null, 
+            shop: null, 
+            subscription: null, 
+            isAuthenticated: false,
+            isLoading: false
+          });
+        });
+      }
+
+      return {
       user: null,
       shop: null,
       subscription: null,
@@ -194,7 +212,7 @@ export const useAuthStore = create<AuthState>()(
           return { success: false, error: 'Something went wrong. Please try again.' };
         }
       }
-    }),
+    }},
     {
       name: 'yebomart-auth',
       partialize: (state) => ({ 

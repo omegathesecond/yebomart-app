@@ -60,11 +60,26 @@ class ApiClient {
     return this.refreshToken;
   }
 
+  private onSessionExpired: (() => void) | null = null;
+
+  // Register callback for session expiration (called by authStore)
+  setSessionExpiredCallback(callback: () => void) {
+    this.onSessionExpired = callback;
+  }
+
   clearToken() {
     this.token = null;
     this.refreshToken = null;
     localStorage.removeItem('yebomart_token');
     localStorage.removeItem('yebomart_refresh_token');
+  }
+
+  // Force logout and redirect
+  forceLogout() {
+    this.clearToken();
+    if (this.onSessionExpired) {
+      this.onSessionExpired();
+    }
   }
 
   // Refresh the access token using refresh token
@@ -122,8 +137,8 @@ class ApiClient {
           // Retry the original request with new token
           return this.request<T>(endpoint, options, true);
         }
-        // Refresh failed - clear tokens and return error
-        this.clearToken();
+        // Refresh failed - force logout and redirect
+        this.forceLogout();
         return { error: 'Session expired. Please login again.' };
       }
 
