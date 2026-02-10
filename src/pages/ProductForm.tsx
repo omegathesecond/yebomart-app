@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeftIcon, QrCodeIcon, CheckIcon } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/Button';
@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/Card';
 import { BarcodeScanner } from '@/components/scanner/BarcodeScanner';
 import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
-import { PRODUCT_CATEGORIES } from '@/types';
+import { getDefaultCategories } from '@/data/shopTypes';
 
 export function ProductForm() {
   const navigate = useNavigate();
@@ -37,6 +37,11 @@ export function ProductForm() {
 
   // Get products from store
   const { products } = useInventoryStore();
+  
+  // Get dynamic categories based on shop's business type
+  const categories = useMemo(() => {
+    return shop?.businessType ? getDefaultCategories(shop.businessType) : getDefaultCategories('general');
+  }, [shop?.businessType]);
 
   // Load product data if editing (from store)
   useEffect(() => {
@@ -182,7 +187,7 @@ export function ProductForm() {
               onChange={handleChange}
               options={[
                 { value: '', label: 'Select category' },
-                ...PRODUCT_CATEGORIES.map(cat => ({ value: cat, label: cat }))
+                ...categories.map(cat => ({ value: cat, label: cat }))
               ]}
             />
             

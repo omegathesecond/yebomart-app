@@ -135,6 +135,7 @@ export async function seedDemoData() {
     name: 'Siphiwe Tuck Shop',
     ownerName: 'Siphiwe Dlamini',
     ownerPhone: '+26876123456',
+    businessType: 'spaza',
     assistantName: 'Thandi',
     currency: 'SZL',
     timezone: 'Africa/Mbabane',

@@ -11,6 +11,7 @@ export interface Shop {
   name: string;
   ownerName: string;
   ownerPhone: string; // WhatsApp number
+  businessType: string; // e.g., 'spaza', 'tyre', 'beauty', 'hardware'
   assistantName: string; // AI assistant name (e.g., "Thandi")
   currency: string;
   timezone: string;
