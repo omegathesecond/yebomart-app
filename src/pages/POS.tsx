@@ -10,8 +10,10 @@ import {
   LockClosedIcon,
   PrinterIcon,
   XMarkIcon,
-  ReceiptPercentIcon
+  ReceiptPercentIcon,
+  EnvelopeIcon
 } from '@heroicons/react/24/outline';
+import api from '@/api/client';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
@@ -49,7 +51,18 @@ export function POS() {
   const [showScanner, setShowScanner] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [lastSale, setLastSale] = useState<{ total: number; subtotal: number; discount: number; items: any[]; id: string; receiptNumber?: string; date: Date } | null>(null);
+  const [lastSale, setLastSale] = useState<{ 
+    total: number; 
+    subtotal: number; 
+    discount: number; 
+    items: any[]; 
+    id: string; 
+    receiptNumber?: string; 
+    date: Date;
+    paymentMethod?: string;
+    cashReceived?: number;
+    changeGiven?: number;
+  } | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   
   // Discount modal state
@@ -57,6 +70,17 @@ export function POS() {
   const [discountType, setDiscountType] = useState<'percent' | 'amount'>('percent');
   const [discountValue, setDiscountValue] = useState('');
   const [discountReason, setDiscountReason] = useState('');
+  
+  // Cash payment modal state
+  const [showCashModal, setShowCashModal] = useState(false);
+  const [cashReceived, setCashReceived] = useState('');
+  const [changeAmount, setChangeAmount] = useState(0);
+  
+  // Email receipt modal state
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [customerEmail, setCustomerEmail] = useState('');
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
   
   // Check if user can apply discounts
   const canDiscount = user?.role === 'owner' || user?.role === 'manager' || user?.canDiscount;
@@ -95,6 +119,37 @@ export function POS() {
     }
   };
 
+  // Handle cash payment - show modal for change calculation
+  const handleCashPayment = () => {
+    if (!user || !shop || items.length === 0) {
+      alert('Cart is empty or not logged in');
+      return;
+    }
+    setCashReceived('');
+    setChangeAmount(0);
+    setShowCashModal(true);
+  };
+
+  // Calculate change when cash received changes
+  const handleCashReceivedChange = (value: string) => {
+    setCashReceived(value);
+    const received = parseFloat(value) || 0;
+    const change = received - cartTotal;
+    setChangeAmount(change >= 0 ? change : 0);
+  };
+
+  // Process cash payment after receiving cash
+  const processCashPayment = async () => {
+    const received = parseFloat(cashReceived) || 0;
+    if (received < cartTotal) {
+      alert('Insufficient cash received');
+      return;
+    }
+    
+    setShowCashModal(false);
+    await processPayment('cash', received, changeAmount);
+  };
+
   // Direct checkout with payment method
   const handlePayment = async (method: 'cash' | 'card' | 'momo' | 'emali') => {
     // Debug: check why payment might not work
@@ -111,11 +166,22 @@ export function POS() {
       return;
     }
     
+    // For cash, show the cash modal first
+    if (method === 'cash') {
+      handleCashPayment();
+      return;
+    }
+    
+    await processPayment(method);
+  };
+
+  // Process the actual payment
+  const processPayment = async (method: 'cash' | 'card' | 'momo' | 'emali', cashReceived?: number, changeGiven?: number) => {
     setPaymentMethod(method);
     setIsProcessing(true);
     
     try {
-      const sale = await checkout(user.id, shop.id);
+      const sale = await checkout(user!.id, shop!.id);
       setIsProcessing(false);
       
       if (sale) {
@@ -126,9 +192,13 @@ export function POS() {
           items: sale.items,
           id: sale.id,
           receiptNumber: sale.receiptNumber,
-          date: new Date()
+          date: new Date(),
+          paymentMethod: method,
+          cashReceived: cashReceived,
+          changeGiven: changeGiven
         });
         setShowReceipt(true);
+        setEmailSent(false); // Reset email sent status
       } else {
         // Show error from cart store
         const error = useCartStore.getState().error;
@@ -138,6 +208,39 @@ export function POS() {
       setIsProcessing(false);
       alert(err.message || 'An error occurred');
     }
+  };
+
+  // Send receipt via email
+  const handleSendEmail = async () => {
+    if (!customerEmail || !lastSale) return;
+    
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(customerEmail)) {
+      alert('Please enter a valid email address');
+      return;
+    }
+    
+    setIsSendingEmail(true);
+    try {
+      await api.sendReceiptEmail({
+        saleId: lastSale.id,
+        email: customerEmail,
+        shopName: shop?.name || 'YeboMart',
+        receiptNumber: lastSale.receiptNumber || lastSale.id.slice(-8).toUpperCase(),
+        items: lastSale.items,
+        subtotal: lastSale.subtotal,
+        discount: lastSale.discount,
+        total: lastSale.total,
+        date: lastSale.date.toISOString()
+      });
+      setEmailSent(true);
+      setShowEmailModal(false);
+      setCustomerEmail('');
+    } catch (err: any) {
+      alert('Failed to send email. Please try again.');
+    }
+    setIsSendingEmail(false);
   };
 
   const handlePrint = () => {
@@ -534,6 +637,20 @@ export function POS() {
                 <span>{formatSZL(lastSale.total)}</span>
               </div>
 
+              {/* Cash Payment Details */}
+              {lastSale.paymentMethod === 'cash' && lastSale.cashReceived && (
+                <div className="mt-3 pt-3 border-t border-dashed border-gray-300 space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span>Cash Received</span>
+                    <span>{formatSZL(lastSale.cashReceived)}</span>
+                  </div>
+                  <div className="flex justify-between font-bold text-lg text-green-600">
+                    <span>CHANGE</span>
+                    <span>{formatSZL(lastSale.changeGiven || 0)}</span>
+                  </div>
+                </div>
+              )}
+
               <div className="text-center mt-4 pt-3 border-t border-dashed border-gray-300">
                 <p className="text-xs text-gray-500">Thank you for shopping with us!</p>
                 <p className="text-xs text-gray-400">Powered by YeboMart</p>
@@ -541,25 +658,43 @@ export function POS() {
             </div>
           )}
 
+          {/* Email Sent Confirmation */}
+          {emailSent && (
+            <div className="flex items-center gap-2 text-emerald-400 text-sm bg-emerald-500/10 rounded-lg px-4 py-2">
+              <CheckCircleIcon className="w-5 h-5" />
+              Receipt emailed successfully!
+            </div>
+          )}
+
           {/* Action Buttons */}
-          <div className="flex gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <Button 
               variant="secondary" 
               size="lg"
-              className="flex-1"
+              className="w-full"
               onClick={handleCloseReceipt}
             >
               <XMarkIcon className="w-5 h-5" />
               Close
             </Button>
             <Button 
+              variant="secondary" 
+              size="lg"
+              className="w-full"
+              onClick={() => setShowEmailModal(true)}
+              disabled={emailSent}
+            >
+              <EnvelopeIcon className="w-5 h-5" />
+              Email
+            </Button>
+            <Button 
               variant="primary" 
               size="lg"
-              className="flex-1"
+              className="w-full"
               onClick={handlePrint}
             >
               <PrinterIcon className="w-5 h-5" />
-              Print Receipt
+              Print
             </Button>
           </div>
         </div>
@@ -736,6 +871,164 @@ export function POS() {
               }}
             >
               Apply Discount
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Cash Payment Modal */}
+      <Modal
+        isOpen={showCashModal}
+        onClose={() => setShowCashModal(false)}
+        title="Cash Payment"
+        size="sm"
+      >
+        <div className="space-y-6">
+          {/* Total Due */}
+          <div className="bg-slate-700/50 rounded-xl p-4 text-center">
+            <p className="text-sm text-slate-400 mb-1">Total Due</p>
+            <p className="text-3xl font-bold text-white">{formatSZL(cartTotal)}</p>
+          </div>
+
+          {/* Cash Received Input */}
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              Cash Received
+            </label>
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">E</span>
+              <input
+                type="number"
+                min={cartTotal}
+                step="0.01"
+                value={cashReceived}
+                onChange={(e) => handleCashReceivedChange(e.target.value)}
+                placeholder="0.00"
+                autoFocus
+                className="w-full pl-8 pr-4 py-4 text-2xl font-bold bg-slate-700 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 text-center"
+              />
+            </div>
+          </div>
+
+          {/* Quick Amount Buttons */}
+          <div className="grid grid-cols-4 gap-2">
+            {[50, 100, 200, 500].map(amount => (
+              <button
+                key={amount}
+                onClick={() => handleCashReceivedChange(amount.toString())}
+                className={`py-2 px-3 rounded-lg text-sm font-medium border transition-colors ${
+                  parseFloat(cashReceived) === amount
+                    ? 'bg-amber-500/20 border-amber-500 text-amber-400'
+                    : 'border-slate-600 text-slate-300 hover:border-slate-500'
+                }`}
+              >
+                E{amount}
+              </button>
+            ))}
+          </div>
+
+          {/* Exact Amount Button */}
+          <button
+            onClick={() => handleCashReceivedChange(cartTotal.toFixed(2))}
+            className={`w-full py-2 rounded-lg text-sm font-medium border transition-colors ${
+              parseFloat(cashReceived) === cartTotal
+                ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400'
+                : 'border-slate-600 text-slate-300 hover:border-slate-500'
+            }`}
+          >
+            Exact Amount ({formatSZL(cartTotal)})
+          </button>
+
+          {/* Change Display */}
+          {parseFloat(cashReceived) >= cartTotal && (
+            <div className="bg-emerald-500/20 border border-emerald-500/30 rounded-xl p-4 text-center">
+              <p className="text-sm text-emerald-400 mb-1">Change Due</p>
+              <p className="text-3xl font-bold text-emerald-400">{formatSZL(changeAmount)}</p>
+            </div>
+          )}
+
+          {/* Insufficient Warning */}
+          {cashReceived && parseFloat(cashReceived) < cartTotal && (
+            <div className="bg-red-500/20 border border-red-500/30 rounded-xl p-3 text-center">
+              <p className="text-red-400 text-sm">
+                Insufficient amount. Need {formatSZL(cartTotal - (parseFloat(cashReceived) || 0))} more.
+              </p>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex gap-3">
+            <Button
+              variant="secondary"
+              size="lg"
+              className="flex-1"
+              onClick={() => setShowCashModal(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="success"
+              size="lg"
+              className="flex-1"
+              onClick={processCashPayment}
+              disabled={!cashReceived || parseFloat(cashReceived) < cartTotal}
+              isLoading={isProcessing}
+            >
+              💵 Complete Sale
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Email Receipt Modal */}
+      <Modal
+        isOpen={showEmailModal}
+        onClose={() => {
+          setShowEmailModal(false);
+          setCustomerEmail('');
+        }}
+        title="Email Receipt"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-slate-400 text-sm">
+            Send a copy of the receipt to the customer's email address.
+          </p>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              Customer Email
+            </label>
+            <input
+              type="email"
+              value={customerEmail}
+              onChange={(e) => setCustomerEmail(e.target.value)}
+              placeholder="customer@example.com"
+              autoFocus
+              className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
+            />
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <Button
+              variant="secondary"
+              className="flex-1"
+              onClick={() => {
+                setShowEmailModal(false);
+                setCustomerEmail('');
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              className="flex-1"
+              onClick={handleSendEmail}
+              disabled={!customerEmail || isSendingEmail}
+              isLoading={isSendingEmail}
+            >
+              <EnvelopeIcon className="w-5 h-5" />
+              Send Receipt
             </Button>
           </div>
         </div>

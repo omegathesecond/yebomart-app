@@ -546,6 +546,24 @@ class ApiClient {
       body: JSON.stringify({ supplierIds }),
     });
   }
+
+  // Email receipt
+  async sendReceiptEmail(data: {
+    saleId: string;
+    email: string;
+    shopName: string;
+    receiptNumber: string;
+    items: any[];
+    subtotal: number;
+    discount: number;
+    total: number;
+    date: string;
+  }) {
+    return this.request<{ success: boolean }>('/api/sales/email-receipt', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
 }
 
 export const api = new ApiClient();
