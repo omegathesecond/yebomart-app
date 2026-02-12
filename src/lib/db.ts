@@ -301,3 +301,28 @@ export async function getCurrentUser(userId?: string): Promise<User | undefined>
   }
   return db.users.where('isActive').equals(1).first();
 }
+
+// Clear all user data from the database (call on logout)
+export async function clearDatabase(): Promise<void> {
+  try {
+    // Clear all tables to prevent data leaking between users
+    await Promise.all([
+      db.products.clear(),
+      db.sales.clear(),
+      db.saleItems.clear(),
+      db.stockLogs.clear(),
+      db.expenses.clear(),
+      db.dailyReports.clear(),
+      db.chatMessages.clear(),
+      db.lowStockAlerts.clear(),
+      db.aiInsights.clear(),
+      db.syncQueue.clear(),
+      db.users.clear(),
+      db.shop.clear(),
+      db.subscription.clear()
+    ]);
+    console.log('YeboMart database cleared on logout');
+  } catch (error) {
+    console.error('Failed to clear database:', error);
+  }
+}

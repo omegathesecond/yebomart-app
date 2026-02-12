@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { User, Shop, Subscription } from '@/types';
 import api from '@/api/client';
+import { clearDatabase } from '@/lib/db';
 
 // Flag to prevent circular dependency issues
 let storeInitialized = false;
@@ -113,8 +114,12 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      logout: () => {
+      logout: async () => {
         api.clearToken();
+        
+        // Clear local database to prevent data leaking between users
+        await clearDatabase();
+        
         set({ 
           user: null, 
           shop: null,

@@ -1,7 +1,9 @@
-import { useEffect, lazy, Suspense } from 'react';
+import { useEffect, useRef, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/authStore';
+import { useInventoryStore } from '@/stores/inventoryStore';
+import { useCartStore } from '@/stores/cartStore';
 import { Layout } from '@/components/layout/Layout';
 import { InitialSync } from '@/components/InitialSync';
 import './index.css';
@@ -23,6 +25,7 @@ const StaffDetail = lazy(() => import('@/pages/StaffDetail').then(m => ({ defaul
 const Returns = lazy(() => import('@/pages/Returns').then(m => ({ default: m.Returns })));
 const Suppliers = lazy(() => import('@/pages/Suppliers').then(m => ({ default: m.Suppliers })));
 
+// Create queryClient outside component to avoid re-creation
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -31,6 +34,9 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+// Export for clearing on logout
+export { queryClient };
 
 // Loading spinner for lazy-loaded pages
 function PageLoader() {
@@ -73,10 +79,25 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 function AppRoutes() {
   const { loadUser, shop, isAuthenticated } = useAuthStore();
+  const clearInventory = useInventoryStore(state => state.clearAll);
+  const clearCart = useCartStore(state => state.clear);
+  const wasAuthenticated = useRef(isAuthenticated);
 
   useEffect(() => {
     loadUser();
   }, [loadUser]);
+
+  // Clear all stores when user logs out
+  useEffect(() => {
+    if (wasAuthenticated.current && !isAuthenticated) {
+      // User just logged out - clear all cached data
+      clearInventory();
+      clearCart();
+      queryClient.clear(); // Clear React Query cache too
+      console.log('[App] Cleared all stores and cache on logout');
+    }
+    wasAuthenticated.current = isAuthenticated;
+  }, [isAuthenticated, clearInventory, clearCart]);
 
   return (
     <Suspense fallback={<AppLoader />}>

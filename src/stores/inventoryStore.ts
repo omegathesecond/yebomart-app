@@ -28,6 +28,7 @@ interface InventoryState {
   loadAll: (shopId: string) => Promise<void>;
   setOnlineStatus: (online: boolean) => void;
   clearError: () => void;
+  clearAll: () => void;
   
   // Products
   addProduct: (product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => Promise<string>;
@@ -164,6 +165,20 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
 
   setOnlineStatus: (online: boolean) => set({ isOnline: online }),
   clearError: () => set({ error: null }),
+  
+  // Clear all data (call on logout)
+  clearAll: () => set({
+    products: [],
+    sales: [],
+    stockLogs: [],
+    alerts: [],
+    insights: [],
+    staff: [],
+    expenses: [],
+    isLoading: false,
+    lastSync: null,
+    error: null
+  }),
 
   // Products - Direct API calls
   addProduct: async (productData) => {
