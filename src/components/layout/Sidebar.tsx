@@ -10,7 +10,9 @@ import {
   Cog6ToothIcon,
   ArrowRightOnRectangleIcon,
   SparklesIcon,
-  ExclamationTriangleIcon
+  ExclamationTriangleIcon,
+  ArrowUturnLeftIcon,
+  BuildingStorefrontIcon
 } from '@heroicons/react/24/outline';
 import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
@@ -21,6 +23,8 @@ const navigation = [
   { name: 'Products', href: '/products', icon: CubeIcon },
   { name: 'Stock', href: '/stock', icon: ArchiveBoxIcon },
   { name: 'Sales', href: '/sales', icon: BanknotesIcon },
+  { name: 'Returns', href: '/returns', icon: ArrowUturnLeftIcon },
+  { name: 'Suppliers', href: '/suppliers', icon: BuildingStorefrontIcon },
   { name: 'Reports', href: '/reports', icon: ChartBarIcon },
   { name: 'Staff', href: '/staff', icon: UsersIcon },
   { name: 'AI Assistant', href: '/assistant', icon: SparklesIcon },
