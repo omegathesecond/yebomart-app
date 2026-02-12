@@ -70,6 +70,7 @@ export interface Sale {
   id: string;
   shopId: string;
   userId: string;
+  receiptNumber?: string;     // Human-readable receipt number (e.g., RCP-260212-0001)
   subtotal: number;           // Before discount
   discount: number;           // Discount amount
   discountPercent?: number;   // Discount as percentage (for display)

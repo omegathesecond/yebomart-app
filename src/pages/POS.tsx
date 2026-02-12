@@ -49,7 +49,7 @@ export function POS() {
   const [showScanner, setShowScanner] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [lastSale, setLastSale] = useState<{ total: number; subtotal: number; discount: number; items: any[]; id: string; date: Date } | null>(null);
+  const [lastSale, setLastSale] = useState<{ total: number; subtotal: number; discount: number; items: any[]; id: string; receiptNumber?: string; date: Date } | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   
   // Discount modal state
@@ -125,6 +125,7 @@ export function POS() {
           discount: sale.discount || 0,
           items: sale.items,
           id: sale.id,
+          receiptNumber: sale.receiptNumber,
           date: new Date()
         });
         setShowReceipt(true);
@@ -502,7 +503,7 @@ export function POS() {
               
               <div className="text-xs text-gray-500 mb-3">
                 <p>Date: {lastSale.date.toLocaleDateString()} {lastSale.date.toLocaleTimeString()}</p>
-                <p>Receipt #: {lastSale.id.slice(-8).toUpperCase()}</p>
+                <p className="font-bold text-black">Receipt #: {lastSale.receiptNumber || lastSale.id.slice(-8).toUpperCase()}</p>
               </div>
 
               <div className="border-b border-dashed border-gray-300 pb-3 mb-3">
