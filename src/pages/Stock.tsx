@@ -7,7 +7,8 @@ import {
   ArrowUpIcon,
   ArrowDownIcon,
   ClockIcon,
-  CheckCircleIcon
+  CheckCircleIcon,
+  PencilSquareIcon
 } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -18,6 +19,17 @@ import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
 import { formatSZL, formatRelativeTime, type Product, type StockLog } from '@/types';
 import api from '@/api/client';
+
+// Adjustment types supported by API
+type AdjustmentType = 'ADJUSTMENT' | 'DAMAGED' | 'EXPIRED' | 'TRANSFER' | 'RETURN';
+
+const ADJUSTMENT_TYPES: { value: AdjustmentType; label: string; icon: string }[] = [
+  { value: 'ADJUSTMENT', label: 'Stock Correction', icon: '📝' },
+  { value: 'DAMAGED', label: 'Damaged', icon: '💔' },
+  { value: 'EXPIRED', label: 'Expired', icon: '📅' },
+  { value: 'RETURN', label: 'Customer Return', icon: '↩️' },
+  { value: 'TRANSFER', label: 'Transfer', icon: '🔄' },
+];
 
 export function Stock() {
   const { shop } = useAuthStore();
@@ -39,6 +51,16 @@ export function Stock() {
   const [isReceiving, setIsReceiving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [receiveErrors, setReceiveErrors] = useState<Record<string, string>>({});
+  
+  // Adjust stock modal
+  const [showAdjust, setShowAdjust] = useState(false);
+  const [adjustProduct, setAdjustProduct] = useState<string>('');
+  const [adjustType, setAdjustType] = useState<AdjustmentType>('ADJUSTMENT');
+  const [adjustQty, setAdjustQty] = useState('');
+  const [adjustDirection, setAdjustDirection] = useState<'add' | 'remove'>('remove');
+  const [adjustNote, setAdjustNote] = useState('');
+  const [isAdjusting, setIsAdjusting] = useState(false);
+  const [adjustErrors, setAdjustErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (shop) {
@@ -106,6 +128,66 @@ export function Stock() {
     setIsReceiving(false);
   };
 
+  // Adjust stock validation
+  const validateAdjust = (): boolean => {
+    const errors: Record<string, string> = {};
+    
+    if (!adjustProduct) {
+      errors.product = 'Please select a product';
+    }
+    if (!adjustQty) {
+      errors.quantity = 'Quantity is required';
+    } else if (parseInt(adjustQty) <= 0) {
+      errors.quantity = 'Quantity must be greater than 0';
+    } else if (adjustDirection === 'remove') {
+      const product = products.find(p => p.id === adjustProduct);
+      if (product && parseInt(adjustQty) > product.quantity) {
+        errors.quantity = `Cannot remove more than current stock (${product.quantity})`;
+      }
+    }
+    if (!adjustNote.trim()) {
+      errors.note = 'Please provide a reason for this adjustment';
+    }
+    
+    setAdjustErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  // Adjust stock handler
+  const handleAdjustStock = async () => {
+    if (!validateAdjust()) return;
+    
+    setIsAdjusting(true);
+    try {
+      const qty = parseInt(adjustQty);
+      const finalQty = adjustDirection === 'remove' ? -qty : qty;
+      
+      // Call API directly for adjustment types
+      await api.adjustStock(adjustProduct, {
+        type: adjustType,
+        quantity: finalQty,
+        note: adjustNote
+      });
+      
+      setShowAdjust(false);
+      setAdjustProduct('');
+      setAdjustType('ADJUSTMENT');
+      setAdjustQty('');
+      setAdjustDirection('remove');
+      setAdjustNote('');
+      setAdjustErrors({});
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 2000);
+      
+      // Reload data
+      if (shop) loadAll(shop.id);
+    } catch (e) {
+      console.error('Failed to adjust stock:', e);
+      setAdjustErrors({ submit: 'Failed to adjust stock. Please try again.' });
+    }
+    setIsAdjusting(false);
+  };
+
   // Filter products
   const filteredProducts = products.filter(p => {
     const matchesSearch = !searchQuery || 
@@ -138,6 +220,13 @@ export function Stock() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button 
+            variant="secondary" 
+            leftIcon={<PencilSquareIcon className="w-5 h-5" />}
+            onClick={() => setShowAdjust(true)}
+          >
+            Adjust Stock
+          </Button>
           <Button 
             variant="primary" 
             leftIcon={<ArrowDownTrayIcon className="w-5 h-5" />}
@@ -451,6 +540,155 @@ export function Stock() {
         </div>
       </Modal>
 
+      {/* Adjust Stock Modal */}
+      <Modal
+        isOpen={showAdjust}
+        onClose={() => { setShowAdjust(false); setAdjustErrors({}); }}
+        title="Adjust Stock"
+        size="md"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              Select Product
+            </label>
+            <select
+              value={adjustProduct}
+              onChange={(e) => { setAdjustProduct(e.target.value); if (adjustErrors.product) setAdjustErrors({...adjustErrors, product: ''}); }}
+              className={`w-full px-4 py-3 bg-slate-700 border rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500 ${
+                adjustErrors.product ? 'border-red-500' : 'border-slate-600'
+              }`}
+            >
+              <option value="">Choose a product...</option>
+              {products.map(p => (
+                <option key={p.id} value={p.id}>
+                  {p.name} (Current: {p.quantity})
+                </option>
+              ))}
+            </select>
+            {adjustErrors.product && (
+              <p className="text-red-400 text-sm mt-1">{adjustErrors.product}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              Adjustment Type
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {ADJUSTMENT_TYPES.map(type => (
+                <button
+                  key={type.value}
+                  type="button"
+                  onClick={() => setAdjustType(type.value)}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    adjustType === type.value
+                      ? 'bg-amber-500 text-white'
+                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                  }`}
+                >
+                  {type.icon} {type.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              Direction
+            </label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setAdjustDirection('remove')}
+                className={`flex-1 px-4 py-3 rounded-xl font-medium transition-colors ${
+                  adjustDirection === 'remove'
+                    ? 'bg-red-500 text-white'
+                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                }`}
+              >
+                <ArrowDownIcon className="w-4 h-4 inline mr-2" />
+                Remove Stock
+              </button>
+              <button
+                type="button"
+                onClick={() => setAdjustDirection('add')}
+                className={`flex-1 px-4 py-3 rounded-xl font-medium transition-colors ${
+                  adjustDirection === 'add'
+                    ? 'bg-emerald-500 text-white'
+                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                }`}
+              >
+                <ArrowUpIcon className="w-4 h-4 inline mr-2" />
+                Add Stock
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              Quantity
+            </label>
+            <input
+              type="number"
+              min="1"
+              value={adjustQty}
+              onChange={(e) => { setAdjustQty(e.target.value); if (adjustErrors.quantity) setAdjustErrors({...adjustErrors, quantity: ''}); }}
+              placeholder="Enter quantity"
+              className={`w-full px-4 py-3 bg-slate-700 border rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500 ${
+                adjustErrors.quantity ? 'border-red-500' : 'border-slate-600'
+              }`}
+            />
+            {adjustErrors.quantity && (
+              <p className="text-red-400 text-sm mt-1">{adjustErrors.quantity}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              Reason / Note <span className="text-red-400">*</span>
+            </label>
+            <input
+              type="text"
+              value={adjustNote}
+              onChange={(e) => { setAdjustNote(e.target.value); if (adjustErrors.note) setAdjustErrors({...adjustErrors, note: ''}); }}
+              placeholder="e.g., Damaged during delivery, Stock count correction"
+              className={`w-full px-4 py-3 bg-slate-700 border rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500 ${
+                adjustErrors.note ? 'border-red-500' : 'border-slate-600'
+              }`}
+            />
+            {adjustErrors.note && (
+              <p className="text-red-400 text-sm mt-1">{adjustErrors.note}</p>
+            )}
+          </div>
+
+          {adjustErrors.submit && (
+            <div className="bg-red-500/20 border border-red-500/30 rounded-lg p-3">
+              <p className="text-red-400 text-sm">{adjustErrors.submit}</p>
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-4">
+            <Button
+              variant="secondary"
+              className="flex-1"
+              onClick={() => { setShowAdjust(false); setAdjustErrors({}); }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              className="flex-1"
+              onClick={handleAdjustStock}
+              isLoading={isAdjusting}
+            >
+              <PencilSquareIcon className="w-5 h-5" />
+              {adjustDirection === 'remove' ? 'Remove' : 'Add'} Stock
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
       {/* Product History Modal */}
       <Modal
         isOpen={!!selectedProduct}
@@ -555,6 +793,18 @@ export function Stock() {
                 Close
               </Button>
               <Button
+                variant="secondary"
+                className="flex-1"
+                onClick={() => {
+                  setAdjustProduct(selectedProduct.id);
+                  closeHistory();
+                  setShowAdjust(true);
+                }}
+              >
+                <PencilSquareIcon className="w-5 h-5" />
+                Adjust
+              </Button>
+              <Button
                 variant="primary"
                 className="flex-1"
                 onClick={() => {
@@ -564,7 +814,7 @@ export function Stock() {
                 }}
               >
                 <ArrowDownTrayIcon className="w-5 h-5" />
-                Receive Stock
+                Receive
               </Button>
             </div>
           </div>
