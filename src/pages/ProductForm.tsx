@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeftIcon, QrCodeIcon, CheckIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, QrCodeIcon, CheckIcon, PlusIcon, XMarkIcon, BuildingStorefrontIcon } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/Button';
 import { Input, Select, Textarea } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
@@ -8,6 +8,7 @@ import { BarcodeScanner } from '@/components/scanner/BarcodeScanner';
 import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
 import { getDefaultCategories, getCategoryAttributes, hasAttributes, type AttributeField } from '@/data/shopTypes';
+import { api } from '@/api/client';
 
 export function ProductForm() {
   const navigate = useNavigate();
@@ -43,6 +44,10 @@ export function ProductForm() {
   const [showAddCustom, setShowAddCustom] = useState(false);
   const [newCustomKey, setNewCustomKey] = useState('');
   const [newCustomValue, setNewCustomValue] = useState('');
+  
+  // Supplier state
+  const [suppliers, setSuppliers] = useState<Array<{ id: string; name: string }>>([]);
+  const [selectedSupplierIds, setSelectedSupplierIds] = useState<Set<string>>(new Set());
 
   // Get products from store
   const { products } = useInventoryStore();
@@ -107,6 +112,46 @@ export function ProductForm() {
       setAttributes({});
     }
   }, [formData.category, isEdit]);
+
+  // Load suppliers
+  useEffect(() => {
+    const loadSuppliers = async () => {
+      try {
+        const response = await api.getSuppliers();
+        setSuppliers(response.data || []);
+      } catch (error) {
+        console.error('Failed to load suppliers:', error);
+      }
+    };
+    loadSuppliers();
+  }, []);
+
+  // Load product's suppliers when editing
+  useEffect(() => {
+    const loadProductSuppliers = async () => {
+      if (isEdit && id) {
+        try {
+          const response = await api.getProductSuppliers(id);
+          if (response.data) {
+            setSelectedSupplierIds(new Set(response.data.map((sp: any) => sp.supplier?.id || sp.supplierId)));
+          }
+        } catch (error) {
+          console.error('Failed to load product suppliers:', error);
+        }
+      }
+    };
+    loadProductSuppliers();
+  }, [isEdit, id]);
+
+  const toggleSupplier = (supplierId: string) => {
+    const newSet = new Set(selectedSupplierIds);
+    if (newSet.has(supplierId)) {
+      newSet.delete(supplierId);
+    } else {
+      newSet.add(supplierId);
+    }
+    setSelectedSupplierIds(newSet);
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -178,10 +223,21 @@ export function ProductForm() {
         isActive: true
       };
 
+      let productId = id;
+      
       if (isEdit && id) {
         await updateProduct(id, productData);
       } else {
-        await addProduct(productData);
+        productId = await addProduct(productData);
+      }
+
+      // Save suppliers if any selected
+      if (productId && selectedSupplierIds.size > 0) {
+        try {
+          await api.setProductSuppliers(productId, Array.from(selectedSupplierIds));
+        } catch (error) {
+          console.error('Failed to save suppliers:', error);
+        }
       }
 
       setShowSuccess(true);
@@ -560,6 +616,53 @@ export function ProductForm() {
               </div>
             )}
           </div>
+
+          {/* Suppliers (Optional) */}
+          {suppliers.length > 0 && (
+            <div className="space-y-4">
+              <div>
+                <h3 className="font-semibold text-white flex items-center gap-2">
+                  <BuildingStorefrontIcon className="w-5 h-5 text-amber-400" />
+                  Suppliers
+                </h3>
+                <p className="text-sm text-slate-400 mt-1">
+                  Select suppliers that provide this product
+                </p>
+              </div>
+              
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-40 overflow-y-auto">
+                {suppliers.map((supplier) => {
+                  const isSelected = selectedSupplierIds.has(supplier.id);
+                  return (
+                    <div
+                      key={supplier.id}
+                      onClick={() => toggleSupplier(supplier.id)}
+                      className={`p-2 rounded-lg border cursor-pointer transition-colors flex items-center gap-2 ${
+                        isSelected
+                          ? 'bg-amber-500/10 border-amber-500/50'
+                          : 'bg-slate-800 border-slate-700 hover:border-slate-600'
+                      }`}
+                    >
+                      {isSelected && (
+                        <div className="w-5 h-5 bg-amber-500 rounded-full flex items-center justify-center shrink-0">
+                          <CheckIcon className="w-3 h-3 text-white" />
+                        </div>
+                      )}
+                      <span className={`text-sm truncate ${isSelected ? 'text-amber-400' : 'text-slate-300'}`}>
+                        {supplier.name}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+              
+              {selectedSupplierIds.size > 0 && (
+                <p className="text-xs text-amber-400">
+                  {selectedSupplierIds.size} supplier{selectedSupplierIds.size !== 1 ? 's' : ''} selected
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Actions */}
           <div className="flex gap-3 pt-4 border-t border-slate-700">

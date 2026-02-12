@@ -520,6 +520,25 @@ class ApiClient {
       method: 'DELETE',
     });
   }
+
+  // Supplier-Product linking
+  async setSupplierProducts(supplierId: string, productIds: string[]) {
+    return this.request<any>(`/api/suppliers/${supplierId}/products`, {
+      method: 'PUT',
+      body: JSON.stringify({ productIds }),
+    });
+  }
+
+  async getProductSuppliers(productId: string) {
+    return this.request<any[]>(`/api/suppliers/product/${productId}`);
+  }
+
+  async setProductSuppliers(productId: string, supplierIds: string[]) {
+    return this.request<any>(`/api/suppliers/product/${productId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ supplierIds }),
+    });
+  }
 }
 
 export const api = new ApiClient();

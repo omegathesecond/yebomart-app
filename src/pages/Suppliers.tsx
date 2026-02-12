@@ -8,7 +8,9 @@ import {
   EnvelopeIcon,
   MapPinIcon,
   BuildingStorefrontIcon,
-  ArrowPathIcon
+  ArrowPathIcon,
+  CubeIcon,
+  CheckIcon
 } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -16,6 +18,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { Modal, ConfirmDialog } from '@/components/ui/Modal';
 import { api } from '@/api/client';
+import { useInventoryStore } from '@/stores/inventoryStore';
 
 interface Supplier {
   id: string;
@@ -28,6 +31,10 @@ interface Supplier {
   paymentTerms?: string;
   notes?: string;
   isActive: boolean;
+  products?: Array<{
+    productId: string;
+    product?: { id: string; name: string; barcode?: string };
+  }>;
   _count?: {
     products: number;
     orders: number;
@@ -36,13 +43,18 @@ interface Supplier {
 }
 
 export function Suppliers() {
+  const { products } = useInventoryStore();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [showProductsModal, setShowProductsModal] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
+  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set());
+  const [productSearch, setProductSearch] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     contactName: '',
@@ -103,6 +115,22 @@ export function Suppliers() {
     setShowModal(true);
   };
 
+  const handleOpenProductsModal = async (supplier: Supplier) => {
+    setSelectedSupplier(supplier);
+    // Fetch full supplier details with products
+    try {
+      const response = await api.getSupplier(supplier.id);
+      if (response.data?.products) {
+        setSelectedProductIds(new Set(response.data.products.map((p: any) => p.productId)));
+      } else {
+        setSelectedProductIds(new Set());
+      }
+    } catch (error) {
+      setSelectedProductIds(new Set());
+    }
+    setShowProductsModal(true);
+  };
+
   const handleSave = async () => {
     if (!formData.name.trim()) return;
     setSaving(true);
@@ -121,6 +149,30 @@ export function Suppliers() {
     }
   };
 
+  const handleSaveProducts = async () => {
+    if (!selectedSupplier) return;
+    setSaving(true);
+    try {
+      await api.setSupplierProducts(selectedSupplier.id, Array.from(selectedProductIds));
+      await fetchSuppliers();
+      setShowProductsModal(false);
+    } catch (error) {
+      console.error('Failed to save products:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggleProduct = (productId: string) => {
+    const newSet = new Set(selectedProductIds);
+    if (newSet.has(productId)) {
+      newSet.delete(productId);
+    } else {
+      newSet.add(productId);
+    }
+    setSelectedProductIds(newSet);
+  };
+
   const handleDelete = async () => {
     if (!deleteId) return;
     try {
@@ -136,6 +188,11 @@ export function Suppliers() {
     s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     s.contactName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     s.phone?.includes(searchQuery)
+  );
+
+  const filteredProducts = products.filter(p =>
+    p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
+    p.barcode?.includes(productSearch)
   );
 
   return (
@@ -186,6 +243,13 @@ export function Suppliers() {
               {/* Actions */}
               <div className="absolute top-3 right-3 flex gap-1">
                 <button
+                  onClick={() => handleOpenProductsModal(supplier)}
+                  className="p-1.5 rounded-lg bg-amber-600/20 hover:bg-amber-600/40 text-amber-400"
+                  title="Manage Products"
+                >
+                  <CubeIcon className="w-4 h-4" />
+                </button>
+                <button
                   onClick={() => handleOpenModal(supplier)}
                   className="p-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300"
                 >
@@ -199,7 +263,7 @@ export function Suppliers() {
                 </button>
               </div>
 
-              <div className="pr-20">
+              <div className="pr-28">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center">
                     <BuildingStorefrontIcon className="w-5 h-5 text-white" />
@@ -245,7 +309,10 @@ export function Suppliers() {
 
                 {supplier._count && (
                   <div className="mt-3 pt-3 border-t border-slate-700 flex gap-4 text-xs text-slate-500">
-                    <span>{supplier._count.products} products</span>
+                    <span className="flex items-center gap-1">
+                      <CubeIcon className="w-3.5 h-3.5" />
+                      {supplier._count.products} products
+                    </span>
                     <span>{supplier._count.orders} orders</span>
                   </div>
                 )}
@@ -322,6 +389,79 @@ export function Suppliers() {
               disabled={!formData.name.trim() || saving}
             >
               {saving ? 'Saving...' : editingSupplier ? 'Update' : 'Add Supplier'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Products Modal */}
+      <Modal
+        isOpen={showProductsModal}
+        onClose={() => setShowProductsModal(false)}
+        title={`Products from ${selectedSupplier?.name || 'Supplier'}`}
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-slate-400">
+            Select products that this supplier provides
+          </p>
+          
+          {/* Product Search */}
+          <Input
+            placeholder="Search products..."
+            value={productSearch}
+            onChange={(e) => setProductSearch(e.target.value)}
+            leftIcon={<MagnifyingGlassIcon className="w-5 h-5" />}
+          />
+          
+          {/* Selected count */}
+          <div className="text-sm text-amber-400">
+            {selectedProductIds.size} product{selectedProductIds.size !== 1 ? 's' : ''} selected
+          </div>
+
+          {/* Product List */}
+          <div className="max-h-64 overflow-y-auto space-y-2">
+            {filteredProducts.map((product) => {
+              const isSelected = selectedProductIds.has(product.id);
+              return (
+                <div
+                  key={product.id}
+                  onClick={() => toggleProduct(product.id)}
+                  className={`p-3 rounded-lg border cursor-pointer transition-colors flex items-center justify-between ${
+                    isSelected
+                      ? 'bg-amber-500/10 border-amber-500/50'
+                      : 'bg-slate-800 border-slate-700 hover:border-slate-600'
+                  }`}
+                >
+                  <div>
+                    <p className="font-medium text-white">{product.name}</p>
+                    {product.barcode && (
+                      <p className="text-xs text-slate-500">{product.barcode}</p>
+                    )}
+                  </div>
+                  {isSelected && (
+                    <div className="w-6 h-6 bg-amber-500 rounded-full flex items-center justify-center">
+                      <CheckIcon className="w-4 h-4 text-white" />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            {filteredProducts.length === 0 && (
+              <p className="text-center text-slate-500 py-4">No products found</p>
+            )}
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <Button variant="secondary" className="flex-1" onClick={() => setShowProductsModal(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              className="flex-1"
+              onClick={handleSaveProducts}
+              disabled={saving}
+            >
+              {saving ? 'Saving...' : 'Save Products'}
             </Button>
           </div>
         </div>
