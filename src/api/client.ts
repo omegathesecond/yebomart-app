@@ -370,14 +370,21 @@ class ApiClient {
 
   // Stock
   async adjustStock(productId: string, data: { type: string; quantity: number; note?: string }) {
-    return this.request<any>(`/api/stock/${productId}`, {
+    return this.request<any>('/api/stock/adjust', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify({ productId, ...data }),
+    });
+  }
+
+  async receiveStock(productId: string, data: { quantity: number; note?: string; costPrice?: number }) {
+    return this.request<any>('/api/stock/receive', {
+      method: 'POST',
+      body: JSON.stringify({ productId, ...data }),
     });
   }
 
   async getStockLogs(productId?: string) {
-    const endpoint = productId ? `/api/stock/logs/${productId}` : '/api/stock/logs';
+    const endpoint = productId ? `/api/stock/movements?productId=${productId}` : '/api/stock/movements';
     return this.request<any[]>(endpoint);
   }
 
