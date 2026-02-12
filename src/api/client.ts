@@ -486,6 +486,11 @@ class ApiClient {
     });
   }
 
+  // Search sale by receipt number (for returns)
+  async searchSaleByReceipt(receiptNumber: string) {
+    return this.request<any>(`/api/sales/search/receipt?receiptNumber=${encodeURIComponent(receiptNumber)}`);
+  }
+
   // Suppliers
   async getSuppliers(params?: { search?: string }) {
     const query = params?.search ? `?search=${params.search}` : '';

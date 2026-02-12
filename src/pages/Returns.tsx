@@ -7,7 +7,10 @@ import {
   ClockIcon,
   ArrowUturnLeftIcon,
   BanknotesIcon,
-  ArrowsRightLeftIcon
+  ArrowsRightLeftIcon,
+  PlusIcon,
+  ReceiptPercentIcon,
+  DocumentMagnifyingGlassIcon
 } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -16,6 +19,25 @@ import { Card } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
 import { api } from '@/api/client';
 import { formatSZL } from '@/types';
+
+interface SaleItem {
+  id: string;
+  productId: string;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+}
+
+interface Sale {
+  id: string;
+  receiptNumber: string;
+  totalAmount: number;
+  paymentMethod: string;
+  items: SaleItem[];
+  createdAt: string;
+  user?: { name: string };
+}
 
 interface ReturnItem {
   id: string;
@@ -62,6 +84,17 @@ export function Returns() {
   const [statusFilter, setStatusFilter] = useState('');
   const [selectedReturn, setSelectedReturn] = useState<Return | null>(null);
   const [processing, setProcessing] = useState(false);
+  
+  // New return flow
+  const [showNewReturn, setShowNewReturn] = useState(false);
+  const [receiptSearch, setReceiptSearch] = useState('');
+  const [searchingSale, setSearchingSale] = useState(false);
+  const [foundSale, setFoundSale] = useState<Sale | null>(null);
+  const [saleError, setSaleError] = useState('');
+  const [selectedItems, setSelectedItems] = useState<Map<string, number>>(new Map());
+  const [returnType, setReturnType] = useState<'REFUND' | 'EXCHANGE' | 'STORE_CREDIT'>('REFUND');
+  const [returnReason, setReturnReason] = useState('');
+  const [creatingReturn, setCreatingReturn] = useState(false);
 
   const fetchReturns = async () => {
     setLoading(true);
@@ -78,6 +111,93 @@ export function Returns() {
   useEffect(() => {
     fetchReturns();
   }, [statusFilter]);
+
+  const handleSearchReceipt = async () => {
+    if (!receiptSearch.trim()) return;
+    setSearchingSale(true);
+    setSaleError('');
+    setFoundSale(null);
+    try {
+      const response = await api.searchSaleByReceipt(receiptSearch.trim());
+      if (response.data) {
+        setFoundSale(response.data);
+        setSelectedItems(new Map());
+      }
+    } catch (error: any) {
+      setSaleError(error.message || 'Receipt not found');
+    } finally {
+      setSearchingSale(false);
+    }
+  };
+
+  const toggleItemSelection = (itemId: string, maxQty: number) => {
+    const newMap = new Map(selectedItems);
+    if (newMap.has(itemId)) {
+      newMap.delete(itemId);
+    } else {
+      newMap.set(itemId, maxQty);
+    }
+    setSelectedItems(newMap);
+  };
+
+  const updateItemQty = (itemId: string, qty: number, maxQty: number) => {
+    const newMap = new Map(selectedItems);
+    if (qty <= 0) {
+      newMap.delete(itemId);
+    } else {
+      newMap.set(itemId, Math.min(qty, maxQty));
+    }
+    setSelectedItems(newMap);
+  };
+
+  const calculateRefundAmount = () => {
+    if (!foundSale) return 0;
+    let total = 0;
+    selectedItems.forEach((qty, itemId) => {
+      const item = foundSale.items.find(i => i.id === itemId);
+      if (item) {
+        total += item.unitPrice * qty;
+      }
+    });
+    return total;
+  };
+
+  const handleCreateReturn = async () => {
+    if (!foundSale || selectedItems.size === 0 || !returnReason.trim()) return;
+    setCreatingReturn(true);
+    try {
+      const items = Array.from(selectedItems.entries()).map(([itemId, qty]) => {
+        const item = foundSale.items.find(i => i.id === itemId)!;
+        return {
+          productId: item.productId,
+          productName: item.productName,
+          quantity: qty,
+          unitPrice: item.unitPrice,
+          restockable: true,
+        };
+      });
+
+      await api.createReturn({
+        saleId: foundSale.id,
+        reason: returnReason,
+        type: returnType,
+        items,
+        refundAmount: returnType === 'REFUND' ? calculateRefundAmount() : 0,
+      });
+
+      // Reset and refresh
+      setShowNewReturn(false);
+      setFoundSale(null);
+      setReceiptSearch('');
+      setSelectedItems(new Map());
+      setReturnReason('');
+      await fetchReturns();
+    } catch (error) {
+      console.error('Failed to create return:', error);
+    } finally {
+      setCreatingReturn(false);
+    }
+  };
 
   const handleProcess = async (action: 'approve' | 'reject' | 'complete') => {
     if (!selectedReturn) return;
@@ -108,14 +228,23 @@ export function Returns() {
             Manage refunds and exchanges
           </p>
         </div>
-        <Button
-          variant="secondary"
-          leftIcon={<ArrowPathIcon className="w-5 h-5" />}
-          onClick={fetchReturns}
-          disabled={loading}
-        >
-          Refresh
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="secondary"
+            leftIcon={<ArrowPathIcon className="w-5 h-5" />}
+            onClick={fetchReturns}
+            disabled={loading}
+          >
+            Refresh
+          </Button>
+          <Button
+            variant="primary"
+            leftIcon={<PlusIcon className="w-5 h-5" />}
+            onClick={() => setShowNewReturn(true)}
+          >
+            New Return
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -150,7 +279,10 @@ export function Returns() {
       ) : filteredReturns.length === 0 ? (
         <Card className="text-center py-12">
           <ArrowUturnLeftIcon className="w-12 h-12 mx-auto text-slate-500 mb-3" />
-          <p className="text-slate-400">No returns found</p>
+          <p className="text-slate-400 mb-4">No returns found</p>
+          <Button variant="primary" onClick={() => setShowNewReturn(true)}>
+            Create First Return
+          </Button>
         </Card>
       ) : (
         <div className="space-y-4">
@@ -195,6 +327,191 @@ export function Returns() {
         </div>
       )}
 
+      {/* New Return Modal */}
+      <Modal
+        isOpen={showNewReturn}
+        onClose={() => {
+          setShowNewReturn(false);
+          setFoundSale(null);
+          setReceiptSearch('');
+          setSaleError('');
+          setSelectedItems(new Map());
+          setReturnReason('');
+        }}
+        title="New Return"
+      >
+        <div className="space-y-6">
+          {/* Receipt Search */}
+          <div>
+            <label className="block text-sm text-slate-400 mb-2">
+              Search by Receipt Number
+            </label>
+            <div className="flex gap-2">
+              <Input
+                placeholder="e.g., RCP-260212-0001 or just 0001"
+                value={receiptSearch}
+                onChange={(e) => setReceiptSearch(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearchReceipt()}
+                leftIcon={<ReceiptPercentIcon className="w-5 h-5" />}
+              />
+              <Button
+                variant="secondary"
+                onClick={handleSearchReceipt}
+                disabled={searchingSale || !receiptSearch.trim()}
+              >
+                {searchingSale ? (
+                  <ArrowPathIcon className="w-5 h-5 animate-spin" />
+                ) : (
+                  <DocumentMagnifyingGlassIcon className="w-5 h-5" />
+                )}
+              </Button>
+            </div>
+            {saleError && (
+              <p className="text-red-400 text-sm mt-2">{saleError}</p>
+            )}
+          </div>
+
+          {/* Found Sale */}
+          {foundSale && (
+            <>
+              <div className="p-4 bg-slate-800 rounded-xl border border-slate-700">
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <p className="font-mono text-amber-400 font-semibold">
+                      {foundSale.receiptNumber}
+                    </p>
+                    <p className="text-sm text-slate-400">
+                      {new Date(foundSale.createdAt).toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-lg font-bold text-white">
+                      {formatSZL(foundSale.totalAmount)}
+                    </p>
+                    <p className="text-xs text-slate-500 uppercase">
+                      {foundSale.paymentMethod}
+                    </p>
+                  </div>
+                </div>
+                {foundSale.user && (
+                  <p className="text-xs text-slate-500">
+                    Cashier: {foundSale.user.name}
+                  </p>
+                )}
+              </div>
+
+              {/* Select Items to Return */}
+              <div>
+                <label className="block text-sm text-slate-400 mb-2">
+                  Select Items to Return
+                </label>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {foundSale.items.map((item) => {
+                    const isSelected = selectedItems.has(item.id);
+                    const selectedQty = selectedItems.get(item.id) || 0;
+
+                    return (
+                      <div
+                        key={item.id}
+                        className={`p-3 rounded-lg border transition-colors cursor-pointer ${
+                          isSelected
+                            ? 'bg-amber-500/10 border-amber-500/50'
+                            : 'bg-slate-800 border-slate-700 hover:border-slate-600'
+                        }`}
+                        onClick={() => toggleItemSelection(item.id, item.quantity)}
+                      >
+                        <div className="flex justify-between items-center">
+                          <div className="flex-1">
+                            <p className="font-medium text-white">{item.productName}</p>
+                            <p className="text-sm text-slate-400">
+                              {formatSZL(item.unitPrice)} × {item.quantity}
+                            </p>
+                          </div>
+                          {isSelected && (
+                            <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                              <input
+                                type="number"
+                                min="1"
+                                max={item.quantity}
+                                value={selectedQty}
+                                onChange={(e) => updateItemQty(item.id, parseInt(e.target.value) || 0, item.quantity)}
+                                className="w-16 bg-slate-700 border border-slate-600 rounded px-2 py-1 text-white text-center"
+                              />
+                              <span className="text-slate-500">/ {item.quantity}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Return Type */}
+              <div>
+                <label className="block text-sm text-slate-400 mb-2">
+                  Return Type
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(['REFUND', 'EXCHANGE', 'STORE_CREDIT'] as const).map((type) => {
+                    const config = TYPE_CONFIG[type];
+                    const Icon = config.icon;
+                    return (
+                      <button
+                        key={type}
+                        onClick={() => setReturnType(type)}
+                        className={`p-3 rounded-xl border flex flex-col items-center gap-1 transition-colors ${
+                          returnType === type
+                            ? 'bg-amber-500/20 border-amber-500'
+                            : 'bg-slate-800 border-slate-700 hover:border-slate-600'
+                        }`}
+                      >
+                        <Icon className={`w-5 h-5 ${config.color}`} />
+                        <span className="text-xs text-white">{config.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Reason */}
+              <div>
+                <label className="block text-sm text-slate-400 mb-2">
+                  Reason for Return *
+                </label>
+                <textarea
+                  value={returnReason}
+                  onChange={(e) => setReturnReason(e.target.value)}
+                  placeholder="e.g., Customer changed mind, Defective product, Wrong item..."
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                  rows={2}
+                />
+              </div>
+
+              {/* Refund Amount */}
+              {returnType === 'REFUND' && selectedItems.size > 0 && (
+                <div className="p-4 bg-green-900/30 border border-green-800 rounded-xl">
+                  <p className="text-sm text-green-400 mb-1">Refund Amount</p>
+                  <p className="text-2xl font-bold text-green-400">
+                    {formatSZL(calculateRefundAmount())}
+                  </p>
+                </div>
+              )}
+
+              {/* Create Button */}
+              <Button
+                variant="primary"
+                className="w-full"
+                onClick={handleCreateReturn}
+                disabled={selectedItems.size === 0 || !returnReason.trim() || creatingReturn}
+              >
+                {creatingReturn ? 'Creating...' : 'Create Return'}
+              </Button>
+            </>
+          )}
+        </div>
+      </Modal>
+
       {/* Return Detail Modal */}
       <Modal
         isOpen={!!selectedReturn}
@@ -238,24 +555,6 @@ export function Returns() {
                 ))}
               </div>
             </div>
-
-            {/* Exchange Items */}
-            {selectedReturn.exchangeItems && selectedReturn.exchangeItems.length > 0 && (
-              <div>
-                <p className="text-sm text-slate-400 mb-2">Exchange Items</p>
-                <div className="space-y-2">
-                  {selectedReturn.exchangeItems.map((item) => (
-                    <div key={item.id} className="flex justify-between items-center bg-blue-900/30 border border-blue-800 rounded-lg p-3">
-                      <div>
-                        <p className="text-white font-medium">{item.productName}</p>
-                        <p className="text-sm text-slate-400">Qty: {item.quantity}</p>
-                      </div>
-                      <p className="text-white">{formatSZL(item.unitPrice * item.quantity)}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {/* Refund Amount */}
             {selectedReturn.type === 'REFUND' && (
