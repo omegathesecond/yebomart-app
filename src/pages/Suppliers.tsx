@@ -26,9 +26,15 @@ interface Supplier {
   contactName?: string;
   phone?: string;
   email?: string;
+  website?: string;
   address?: string;
+  city?: string;
+  country?: string;
+  postalCode?: string;
   taxId?: string;
+  currency?: string;
   paymentTerms?: string;
+  leadTimeDays?: number;
   notes?: string;
   isActive: boolean;
   products?: Array<{
@@ -60,8 +66,13 @@ export function Suppliers() {
     contactName: '',
     phone: '',
     email: '',
+    website: '',
     address: '',
+    city: '',
+    country: '',
+    currency: '',
     paymentTerms: '',
+    leadTimeDays: '',
     notes: '',
   });
 
@@ -96,8 +107,13 @@ export function Suppliers() {
         contactName: supplier.contactName || '',
         phone: supplier.phone || '',
         email: supplier.email || '',
+        website: supplier.website || '',
         address: supplier.address || '',
+        city: supplier.city || '',
+        country: supplier.country || '',
+        currency: supplier.currency || '',
         paymentTerms: supplier.paymentTerms || '',
+        leadTimeDays: supplier.leadTimeDays?.toString() || '',
         notes: supplier.notes || '',
       });
     } else {
@@ -107,8 +123,13 @@ export function Suppliers() {
         contactName: '',
         phone: '',
         email: '',
+        website: '',
         address: '',
+        city: '',
+        country: '',
+        currency: '',
         paymentTerms: '',
+        leadTimeDays: '',
         notes: '',
       });
     }
@@ -135,10 +156,14 @@ export function Suppliers() {
     if (!formData.name.trim()) return;
     setSaving(true);
     try {
+      const data = {
+        ...formData,
+        leadTimeDays: formData.leadTimeDays ? parseInt(formData.leadTimeDays) : undefined,
+      };
       if (editingSupplier) {
-        await api.updateSupplier(editingSupplier.id, formData);
+        await api.updateSupplier(editingSupplier.id, data);
       } else {
-        await api.createSupplier(formData);
+        await api.createSupplier(data);
       }
       await fetchSuppliers();
       setShowModal(false);
@@ -293,19 +318,31 @@ export function Suppliers() {
                       </a>
                     </div>
                   )}
-                  {supplier.address && (
+                  {(supplier.address || supplier.country) && (
                     <div className="flex items-center gap-2 text-slate-400">
                       <MapPinIcon className="w-4 h-4 shrink-0" />
-                      <span className="truncate">{supplier.address}</span>
+                      <span className="truncate">
+                        {supplier.city && `${supplier.city}, `}
+                        {supplier.country || supplier.address}
+                      </span>
                     </div>
                   )}
                 </div>
 
-                {supplier.paymentTerms && (
-                  <Badge variant="info" className="mt-3">
-                    {supplier.paymentTerms}
-                  </Badge>
-                )}
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {supplier.country && (
+                    <Badge variant="neutral">{supplier.country}</Badge>
+                  )}
+                  {supplier.currency && (
+                    <Badge variant="info">{supplier.currency}</Badge>
+                  )}
+                  {supplier.paymentTerms && (
+                    <Badge variant="warning">{supplier.paymentTerms}</Badge>
+                  )}
+                  {supplier.leadTimeDays && (
+                    <Badge variant="default">{supplier.leadTimeDays} days</Badge>
+                  )}
+                </div>
 
                 {supplier._count && (
                   <div className="mt-3 pt-3 border-t border-slate-700 flex gap-4 text-xs text-slate-500">
@@ -328,12 +365,12 @@ export function Suppliers() {
         onClose={() => setShowModal(false)}
         title={editingSupplier ? 'Edit Supplier' : 'Add Supplier'}
       >
-        <div className="space-y-4">
+        <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
           <Input
             label="Company Name *"
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            placeholder="e.g., ABC Supplies"
+            placeholder="e.g., ABC Supplies Ltd"
           />
           <Input
             label="Contact Person"
@@ -341,40 +378,88 @@ export function Suppliers() {
             onChange={(e) => setFormData({ ...formData, contactName: e.target.value })}
             placeholder="e.g., John Smith"
           />
+          
+          {/* Contact Info */}
           <div className="grid grid-cols-2 gap-4">
             <Input
-              label="Phone"
+              label="Phone (Intl)"
               value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              placeholder="+268 7xxx xxxx"
+              placeholder="+86 123 456 7890"
             />
             <Input
               label="Email"
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              placeholder="email@company.com"
+              placeholder="sales@company.com"
             />
           </div>
           <Input
-            label="Address"
-            value={formData.address}
-            onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-            placeholder="Business address"
+            label="Website"
+            value={formData.website}
+            onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+            placeholder="https://www.supplier.com"
           />
-          <Input
-            label="Payment Terms"
-            value={formData.paymentTerms}
-            onChange={(e) => setFormData({ ...formData, paymentTerms: e.target.value })}
-            placeholder="e.g., Net 30, COD"
-          />
+          
+          {/* Location */}
+          <div className="pt-2 border-t border-slate-700">
+            <p className="text-xs text-slate-500 mb-3 uppercase tracking-wider">Location</p>
+            <Input
+              label="Address"
+              value={formData.address}
+              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+              placeholder="123 Business Street"
+            />
+            <div className="grid grid-cols-2 gap-4 mt-4">
+              <Input
+                label="City"
+                value={formData.city}
+                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                placeholder="e.g., Johannesburg"
+              />
+              <Input
+                label="Country"
+                value={formData.country}
+                onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                placeholder="e.g., South Africa, China"
+              />
+            </div>
+          </div>
+          
+          {/* Business Terms */}
+          <div className="pt-2 border-t border-slate-700">
+            <p className="text-xs text-slate-500 mb-3 uppercase tracking-wider">Business Terms</p>
+            <div className="grid grid-cols-3 gap-4">
+              <Input
+                label="Currency"
+                value={formData.currency}
+                onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+                placeholder="USD, ZAR"
+              />
+              <Input
+                label="Payment Terms"
+                value={formData.paymentTerms}
+                onChange={(e) => setFormData({ ...formData, paymentTerms: e.target.value })}
+                placeholder="Net 30, LC"
+              />
+              <Input
+                label="Lead Time (days)"
+                type="number"
+                value={formData.leadTimeDays}
+                onChange={(e) => setFormData({ ...formData, leadTimeDays: e.target.value })}
+                placeholder="14"
+              />
+            </div>
+          </div>
+
           <div>
             <label className="block text-sm text-slate-400 mb-1.5">Notes</label>
             <textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
-              rows={3}
+              rows={2}
               placeholder="Additional notes..."
             />
           </div>
