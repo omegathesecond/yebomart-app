@@ -26,6 +26,8 @@ export function ProductForm() {
     barcode: '',
     costPrice: '',
     sellPrice: '',
+    wholesalePrice: '',
+    wholesaleMinQty: '',
     quantity: '',
     reorderAt: '10',
     unit: 'each',
@@ -66,6 +68,8 @@ export function ProductForm() {
           barcode: product.barcode || '',
           costPrice: product.costPrice.toString(),
           sellPrice: product.sellPrice.toString(),
+          wholesalePrice: product.wholesalePrice?.toString() || '',
+          wholesaleMinQty: product.wholesaleMinQty?.toString() || '',
           quantity: product.quantity.toString(),
           reorderAt: product.reorderAt.toString(),
           unit: product.unit,
@@ -164,6 +168,8 @@ export function ProductForm() {
         attributes: Object.keys(allAttributes).length > 0 ? allAttributes : undefined,
         costPrice: parseFloat(formData.costPrice),
         sellPrice: parseFloat(formData.sellPrice),
+        wholesalePrice: formData.wholesalePrice ? parseFloat(formData.wholesalePrice) : undefined,
+        wholesaleMinQty: formData.wholesaleMinQty ? parseInt(formData.wholesaleMinQty) : undefined,
         quantity: parseInt(formData.quantity),
         reorderAt: parseInt(formData.reorderAt) || 10,
         unit: formData.unit,
@@ -444,6 +450,59 @@ export function ProductForm() {
                 { value: 'box', label: 'Box' }
               ]}
             />
+          </div>
+
+          {/* Wholesale Pricing (Optional) */}
+          <div className="space-y-4">
+            <div>
+              <h3 className="font-semibold text-white">Wholesale Pricing</h3>
+              <p className="text-sm text-slate-400 mt-1">
+                Optional: Set bulk pricing for wholesale customers
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <Input
+                label="Wholesale Price (E)"
+                name="wholesalePrice"
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.wholesalePrice}
+                onChange={handleChange}
+                placeholder="e.g., 8.50"
+                hint="Bulk price per unit"
+              />
+              
+              <Input
+                label="Min. Quantity"
+                name="wholesaleMinQty"
+                type="number"
+                min="1"
+                value={formData.wholesaleMinQty}
+                onChange={handleChange}
+                placeholder="e.g., 10"
+                hint="Min qty for wholesale"
+              />
+            </div>
+            
+            {formData.wholesalePrice && formData.wholesaleMinQty && formData.sellPrice && (
+              <div className="p-3 bg-slate-700/30 rounded-lg">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-slate-400">Wholesale discount</span>
+                  <span className="font-semibold text-blue-400">
+                    {(() => {
+                      const retail = parseFloat(formData.sellPrice);
+                      const wholesale = parseFloat(formData.wholesalePrice);
+                      const discount = ((retail - wholesale) / retail * 100).toFixed(0);
+                      return wholesale < retail 
+                        ? `${discount}% off retail (E${(retail - wholesale).toFixed(2)} savings/unit)`
+                        : 'No discount';
+                    })()}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Pack Pricing (Optional) */}

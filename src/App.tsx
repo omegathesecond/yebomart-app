@@ -20,6 +20,8 @@ const AIChat = lazy(() => import('@/pages/AIChat').then(m => ({ default: m.AICha
 const Reports = lazy(() => import('@/pages/Reports').then(m => ({ default: m.Reports })));
 const Staff = lazy(() => import('@/pages/Staff').then(m => ({ default: m.Staff })));
 const StaffDetail = lazy(() => import('@/pages/StaffDetail').then(m => ({ default: m.StaffDetail })));
+const Returns = lazy(() => import('@/pages/Returns').then(m => ({ default: m.Returns })));
+const Suppliers = lazy(() => import('@/pages/Suppliers').then(m => ({ default: m.Suppliers })));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -116,6 +118,8 @@ function AppRoutes() {
           <Route path="reports" element={<Suspense fallback={<PageLoader />}><Reports /></Suspense>} />
           <Route path="staff" element={<Suspense fallback={<PageLoader />}><Staff /></Suspense>} />
           <Route path="staff/:id" element={<Suspense fallback={<PageLoader />}><StaffDetail /></Suspense>} />
+          <Route path="returns" element={<Suspense fallback={<PageLoader />}><Returns /></Suspense>} />
+          <Route path="suppliers" element={<Suspense fallback={<PageLoader />}><Suppliers /></Suspense>} />
           <Route path="assistant" element={<Suspense fallback={<PageLoader />}><AIChat /></Suspense>} />
           <Route path="settings" element={<Suspense fallback={<PageLoader />}><Settings /></Suspense>} />
         </Route>

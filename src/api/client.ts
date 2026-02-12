@@ -461,6 +461,60 @@ class ApiClient {
   async health() {
     return this.request<any>('/health');
   }
+
+  // Returns
+  async getReturns(params?: { status?: string }) {
+    const query = params?.status ? `?status=${params.status}` : '';
+    return this.request<any[]>(`/api/returns${query}`);
+  }
+
+  async getReturn(id: string) {
+    return this.request<any>(`/api/returns/${id}`);
+  }
+
+  async createReturn(data: any) {
+    return this.request<any>('/api/returns', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async processReturn(id: string, action: 'approve' | 'reject' | 'complete') {
+    return this.request<any>(`/api/returns/${id}/process`, {
+      method: 'POST',
+      body: JSON.stringify({ action }),
+    });
+  }
+
+  // Suppliers
+  async getSuppliers(params?: { search?: string }) {
+    const query = params?.search ? `?search=${params.search}` : '';
+    return this.request<any[]>(`/api/suppliers${query}`);
+  }
+
+  async getSupplier(id: string) {
+    return this.request<any>(`/api/suppliers/${id}`);
+  }
+
+  async createSupplier(data: any) {
+    return this.request<any>('/api/suppliers', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateSupplier(id: string, data: any) {
+    return this.request<any>(`/api/suppliers/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteSupplier(id: string) {
+    return this.request<void>(`/api/suppliers/${id}`, {
+      method: 'DELETE',
+    });
+  }
 }
 
 export const api = new ApiClient();

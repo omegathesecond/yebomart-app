@@ -50,6 +50,9 @@ export interface Product {
   attributes?: Record<string, string | number>;  // Dynamic product attributes
   costPrice: number;
   sellPrice: number;
+  // Wholesale pricing (optional)
+  wholesalePrice?: number;   // Bulk price per unit
+  wholesaleMinQty?: number;  // Minimum quantity for wholesale price
   quantity: number;
   reorderAt: number;
   unit: string;
