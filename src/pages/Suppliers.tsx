@@ -366,101 +366,114 @@ export function Suppliers() {
         title={editingSupplier ? 'Edit Supplier' : 'Add Supplier'}
       >
         <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
-          <Input
-            label="Company Name *"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            placeholder="e.g., ABC Supplies Ltd"
-          />
-          <Input
-            label="Contact Person"
-            value={formData.contactName}
-            onChange={(e) => setFormData({ ...formData, contactName: e.target.value })}
-            placeholder="e.g., John Smith"
-          />
-          
-          {/* Contact Info */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Company Details */}
+          <div className="space-y-4">
+            <p className="text-xs text-amber-400 mb-1 uppercase tracking-wider font-semibold">Company Details</p>
             <Input
-              label="Phone (Intl)"
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              placeholder="+86 123 456 7890"
+              label="Supplier / Company Name *"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              placeholder="e.g., Guangzhou Trading Co., Makro SA"
             />
             <Input
-              label="Email"
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              placeholder="sales@company.com"
+              label="Primary Contact"
+              value={formData.contactName}
+              onChange={(e) => setFormData({ ...formData, contactName: e.target.value })}
+              placeholder="e.g., Wang Wei, Sarah Johnson"
             />
           </div>
-          <Input
-            label="Website"
-            value={formData.website}
-            onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-            placeholder="https://www.supplier.com"
-          />
+          
+          {/* Contact Information */}
+          <div className="pt-3 border-t border-slate-700">
+            <p className="text-xs text-amber-400 mb-3 uppercase tracking-wider font-semibold">Contact Information</p>
+            <div className="grid grid-cols-2 gap-4">
+              <Input
+                label="Phone Number"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                placeholder="+86 20 1234 5678"
+                hint="Include country code"
+              />
+              <Input
+                label="Email Address"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                placeholder="export@supplier.com"
+              />
+            </div>
+            <div className="mt-4">
+              <Input
+                label="Website / Alibaba Store"
+                value={formData.website}
+                onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                placeholder="https://supplier.alibaba.com"
+              />
+            </div>
+          </div>
           
           {/* Location */}
-          <div className="pt-2 border-t border-slate-700">
-            <p className="text-xs text-slate-500 mb-3 uppercase tracking-wider">Location</p>
+          <div className="pt-3 border-t border-slate-700">
+            <p className="text-xs text-amber-400 mb-3 uppercase tracking-wider font-semibold">Location</p>
             <Input
-              label="Address"
+              label="Street Address"
               value={formData.address}
               onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              placeholder="123 Business Street"
+              placeholder="e.g., 88 Tianhe Road, Building A"
             />
             <div className="grid grid-cols-2 gap-4 mt-4">
               <Input
-                label="City"
+                label="City / Region"
                 value={formData.city}
                 onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                placeholder="e.g., Johannesburg"
+                placeholder="e.g., Shenzhen, Cape Town"
               />
               <Input
                 label="Country"
                 value={formData.country}
                 onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                placeholder="e.g., South Africa, China"
+                placeholder="e.g., China, South Africa"
               />
             </div>
           </div>
           
-          {/* Business Terms */}
-          <div className="pt-2 border-t border-slate-700">
-            <p className="text-xs text-slate-500 mb-3 uppercase tracking-wider">Business Terms</p>
+          {/* Trade Terms */}
+          <div className="pt-3 border-t border-slate-700">
+            <p className="text-xs text-amber-400 mb-3 uppercase tracking-wider font-semibold">Trade Terms</p>
             <div className="grid grid-cols-3 gap-4">
               <Input
-                label="Currency"
+                label="Trading Currency"
                 value={formData.currency}
                 onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
-                placeholder="USD, ZAR"
+                placeholder="USD, CNY, ZAR"
+                hint="Their currency"
               />
               <Input
                 label="Payment Terms"
                 value={formData.paymentTerms}
                 onChange={(e) => setFormData({ ...formData, paymentTerms: e.target.value })}
-                placeholder="Net 30, LC"
+                placeholder="T/T, L/C, 30% deposit"
+                hint="How you pay"
               />
               <Input
-                label="Lead Time (days)"
+                label="Lead Time"
                 type="number"
                 value={formData.leadTimeDays}
                 onChange={(e) => setFormData({ ...formData, leadTimeDays: e.target.value })}
-                placeholder="14"
+                placeholder="30"
+                hint="Days to deliver"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm text-slate-400 mb-1.5">Notes</label>
+            <label className="block text-sm text-slate-400 mb-1.5">Additional Notes</label>
             <textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
               rows={2}
-              placeholder="Additional notes..."
+              placeholder="MOQ requirements, shipping methods, quality notes, trade shows met at..."
             />
           </div>
           <div className="flex gap-3 pt-2">
