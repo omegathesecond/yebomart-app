@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   ShoppingCartIcon, 
   RocketLaunchIcon,
@@ -10,33 +10,65 @@ import {
   ArrowRightIcon,
   ArrowLeftIcon,
   CheckCircleIcon,
-  PhoneIcon,
   UserPlusIcon,
-  CheckIcon
+  CheckIcon,
+  GlobeAltIcon
 } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { PhoneInput } from '@/components/ui/PhoneInput';
+import { ShopCountryPicker } from '@/components/ui/ShopCountryPicker';
 import { useAuthStore } from '@/stores/authStore';
+import { useShopStore } from '@/stores/shopStore';
 import { shopTypes, ShopType } from '@/data/shopTypes';
+import { COUNTRIES, getCountryByCode, type Country } from '@/lib/countries';
 
-type OnboardingStep = 'entry' | 'instructions' | 'shopType' | 'setup';
+type OnboardingStep = 'entry' | 'instructions' | 'shopType' | 'country' | 'setup';
 
 export function Onboarding() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { setupShop } = useAuthStore();
-  const [step, setStep] = useState<OnboardingStep>('entry');
+  const { createShop } = useShopStore();
+  
+  const isNewShop = searchParams.get('mode') === 'new-shop';
+  const [step, setStep] = useState<OnboardingStep>(isNewShop ? 'shopType' : 'entry');
   
   // Setup form state
   const [selectedShopType, setSelectedShopType] = useState<string>('');
+  const [shopCountryCode, setShopCountryCode] = useState<string>('SZ');
   const [shopName, setShopName] = useState('');
   const [ownerName, setOwnerName] = useState('');
   const [ownerPhone, setOwnerPhone] = useState('');
+  const [phoneCountryCode, setPhoneCountryCode] = useState('SZ');
+  const [fullPhoneNumber, setFullPhoneNumber] = useState('');
   const [pin, setPin] = useState('');
   const [assistantName, setAssistantName] = useState('Yebo');
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  // Auto-detect country on first load
+  useEffect(() => {
+    const detectCountry = async () => {
+      try {
+        const response = await fetch('https://ipapi.co/json/');
+        if (response.ok) {
+          const data = await response.json();
+          const detectedCode = data.country_code;
+          // Only set if we support this country and user hasn't changed it
+          if (detectedCode && COUNTRIES.find(c => c.code === detectedCode)) {
+            setShopCountryCode(detectedCode);
+            setPhoneCountryCode(detectedCode);
+          }
+        }
+      } catch (e) {
+        console.log('Could not auto-detect country');
+      }
+    };
+    detectCountry();
+  }, []);
 
   const validate = (): boolean => {
     const errors: Record<string, string> = {};
@@ -73,6 +105,21 @@ export function Onboarding() {
     }
   };
 
+  const handlePhoneChange = (phone: string, countryCode: string, fullNumber: string) => {
+    setOwnerPhone(phone);
+    setPhoneCountryCode(countryCode);
+    setFullPhoneNumber(fullNumber);
+    clearFieldError('ownerPhone');
+  };
+
+  const handleShopCountryChange = (country: Country) => {
+    setShopCountryCode(country.code);
+    // Also update phone country if user hasn't entered a phone yet
+    if (!ownerPhone) {
+      setPhoneCountryCode(country.code);
+    }
+  };
+
   const handleSetup = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -82,18 +129,42 @@ export function Onboarding() {
     setIsLoading(true);
 
     try {
-      const result = await setupShop({
-        shopName,
-        ownerName,
-        ownerPhone,
-        pin,
-        assistantName,
-        businessType: selectedShopType || 'general'
-      });
-      if (result.success) {
-        navigate('/');
+      if (isNewShop) {
+        // Creating additional shop
+        const result = await createShop({
+          name: shopName,
+          ownerName,
+          ownerPhone: ownerPhone,
+          phoneCountryCode,
+          countryCode: shopCountryCode,
+          businessType: selectedShopType || 'general',
+          assistantName
+        });
+        
+        if (result.success) {
+          navigate('/');
+        } else {
+          setError(result.error || 'Failed to create shop');
+        }
       } else {
-        setError(result.error || 'Setup failed. Please try again.');
+        // First-time setup
+        const result = await setupShop({
+          shopName,
+          ownerName,
+          ownerPhone: fullPhoneNumber || ownerPhone,
+          pin,
+          assistantName,
+          businessType: selectedShopType || 'general',
+          // Pass country info
+          countryCode: shopCountryCode,
+          phoneCountryCode
+        });
+        
+        if (result.success) {
+          navigate('/');
+        } else {
+          setError(result.error || 'Setup failed. Please try again.');
+        }
       }
     } catch (err) {
       setError('Setup failed. Please try again.');
@@ -103,6 +174,7 @@ export function Onboarding() {
   };
 
   const selectedType = shopTypes.find(t => t.id === selectedShopType);
+  const shopCountry = getCountryByCode(shopCountryCode);
 
   // Entry screen
   if (step === 'entry') {
@@ -151,7 +223,7 @@ export function Onboarding() {
           </button>
 
           <p className="text-slate-500 text-sm mt-8">
-            © 2026 YeboMart by Omevision. Made in Eswatini 🇸🇿
+            © 2026 YeboMart by Omevision. Available across Africa 🌍
           </p>
         </div>
       </div>
@@ -194,11 +266,11 @@ export function Onboarding() {
                 </li>
                 <li className="flex items-center gap-3 text-slate-300">
                   <CheckCircleIcon className="w-5 h-5 text-green-400 shrink-0" />
-                  <span>Your name</span>
+                  <span>Your shop's country (for currency)</span>
                 </li>
                 <li className="flex items-center gap-3 text-slate-300">
                   <CheckCircleIcon className="w-5 h-5 text-green-400 shrink-0" />
-                  <span>WhatsApp number (for daily reports)</span>
+                  <span>Your name & phone number</span>
                 </li>
                 <li className="flex items-center gap-3 text-slate-300">
                   <CheckCircleIcon className="w-5 h-5 text-green-400 shrink-0" />
@@ -308,15 +380,75 @@ export function Onboarding() {
         {/* Fixed bottom actions */}
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-slate-900/90 backdrop-blur-lg border-t border-slate-800">
           <div className="max-w-2xl mx-auto flex gap-3">
-            <Button variant="ghost" onClick={() => setStep('instructions')} className="flex-1">
+            <Button variant="ghost" onClick={() => isNewShop ? navigate(-1) : setStep('instructions')} className="flex-1">
               <ArrowLeftIcon className="w-4 h-4 mr-2" />
               Back
             </Button>
             <Button 
-              onClick={() => setStep('setup')} 
+              onClick={() => setStep('country')} 
               className="flex-[2]"
               disabled={!selectedShopType}
             >
+              Continue
+              <ArrowRightIcon className="w-4 h-4 ml-2" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Country Picker Step
+  if (step === 'country') {
+    return (
+      <div className="min-h-screen bg-slate-900 p-4 pb-24">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl" />
+        </div>
+
+        <div className="relative max-w-lg mx-auto pt-8">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 shadow-lg shadow-amber-500/25 mb-4">
+              <GlobeAltIcon className="w-10 h-10 text-white" />
+            </div>
+            <h1 className="text-2xl font-bold text-white">Where is your shop?</h1>
+            <p className="text-slate-400 mt-2">This determines your currency and settings</p>
+          </div>
+
+          <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6 mb-6">
+            <ShopCountryPicker
+              label="Shop Country"
+              value={shopCountryCode}
+              onChange={handleShopCountryChange}
+              hint="Your shop's prices will be in this country's currency"
+            />
+
+            {shopCountry && (
+              <div className="mt-6 p-4 bg-slate-700/30 rounded-xl">
+                <h4 className="text-sm font-medium text-slate-300 mb-3">Your shop will use:</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs text-slate-400">Currency</p>
+                    <p className="text-white font-medium">
+                      {shopCountry.currencySymbol} {shopCountry.currencyName}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-400">Currency Code</p>
+                    <p className="text-white font-medium">{shopCountry.currency}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-3">
+            <Button variant="ghost" onClick={() => setStep('shopType')} className="flex-1">
+              <ArrowLeftIcon className="w-4 h-4 mr-2" />
+              Back
+            </Button>
+            <Button onClick={() => setStep('setup')} className="flex-[2]">
               Continue
               <ArrowRightIcon className="w-4 h-4 ml-2" />
             </Button>
@@ -342,7 +474,15 @@ export function Onboarding() {
             </div>
           )}
           <h1 className="text-2xl font-bold text-white">Set Up Your {selectedType?.name || 'Shop'}</h1>
-          <p className="text-slate-400 mt-2">Almost there! Just a few details...</p>
+          <p className="text-slate-400 mt-2">
+            {shopCountry && (
+              <span className="inline-flex items-center gap-1">
+                <span>{shopCountry.flag}</span>
+                <span>{shopCountry.name}</span>
+                <span className="text-amber-400">• {shopCountry.currencySymbol} {shopCountry.currency}</span>
+              </span>
+            )}
+          </p>
         </div>
 
         <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-8">
@@ -364,27 +504,28 @@ export function Onboarding() {
               error={fieldErrors.ownerName}
             />
 
-            <Input
-              label="WhatsApp Number"
-              type="tel"
+            <PhoneInput
+              label="Phone Number"
               value={ownerPhone}
-              onChange={(e) => { setOwnerPhone(e.target.value); clearFieldError('ownerPhone'); }}
-              placeholder="+268 7xxx xxxx"
-              leftIcon={<PhoneIcon className="w-5 h-5" />}
-              hint={!fieldErrors.ownerPhone ? "We'll send daily reports here" : undefined}
+              onChange={handlePhoneChange}
+              defaultCountryCode={phoneCountryCode}
+              placeholder="Phone number"
               error={fieldErrors.ownerPhone}
+              hint={!fieldErrors.ownerPhone ? "We'll send daily reports here via WhatsApp" : undefined}
             />
 
-            <Input
-              label="Create PIN"
-              type="password"
-              value={pin}
-              onChange={(e) => { setPin(e.target.value.replace(/\D/g, '').slice(0, 6)); clearFieldError('pin'); }}
-              placeholder="6-digit PIN"
-              hint={!fieldErrors.pin ? "You'll use this to login" : undefined}
-              maxLength={6}
-              error={fieldErrors.pin}
-            />
+            {!isNewShop && (
+              <Input
+                label="Create PIN"
+                type="password"
+                value={pin}
+                onChange={(e) => { setPin(e.target.value.replace(/\D/g, '').slice(0, 6)); clearFieldError('pin'); }}
+                placeholder="6-digit PIN"
+                hint={!fieldErrors.pin ? "You'll use this to login" : undefined}
+                maxLength={6}
+                error={fieldErrors.pin}
+              />
+            )}
 
             <Input
               label="AI Assistant Name"
@@ -401,11 +542,11 @@ export function Onboarding() {
             )}
 
             <div className="flex gap-3 pt-2">
-              <Button type="button" variant="ghost" onClick={() => setStep('shopType')} className="flex-1">
+              <Button type="button" variant="ghost" onClick={() => setStep('country')} className="flex-1">
                 Back
               </Button>
               <Button type="submit" className="flex-[2]" isLoading={isLoading}>
-                Create My Shop
+                {isNewShop ? 'Create Shop' : 'Create My Shop'}
                 <ArrowRightIcon className="w-4 h-4 ml-2" />
               </Button>
             </div>
@@ -413,7 +554,7 @@ export function Onboarding() {
         </div>
 
         <p className="text-center text-slate-500 text-sm mt-6">
-          © 2026 YeboMart by Omevision. Made in Eswatini 🇸🇿
+          © 2026 YeboMart by Omevision. Available across Africa 🌍
         </p>
       </div>
     </div>

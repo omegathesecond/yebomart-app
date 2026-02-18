@@ -1,24 +1,37 @@
-// Core types for YeboMart - Eswatini Shop Management
+// Core types for YeboMart - Multi-Country Shop Management
 
 export type UserRole = 'owner' | 'manager' | 'cashier';
+export type ShopRole = 'owner' | 'admin' | 'staff';
 export type PaymentMethod = 'cash' | 'momo' | 'emali' | 'card';
 export type StockLogType = 'restock' | 'sale' | 'adjustment' | 'damaged';
 export type ExpenseCategory = 'rent' | 'utilities' | 'supplies' | 'wages' | 'other';
 
-// Shop
+// Shop - Now supports multi-country
 export interface Shop {
   id: string;
   name: string;
   ownerName: string;
-  ownerPhone: string; // WhatsApp number
+  ownerPhone: string; // Full phone with country code
+  phoneCountryCode: string; // ISO country code for phone (e.g., 'SZ')
+  countryCode: string; // Shop's operating country (e.g., 'SZ', 'ZA', 'KE')
   businessType: string; // e.g., 'spaza', 'tyre', 'beauty', 'hardware'
   assistantName: string; // AI assistant name (e.g., "Thandi")
-  currency: string;
+  currency: string; // Derived from countryCode
+  currencySymbol: string; // Derived from countryCode
   timezone: string;
   address?: string;
   logoUrl?: string;
   createdAt: Date;
   updatedAt: Date;
+}
+
+// User-Shop relationship for multi-shop support
+export interface UserShop {
+  id: string;
+  userId: string;
+  shopId: string;
+  role: ShopRole;
+  createdAt: Date;
 }
 
 // User/Staff

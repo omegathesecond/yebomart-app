@@ -6,6 +6,8 @@ import {
 } from '@heroicons/react/24/outline';
 import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
+import { useShopStore } from '@/stores/shopStore';
+import { ShopSwitcher } from '@/components/ui/ShopSwitcher';
 import { formatSZL } from '@/types';
 import { useState, useEffect } from 'react';
 
@@ -30,9 +32,12 @@ const pageNames: Record<string, string> = {
 export function TopBar() {
   const location = useLocation();
   const { shop } = useAuthStore();
+  const { shops, currentShop } = useShopStore();
   const { alerts, isOnline } = useInventoryStore();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showNotifications, setShowNotifications] = useState(false);
+  
+  const hasMultipleShops = shops.length > 1;
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 60000);
@@ -146,12 +151,17 @@ export function TopBar() {
             )}
           </div>
 
-          {/* Mobile: Shop name */}
-          <div className="md:hidden pl-2">
-            <span className="text-sm font-medium text-amber-400">
-              {shop?.name?.split(' ')[0]}
-            </span>
-          </div>
+          {/* Shop Switcher (if multiple shops) */}
+          {hasMultipleShops ? (
+            <ShopSwitcher variant="header" />
+          ) : (
+            /* Mobile: Shop name */
+            <div className="md:hidden pl-2">
+              <span className="text-sm font-medium text-amber-400">
+                {currentShop?.name?.split(' ')[0] || shop?.name?.split(' ')[0]}
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </header>

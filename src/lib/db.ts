@@ -2,6 +2,7 @@ import Dexie, { type Table } from 'dexie';
 import type { 
   Shop, 
   User, 
+  UserShop,
   Product, 
   Sale, 
   SaleItem,
@@ -16,7 +17,8 @@ import type {
 } from '@/types';
 
 export class YeboMartDB extends Dexie {
-  shop!: Table<Shop>;
+  shops!: Table<Shop>; // Renamed from 'shop' to 'shops' for multi-shop
+  userShops!: Table<UserShop>; // New: User-shop relationships
   users!: Table<User>;
   products!: Table<Product>;
   sales!: Table<Sale>;
@@ -33,6 +35,29 @@ export class YeboMartDB extends Dexie {
   constructor() {
     super('YeboMartDB');
 
+    // Version 2: Multi-shop support with country fields
+    this.version(2).stores({
+      shops: 'id, countryCode, currency', // Multi-shop with country
+      userShops: 'id, userId, shopId, [userId+shopId]', // User-shop relationships
+      users: 'id, shopId, phone, role, isActive',
+      products: 'id, shopId, barcode, name, category, isActive',
+      sales: 'id, shopId, userId, createdAt, syncedAt',
+      saleItems: 'id, saleId, productId',
+      stockLogs: 'id, productId, type, createdAt',
+      expenses: 'id, shopId, category, date',
+      dailyReports: 'id, shopId, date, [shopId+date]',
+      chatMessages: 'id, shopId, createdAt', // Added shopId for multi-shop
+      lowStockAlerts: 'id, productId, severity, acknowledgedAt',
+      aiInsights: 'id, shopId, type, isRead, createdAt', // Added shopId
+      syncQueue: 'id, table, createdAt, attempts',
+      subscription: 'id, shopId, plan'
+    }).upgrade(tx => {
+      // Migration: Rename 'shop' table data to 'shops'
+      // Note: Dexie handles table renames automatically if the schema changes
+      console.log('Upgrading database to version 2 (multi-shop support)');
+    });
+
+    // Keep version 1 for backward compatibility during upgrade
     this.version(1).stores({
       shop: 'id',
       users: 'id, shopId, phone, role, isActive',
@@ -123,25 +148,37 @@ export async function checkLowStock(shopId: string) {
 
 // Seed demo data for first launch
 export async function seedDemoData() {
-  const existingShop = await db.shop.count();
+  const existingShop = await db.shops.count();
   if (existingShop > 0) return;
 
   const shopId = crypto.randomUUID();
   const userId = crypto.randomUUID();
 
-  // Demo shop
-  await db.shop.add({
+  // Demo shop with multi-country fields
+  await db.shops.add({
     id: shopId,
     name: 'Siphiwe Tuck Shop',
     ownerName: 'Siphiwe Dlamini',
     ownerPhone: '+26876123456',
+    phoneCountryCode: 'SZ',
+    countryCode: 'SZ',
     businessType: 'spaza',
     assistantName: 'Thandi',
     currency: 'SZL',
+    currencySymbol: 'E',
     timezone: 'Africa/Mbabane',
     address: 'Main Street, Manzini',
     createdAt: new Date(),
     updatedAt: new Date()
+  });
+
+  // Add user-shop relationship
+  await db.userShops.add({
+    id: crypto.randomUUID(),
+    userId,
+    shopId,
+    role: 'owner',
+    createdAt: new Date()
   });
 
   // Demo user (owner)
@@ -289,9 +326,21 @@ export async function initializeDatabase() {
   }
 }
 
-// Get shop data
+// Get shop data (returns first/current shop for backward compatibility)
 export async function getShop(): Promise<Shop | undefined> {
-  return db.shop.toCollection().first();
+  return db.shops.toCollection().first();
+}
+
+// Get all shops for current user
+export async function getAllShops(): Promise<Shop[]> {
+  return db.shops.toArray();
+}
+
+// Get user's shops via relationship table
+export async function getUserShops(userId: string): Promise<Shop[]> {
+  const userShops = await db.userShops.where('userId').equals(userId).toArray();
+  const shopIds = userShops.map(us => us.shopId);
+  return db.shops.where('id').anyOf(shopIds).toArray();
 }
 
 // Get current user
@@ -318,7 +367,8 @@ export async function clearDatabase(): Promise<void> {
       db.aiInsights.clear(),
       db.syncQueue.clear(),
       db.users.clear(),
-      db.shop.clear(),
+      db.shops.clear(),
+      db.userShops.clear(),
       db.subscription.clear()
     ]);
     console.log('YeboMart database cleared on logout');

@@ -247,7 +247,16 @@ class ApiClient {
     return { error: response.error || 'Login failed', details: response.details };
   }
 
-  async register(data: { shopName: string; ownerName: string; phone: string; password: string; assistantName?: string; businessType?: string }) {
+  async register(data: { 
+    shopName: string; 
+    ownerName: string; 
+    phone: string; 
+    password: string; 
+    assistantName?: string; 
+    businessType?: string;
+    countryCode?: string;
+    phoneCountryCode?: string;
+  }) {
     // Map to API expected field names
     const payload = {
       name: data.shopName,
@@ -256,6 +265,8 @@ class ApiClient {
       password: data.password,
       assistantName: data.assistantName,
       businessType: data.businessType || 'general',
+      countryCode: data.countryCode || 'SZ',
+      phoneCountryCode: data.phoneCountryCode || 'SZ',
     };
     const response = await this.request<{ accessToken: string; refreshToken: string; shop: any }>('/api/auth/register', {
       method: 'POST',

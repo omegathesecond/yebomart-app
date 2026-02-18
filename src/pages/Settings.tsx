@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import {
   UserIcon,
   BuildingOfficeIcon,
+  BuildingStorefrontIcon,
   KeyIcon,
   BellIcon,
   DevicePhoneMobileIcon,
@@ -16,10 +17,12 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { useAuthStore } from '@/stores/authStore';
+import { useShopStore } from '@/stores/shopStore';
 import { TierSwitcher } from '@/components/subscription';
 import { useSubscriptionStore, TIERS, FEATURES, type Feature } from '@/stores/subscriptionStore';
 import { getShopType } from '@/data/shopTypes';
 import { CountryPicker, LanguageSwitcher } from '@/components/ui/CountryPicker';
+import { ShopSwitcher } from '@/components/ui/ShopSwitcher';
 import { useLocaleStore } from '@/stores/localeStore';
 import { LANGUAGE_LABELS } from '@/lib/countries';
 
@@ -105,8 +108,11 @@ function PricingCard({ tier, features, highlight }: {
 export function Settings() {
   const { t } = useTranslation();
   const { user, shop, subscription, updateShop } = useAuthStore();
+  const { shops } = useShopStore();
   const { country, language } = useLocaleStore();
   const [activeTab, setActiveTab] = useState('shop');
+  
+  const hasMultipleShops = shops.length > 1;
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -123,6 +129,7 @@ export function Settings() {
 
   const tabs = [
     { id: 'shop', label: t('settings.shop'), icon: BuildingOfficeIcon },
+    { id: 'shops', label: t('settings.yourShops') || 'Your Shops', icon: BuildingStorefrontIcon, badge: hasMultipleShops ? shops.length : undefined },
     { id: 'profile', label: t('settings.profile'), icon: UserIcon },
     { id: 'locale', label: t('settings.country'), icon: GlobeAltIcon },
     { id: 'subscription', label: t('settings.subscription'), icon: KeyIcon },
@@ -195,7 +202,12 @@ export function Settings() {
                   }`}
                 >
                   <tab.icon className="w-5 h-5" />
-                  <span className="font-medium">{tab.label}</span>
+                  <span className="font-medium flex-1 text-left">{tab.label}</span>
+                  {tab.badge && (
+                    <span className="px-2 py-0.5 text-xs bg-amber-500/20 text-amber-400 rounded-full">
+                      {tab.badge}
+                    </span>
+                  )}
                 </button>
               ))}
             </nav>
@@ -257,6 +269,18 @@ export function Settings() {
                 <Button onClick={handleSaveShop} isLoading={isSaving}>
                   Save Changes
                 </Button>
+              </div>
+            </Card>
+          )}
+
+          {activeTab === 'shops' && (
+            <Card>
+              <CardHeader 
+                title="Your Shops" 
+                subtitle="Manage multiple shops across different countries"
+              />
+              <div className="p-4">
+                <ShopSwitcher variant="full" />
               </div>
             </Card>
           )}
