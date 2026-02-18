@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   UserIcon,
   BuildingOfficeIcon,
@@ -7,7 +8,8 @@ import {
   DevicePhoneMobileIcon,
   SparklesIcon,
   PaintBrushIcon,
-  TagIcon
+  TagIcon,
+  GlobeAltIcon
 } from '@heroicons/react/24/outline';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -17,6 +19,9 @@ import { useAuthStore } from '@/stores/authStore';
 import { TierSwitcher } from '@/components/subscription';
 import { useSubscriptionStore, TIERS, FEATURES, type Feature } from '@/stores/subscriptionStore';
 import { getShopType } from '@/data/shopTypes';
+import { CountryPicker, LanguageSwitcher } from '@/components/ui/CountryPicker';
+import { useLocaleStore } from '@/stores/localeStore';
+import { LANGUAGE_LABELS } from '@/lib/countries';
 
 // Internal components for subscription tab
 function CurrentPlanCard() {
@@ -98,7 +103,9 @@ function PricingCard({ tier, features, highlight }: {
 }
 
 export function Settings() {
+  const { t } = useTranslation();
   const { user, shop, subscription, updateShop } = useAuthStore();
+  const { country, language } = useLocaleStore();
   const [activeTab, setActiveTab] = useState('shop');
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -115,12 +122,13 @@ export function Settings() {
   };
 
   const tabs = [
-    { id: 'shop', label: 'Shop', icon: BuildingOfficeIcon },
-    { id: 'profile', label: 'Profile', icon: UserIcon },
-    { id: 'subscription', label: 'Subscription', icon: KeyIcon },
-    { id: 'notifications', label: 'Notifications', icon: BellIcon },
-    { id: 'ai', label: 'AI Assistant', icon: SparklesIcon },
-    { id: 'appearance', label: 'Appearance', icon: PaintBrushIcon }
+    { id: 'shop', label: t('settings.shop'), icon: BuildingOfficeIcon },
+    { id: 'profile', label: t('settings.profile'), icon: UserIcon },
+    { id: 'locale', label: t('settings.country'), icon: GlobeAltIcon },
+    { id: 'subscription', label: t('settings.subscription'), icon: KeyIcon },
+    { id: 'notifications', label: t('settings.notifications'), icon: BellIcon },
+    { id: 'ai', label: t('settings.aiAssistant'), icon: SparklesIcon },
+    { id: 'appearance', label: t('settings.appearance'), icon: PaintBrushIcon }
   ];
 
   const validateShop = (): boolean => {
@@ -293,6 +301,56 @@ export function Settings() {
                 )}
               </div>
             </Card>
+          )}
+
+          {activeTab === 'locale' && (
+            <div className="space-y-6">
+              <Card>
+                <CardHeader 
+                  title={t('settings.country')} 
+                  subtitle={t('countryPicker.yourCurrency')}
+                />
+                <div className="space-y-4">
+                  {/* Country Picker */}
+                  <CountryPicker variant="card" showCurrency showLanguage />
+                  
+                  {/* Current Settings Display */}
+                  {country && (
+                    <div className="grid grid-cols-2 gap-4 mt-4">
+                      <div className="p-4 bg-slate-700/30 rounded-xl">
+                        <p className="text-sm text-slate-400 mb-1">{t('settings.currency')}</p>
+                        <p className="text-lg font-semibold text-amber-400">
+                          {country.currencySymbol} {country.currency}
+                        </p>
+                        <p className="text-sm text-slate-500">{country.currencyName}</p>
+                      </div>
+                      <div className="p-4 bg-slate-700/30 rounded-xl">
+                        <p className="text-sm text-slate-400 mb-1">{t('settings.language')}</p>
+                        <p className="text-lg font-semibold text-white">
+                          {LANGUAGE_LABELS[language]?.native || language}
+                        </p>
+                        <p className="text-sm text-slate-500">
+                          {LANGUAGE_LABELS[language]?.en || language}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </Card>
+              
+              {/* Language Switcher (if country supports multiple languages) */}
+              {country && country.languages.length > 1 && (
+                <Card>
+                  <CardHeader 
+                    title={t('settings.language')} 
+                    subtitle={t('settings.selectLanguage')}
+                  />
+                  <div className="p-4">
+                    <LanguageSwitcher />
+                  </div>
+                </Card>
+              )}
+            </div>
           )}
 
           {activeTab === 'subscription' && (
