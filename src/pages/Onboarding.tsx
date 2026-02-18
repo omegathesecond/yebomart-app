@@ -32,10 +32,11 @@ export function Onboarding() {
   const { createShop } = useShopStore();
   
   const isNewShop = searchParams.get('mode') === 'new-shop';
-  const [step, setStep] = useState<OnboardingStep>(isNewShop ? 'shopType' : 'entry');
+  const [step, setStep] = useState<OnboardingStep>(isNewShop ? 'country' : 'entry');
   
   // Setup form state
   const [selectedShopType, setSelectedShopType] = useState<string>('');
+  const [shopTypeSearch, setShopTypeSearch] = useState<string>('');
   const [shopCountryCode, setShopCountryCode] = useState<string>('SZ');
   const [shopName, setShopName] = useState('');
   const [ownerName, setOwnerName] = useState('');
@@ -306,7 +307,7 @@ export function Onboarding() {
             <Button variant="ghost" onClick={() => setStep('entry')} className="flex-1">
               Back
             </Button>
-            <Button onClick={() => setStep('shopType')} className="flex-[2]">
+            <Button onClick={() => setStep('country')} className="flex-[2]">
               Continue
               <ArrowRightIcon className="w-4 h-4 ml-2" />
             </Button>
@@ -316,89 +317,7 @@ export function Onboarding() {
     );
   }
 
-  // Shop Type Picker
-  if (step === 'shopType') {
-    return (
-      <div className="min-h-screen bg-slate-900 p-4 pb-24">
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl" />
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl" />
-        </div>
-
-        <div className="relative max-w-2xl mx-auto pt-8">
-          <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-white">What type of shop do you have?</h1>
-            <p className="text-slate-400 mt-2">We'll customize categories and features for your business</p>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {shopTypes.map((type) => (
-              <button
-                key={type.id}
-                onClick={() => setSelectedShopType(type.id)}
-                className={`relative p-4 rounded-2xl border-2 transition-all text-left ${
-                  selectedShopType === type.id
-                    ? 'border-amber-500 bg-amber-500/10'
-                    : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
-                }`}
-              >
-                {selectedShopType === type.id && (
-                  <div className="absolute top-2 right-2 w-6 h-6 bg-amber-500 rounded-full flex items-center justify-center">
-                    <CheckIcon className="w-4 h-4 text-white" />
-                  </div>
-                )}
-                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${type.color} flex items-center justify-center mb-3`}>
-                  <type.icon className="w-6 h-6 text-white" />
-                </div>
-                <h3 className="font-semibold text-white text-sm">{type.name}</h3>
-                <p className="text-slate-400 text-xs mt-1 line-clamp-2">{type.description}</p>
-              </button>
-            ))}
-          </div>
-
-          {/* Selected type preview */}
-          {selectedType && (
-            <div className="mt-6 p-4 bg-slate-800/50 rounded-2xl border border-slate-700">
-              <h3 className="text-white font-medium mb-2">Categories for {selectedType.name}:</h3>
-              <div className="flex flex-wrap gap-2">
-                {selectedType.categories.slice(0, 8).map((cat) => (
-                  <span key={cat} className="px-3 py-1 bg-slate-700 rounded-full text-xs text-slate-300">
-                    {cat}
-                  </span>
-                ))}
-                {selectedType.categories.length > 8 && (
-                  <span className="px-3 py-1 bg-slate-700 rounded-full text-xs text-slate-400">
-                    +{selectedType.categories.length - 8} more
-                  </span>
-                )}
-              </div>
-              <p className="text-slate-500 text-xs mt-3">You can customize these later in settings</p>
-            </div>
-          )}
-        </div>
-
-        {/* Fixed bottom actions */}
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-slate-900/90 backdrop-blur-lg border-t border-slate-800">
-          <div className="max-w-2xl mx-auto flex gap-3">
-            <Button variant="ghost" onClick={() => isNewShop ? navigate(-1) : setStep('instructions')} className="flex-1">
-              <ArrowLeftIcon className="w-4 h-4 mr-2" />
-              Back
-            </Button>
-            <Button 
-              onClick={() => setStep('country')} 
-              className="flex-[2]"
-              disabled={!selectedShopType}
-            >
-              Continue
-              <ArrowRightIcon className="w-4 h-4 ml-2" />
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Country Picker Step
+  // Country Picker Step (NOW FIRST)
   if (step === 'country') {
     return (
       <div className="min-h-screen bg-slate-900 p-4 pb-24">
@@ -444,11 +363,124 @@ export function Onboarding() {
           </div>
 
           <div className="flex gap-3">
-            <Button variant="ghost" onClick={() => setStep('shopType')} className="flex-1">
+            <Button variant="ghost" onClick={() => isNewShop ? navigate(-1) : setStep('instructions')} className="flex-1">
               <ArrowLeftIcon className="w-4 h-4 mr-2" />
               Back
             </Button>
-            <Button onClick={() => setStep('setup')} className="flex-[2]">
+            <Button onClick={() => setStep('shopType')} className="flex-[2]">
+              Continue
+              <ArrowRightIcon className="w-4 h-4 ml-2" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Shop Type Picker (NOW SECOND - with search)
+  const filteredShopTypes = shopTypes.filter(type => 
+    shopTypeSearch === '' ||
+    type.name.toLowerCase().includes(shopTypeSearch.toLowerCase()) ||
+    type.description.toLowerCase().includes(shopTypeSearch.toLowerCase())
+  );
+
+  if (step === 'shopType') {
+    return (
+      <div className="min-h-screen bg-slate-900 p-4 pb-24">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl" />
+        </div>
+
+        <div className="relative max-w-2xl mx-auto pt-8">
+          <div className="text-center mb-6">
+            <h1 className="text-2xl font-bold text-white">What type of shop do you have?</h1>
+            <p className="text-slate-400 mt-2">
+              {shopCountry && <span className="text-amber-400">{shopCountry.flag} {shopCountry.name}</span>}
+              {' • '}We'll customize categories and features for your business
+            </p>
+          </div>
+
+          {/* Search Input */}
+          <div className="mb-6">
+            <Input
+              placeholder="Search shop types..."
+              value={shopTypeSearch}
+              onChange={(e) => setShopTypeSearch(e.target.value)}
+              className="bg-slate-800/80"
+            />
+          </div>
+
+          {filteredShopTypes.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-slate-400 text-lg">No shop types match "{shopTypeSearch}"</p>
+              <button 
+                onClick={() => setShopTypeSearch('')}
+                className="text-amber-400 hover:text-amber-300 mt-2 text-sm"
+              >
+                Clear search
+              </button>
+            </div>
+          ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {filteredShopTypes.map((type) => (
+              <button
+                key={type.id}
+                onClick={() => setSelectedShopType(type.id)}
+                className={`relative p-4 rounded-2xl border-2 transition-all text-left ${
+                  selectedShopType === type.id
+                    ? 'border-amber-500 bg-amber-500/10'
+                    : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
+                }`}
+              >
+                {selectedShopType === type.id && (
+                  <div className="absolute top-2 right-2 w-6 h-6 bg-amber-500 rounded-full flex items-center justify-center">
+                    <CheckIcon className="w-4 h-4 text-white" />
+                  </div>
+                )}
+                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${type.color} flex items-center justify-center mb-3`}>
+                  <type.icon className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="font-semibold text-white text-sm">{type.name}</h3>
+                <p className="text-slate-400 text-xs mt-1 line-clamp-2">{type.description}</p>
+              </button>
+            ))}
+          </div>
+          )}
+
+          {/* Selected type preview */}
+          {selectedType && (
+            <div className="mt-6 p-4 bg-slate-800/50 rounded-2xl border border-slate-700">
+              <h3 className="text-white font-medium mb-2">Categories for {selectedType.name}:</h3>
+              <div className="flex flex-wrap gap-2">
+                {selectedType.categories.slice(0, 8).map((cat) => (
+                  <span key={cat} className="px-3 py-1 bg-slate-700 rounded-full text-xs text-slate-300">
+                    {cat}
+                  </span>
+                ))}
+                {selectedType.categories.length > 8 && (
+                  <span className="px-3 py-1 bg-slate-700 rounded-full text-xs text-slate-400">
+                    +{selectedType.categories.length - 8} more
+                  </span>
+                )}
+              </div>
+              <p className="text-slate-500 text-xs mt-3">You can customize these later in settings</p>
+            </div>
+          )}
+        </div>
+
+        {/* Fixed bottom actions */}
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-slate-900/90 backdrop-blur-lg border-t border-slate-800">
+          <div className="max-w-2xl mx-auto flex gap-3">
+            <Button variant="ghost" onClick={() => setStep('country')} className="flex-1">
+              <ArrowLeftIcon className="w-4 h-4 mr-2" />
+              Back
+            </Button>
+            <Button 
+              onClick={() => setStep('setup')} 
+              className="flex-[2]"
+              disabled={!selectedShopType}
+            >
               Continue
               <ArrowRightIcon className="w-4 h-4 ml-2" />
             </Button>
@@ -542,7 +574,7 @@ export function Onboarding() {
             )}
 
             <div className="flex gap-3 pt-2">
-              <Button type="button" variant="ghost" onClick={() => setStep('country')} className="flex-1">
+              <Button type="button" variant="ghost" onClick={() => setStep('shopType')} className="flex-1">
                 Back
               </Button>
               <Button type="submit" className="flex-[2]" isLoading={isLoading}>
