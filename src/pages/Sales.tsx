@@ -11,7 +11,7 @@ import { Card, CardHeader } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
-import { formatSZL, formatDate, formatTime, formatRelativeTime, type Sale, PAYMENT_METHODS } from '@/types';
+import { formatCurrency, formatDate, formatTime, formatRelativeTime, type Sale, PAYMENT_METHODS } from '@/types';
 
 export function Sales() {
   const { shop } = useAuthStore();
@@ -108,7 +108,7 @@ export function Sales() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card gradient="emerald">
           <p className="text-sm text-slate-400">Total Sales</p>
-          <p className="text-2xl font-bold text-white mt-1">{formatSZL(totalSales)}</p>
+          <p className="text-2xl font-bold text-white mt-1">{formatCurrency(totalSales)}</p>
         </Card>
         <Card gradient="blue">
           <p className="text-sm text-slate-400">Transactions</p>
@@ -116,7 +116,7 @@ export function Sales() {
         </Card>
         <Card gradient="amber">
           <p className="text-sm text-slate-400">Avg. Transaction</p>
-          <p className="text-2xl font-bold text-white mt-1">{formatSZL(avgTransaction)}</p>
+          <p className="text-2xl font-bold text-white mt-1">{formatCurrency(avgTransaction)}</p>
         </Card>
         <Card>
           <p className="text-sm text-slate-400">Payment Split</p>
@@ -145,7 +145,7 @@ export function Sales() {
                     <span className="text-xl">{pm?.icon}</span>
                     <span className="font-medium text-white">{pm?.label}</span>
                   </div>
-                  <p className="text-lg font-bold text-amber-400">{formatSZL(amount)}</p>
+                  <p className="text-lg font-bold text-amber-400">{formatCurrency(amount)}</p>
                   <p className="text-xs text-slate-500">{percentage}% of total</p>
                 </div>
               );
@@ -166,7 +166,7 @@ export function Sales() {
                   <CalendarIcon className="w-4 h-4 text-slate-400" />
                   <span className="font-medium text-slate-300">{date}</span>
                 </div>
-                <span className="text-sm text-emerald-400">{formatSZL(dayTotal)}</span>
+                <span className="text-sm text-emerald-400">{formatCurrency(dayTotal)}</span>
               </div>
               
               <Card className="divide-y divide-slate-700/50">
@@ -194,7 +194,7 @@ export function Sales() {
                     </div>
                     <div className="flex items-center gap-3">
                       <p className="text-lg font-semibold text-emerald-400">
-                        {formatSZL(sale.totalAmount)}
+                        {formatCurrency(sale.totalAmount)}
                       </p>
                       <ChevronRightIcon className="w-5 h-5 text-slate-500" />
                     </div>
@@ -247,11 +247,11 @@ export function Sales() {
                     <div>
                       <p className="text-white">{item.productName}</p>
                       <p className="text-sm text-slate-400">
-                        {item.quantity} × {formatSZL(item.unitPrice)}
+                        {item.quantity} × {formatCurrency(item.unitPrice)}
                       </p>
                     </div>
                     <p className="font-medium text-white">
-                      {formatSZL(item.totalPrice)}
+                      {formatCurrency(item.totalPrice)}
                     </p>
                   </div>
                 ))}
@@ -268,7 +268,7 @@ export function Sales() {
                 <div className="flex justify-between items-center mt-3">
                   <span className="text-lg font-semibold text-white">Total</span>
                   <span className="text-2xl font-bold text-amber-400">
-                    {formatSZL(selectedSale.totalAmount)}
+                    {formatCurrency(selectedSale.totalAmount)}
                   </span>
                 </div>
               </div>

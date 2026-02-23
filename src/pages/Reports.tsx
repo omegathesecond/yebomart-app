@@ -12,7 +12,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
-import { formatSZL } from '@/types';
+import { formatCurrency } from '@/types';
 import api from '@/api/client';
 
 type Period = 'today' | 'week' | 'month';
@@ -129,7 +129,7 @@ export function Reports() {
             </div>
             <div>
               <p className="text-sm text-slate-400">Revenue</p>
-              <p className="text-2xl font-bold text-white">{formatSZL(totalRevenue)}</p>
+              <p className="text-2xl font-bold text-white">{formatCurrency(totalRevenue)}</p>
             </div>
           </div>
         </Card>
@@ -141,7 +141,7 @@ export function Reports() {
             </div>
             <div>
               <p className="text-sm text-slate-400">Profit</p>
-              <p className="text-2xl font-bold text-white">{formatSZL(totalProfit)}</p>
+              <p className="text-2xl font-bold text-white">{formatCurrency(totalProfit)}</p>
             </div>
           </div>
         </Card>
@@ -165,7 +165,7 @@ export function Reports() {
             </div>
             <div>
               <p className="text-sm text-slate-400">Avg. Basket</p>
-              <p className="text-2xl font-bold text-white">{formatSZL(avgBasket)}</p>
+              <p className="text-2xl font-bold text-white">{formatCurrency(avgBasket)}</p>
             </div>
           </div>
         </Card>
@@ -189,7 +189,7 @@ export function Reports() {
                       <p className="text-sm text-slate-400">{product.qty} sold</p>
                     </div>
                   </div>
-                  <p className="font-semibold text-emerald-400">{formatSZL(product.revenue)}</p>
+                  <p className="font-semibold text-emerald-400">{formatCurrency(product.revenue)}</p>
                 </div>
               ))}
             </div>
@@ -218,7 +218,7 @@ export function Reports() {
                 <BanknotesIcon className="w-6 h-6 text-emerald-400" />
                 <span className="text-slate-300">Stock Value</span>
               </div>
-              <span className="text-xl font-bold text-emerald-400">{formatSZL(stockValue)}</span>
+              <span className="text-xl font-bold text-emerald-400">{formatCurrency(stockValue)}</span>
             </div>
             
             <div className="flex items-center justify-between p-4 bg-slate-700/30 rounded-lg">
@@ -238,15 +238,15 @@ export function Reports() {
         <div className="grid grid-cols-3 gap-4">
           <div className="text-center p-4 bg-slate-700/30 rounded-lg">
             <p className="text-sm text-slate-400">Revenue</p>
-            <p className="text-xl font-bold text-white">{formatSZL(totalRevenue)}</p>
+            <p className="text-xl font-bold text-white">{formatCurrency(totalRevenue)}</p>
           </div>
           <div className="text-center p-4 bg-slate-700/30 rounded-lg">
             <p className="text-sm text-slate-400">Cost</p>
-            <p className="text-xl font-bold text-red-400">{formatSZL(totalRevenue - totalProfit)}</p>
+            <p className="text-xl font-bold text-red-400">{formatCurrency(totalRevenue - totalProfit)}</p>
           </div>
           <div className="text-center p-4 bg-slate-700/30 rounded-lg">
             <p className="text-sm text-slate-400">Profit</p>
-            <p className="text-xl font-bold text-emerald-400">{formatSZL(totalProfit)}</p>
+            <p className="text-xl font-bold text-emerald-400">{formatCurrency(totalProfit)}</p>
             {totalRevenue > 0 && (
               <p className="text-xs text-slate-400">
                 {((totalProfit / totalRevenue) * 100).toFixed(1)}% margin

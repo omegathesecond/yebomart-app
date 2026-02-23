@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
-import { formatSZL, formatRelativeTime, type DashboardMetrics } from '@/types';
+import { formatCurrency, formatRelativeTime, type DashboardMetrics } from '@/types';
 import { FeatureCheck } from '@/components/subscription/FeatureGate';
 import { useSubscriptionStore, TIERS } from '@/stores/subscriptionStore';
 import { getShopType } from '@/data/shopTypes';
@@ -45,7 +45,7 @@ export function Dashboard() {
   const stats = [
     {
       label: "Today's Sales",
-      value: formatSZL(metrics?.todaySales || 0),
+      value: formatCurrency(metrics?.todaySales || 0),
       icon: BanknotesIcon,
       color: 'emerald',
       change: metrics?.todaySales && metrics.todaySales > 0 ? '+' : ''
@@ -58,7 +58,7 @@ export function Dashboard() {
     },
     {
       label: 'Profit',
-      value: formatSZL(metrics?.todayProfit || 0),
+      value: formatCurrency(metrics?.todayProfit || 0),
       icon: ArrowTrendingUpIcon,
       color: 'amber'
     },
@@ -207,7 +207,7 @@ export function Dashboard() {
                     </div>
                   </div>
                   <p className="text-lg font-semibold text-emerald-400">
-                    {formatSZL(sale.totalAmount)}
+                    {formatCurrency(sale.totalAmount)}
                   </p>
                 </div>
               ))

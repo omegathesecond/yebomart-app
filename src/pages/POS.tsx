@@ -20,7 +20,7 @@ import { Modal } from '@/components/ui/Modal';
 import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
 import { useCartStore, useCartTotal, useCartSubtotal, useCartDiscount } from '@/stores/cartStore';
-import { formatSZL, type Product, PAYMENT_METHODS } from '@/types';
+import { formatCurrency, type Product, PAYMENT_METHODS } from '@/types';
 import { BarcodeScanner } from '@/components/scanner/BarcodeScanner';
 import { FeatureGate, FeatureCheck } from '@/components/subscription/FeatureGate';
 import { TIERS } from '@/stores/subscriptionStore';
@@ -335,7 +335,7 @@ export function POS() {
                         </div>
                         <div className="mt-2 flex items-end justify-between">
                           <span className="text-lg font-bold text-amber-400">
-                            {formatSZL(product.sellPrice)}
+                            {formatCurrency(product.sellPrice)}
                           </span>
                           <span className={`text-xs ${
                             isOutOfStock ? 'text-red-400' :
@@ -358,7 +358,7 @@ export function POS() {
                         >
                           <span className="flex items-center justify-between">
                             <span>📦 {product.packSize}-Pack</span>
-                            <span className="font-bold">{formatSZL(product.packPrice!)}</span>
+                            <span className="font-bold">{formatCurrency(product.packPrice!)}</span>
                             {inCartPack && (
                               <span className="ml-1 w-4 h-4 rounded-full bg-emerald-500 text-white text-xs flex items-center justify-center">
                                 {inCartPack.quantity}
@@ -431,7 +431,7 @@ export function POS() {
                       )}
                     </h4>
                     <p className="text-sm text-slate-400">
-                      {formatSZL(unitPrice)} {item.isPack ? 'per pack' : 'each'}
+                      {formatCurrency(unitPrice)} {item.isPack ? 'per pack' : 'each'}
                     </p>
                   </div>
                   <div className="flex items-center gap-1">
@@ -471,7 +471,7 @@ export function POS() {
                     </button>
                   </div>
                   <p className="font-semibold text-amber-400 w-20 text-right">
-                    {formatSZL(unitPrice * item.quantity)}
+                    {formatCurrency(unitPrice * item.quantity)}
                   </p>
                 </div>
               );
@@ -485,7 +485,7 @@ export function POS() {
             {/* Subtotal */}
             <div className="flex items-center justify-between text-sm">
               <span className="text-slate-400">Subtotal</span>
-              <span className="text-slate-300">{formatSZL(cartSubtotal)}</span>
+              <span className="text-slate-300">{formatCurrency(cartSubtotal)}</span>
             </div>
             
             {/* Discount Row */}
@@ -504,7 +504,7 @@ export function POS() {
               {discount ? (
                 <div className="flex items-center gap-2">
                   <span className="text-emerald-400 font-medium">
-                    -{formatSZL(discount.amount)}
+                    -{formatCurrency(discount.amount)}
                     {discount.percent && <span className="text-xs ml-1">({discount.percent}%)</span>}
                   </span>
                   <button 
@@ -523,7 +523,7 @@ export function POS() {
             <div className="flex items-center justify-between pt-2 border-t border-slate-600">
               <span className="text-white font-medium">Total</span>
               <span className="text-2xl font-bold text-white">
-                {formatSZL(cartTotal)}
+                {formatCurrency(cartTotal)}
               </span>
             </div>
             
@@ -614,7 +614,7 @@ export function POS() {
                   <div key={idx} className="flex justify-between py-1">
                     <span className="flex-1">{item.productName}</span>
                     <span className="w-8 text-center">x{item.quantity}</span>
-                    <span className="w-20 text-right">{formatSZL(item.totalPrice)}</span>
+                    <span className="w-20 text-right">{formatCurrency(item.totalPrice)}</span>
                   </div>
                 ))}
               </div>
@@ -622,19 +622,19 @@ export function POS() {
               <div className="space-y-1 mb-2">
                 <div className="flex justify-between text-sm">
                   <span>Subtotal</span>
-                  <span>{formatSZL(lastSale.subtotal || lastSale.total)}</span>
+                  <span>{formatCurrency(lastSale.subtotal || lastSale.total)}</span>
                 </div>
                 {lastSale.discount > 0 && (
                   <div className="flex justify-between text-sm text-green-600">
                     <span>Discount</span>
-                    <span>-{formatSZL(lastSale.discount)}</span>
+                    <span>-{formatCurrency(lastSale.discount)}</span>
                   </div>
                 )}
               </div>
 
               <div className="flex justify-between font-bold text-lg border-t border-gray-300 pt-2">
                 <span>TOTAL</span>
-                <span>{formatSZL(lastSale.total)}</span>
+                <span>{formatCurrency(lastSale.total)}</span>
               </div>
 
               {/* Cash Payment Details */}
@@ -642,11 +642,11 @@ export function POS() {
                 <div className="mt-3 pt-3 border-t border-dashed border-gray-300 space-y-1">
                   <div className="flex justify-between text-sm">
                     <span>Cash Received</span>
-                    <span>{formatSZL(lastSale.cashReceived)}</span>
+                    <span>{formatCurrency(lastSale.cashReceived)}</span>
                   </div>
                   <div className="flex justify-between font-bold text-lg text-green-600">
                     <span>CHANGE</span>
-                    <span>{formatSZL(lastSale.changeGiven || 0)}</span>
+                    <span>{formatCurrency(lastSale.changeGiven || 0)}</span>
                   </div>
                 </div>
               )}
@@ -804,12 +804,12 @@ export function POS() {
             <div className="bg-slate-700/30 rounded-lg p-3 space-y-1">
               <div className="flex justify-between text-sm">
                 <span className="text-slate-400">Subtotal</span>
-                <span className="text-white">{formatSZL(cartSubtotal)}</span>
+                <span className="text-white">{formatCurrency(cartSubtotal)}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-slate-400">Discount</span>
                 <span className="text-emerald-400">
-                  -{formatSZL(
+                  -{formatCurrency(
                     discountType === 'percent' 
                       ? cartSubtotal * (parseFloat(discountValue) || 0) / 100
                       : parseFloat(discountValue) || 0
@@ -819,7 +819,7 @@ export function POS() {
               <div className="flex justify-between font-medium border-t border-slate-600 pt-1">
                 <span className="text-white">New Total</span>
                 <span className="text-white">
-                  {formatSZL(Math.max(0, 
+                  {formatCurrency(Math.max(0, 
                     cartSubtotal - (discountType === 'percent' 
                       ? cartSubtotal * (parseFloat(discountValue) || 0) / 100
                       : parseFloat(discountValue) || 0)
@@ -887,7 +887,7 @@ export function POS() {
           {/* Total Due */}
           <div className="bg-slate-700/50 rounded-xl p-4 text-center">
             <p className="text-sm text-slate-400 mb-1">Total Due</p>
-            <p className="text-3xl font-bold text-white">{formatSZL(cartTotal)}</p>
+            <p className="text-3xl font-bold text-white">{formatCurrency(cartTotal)}</p>
           </div>
 
           {/* Cash Received Input */}
@@ -936,14 +936,14 @@ export function POS() {
                 : 'border-slate-600 text-slate-300 hover:border-slate-500'
             }`}
           >
-            Exact Amount ({formatSZL(cartTotal)})
+            Exact Amount ({formatCurrency(cartTotal)})
           </button>
 
           {/* Change Display */}
           {parseFloat(cashReceived) >= cartTotal && (
             <div className="bg-emerald-500/20 border border-emerald-500/30 rounded-xl p-4 text-center">
               <p className="text-sm text-emerald-400 mb-1">Change Due</p>
-              <p className="text-3xl font-bold text-emerald-400">{formatSZL(changeAmount)}</p>
+              <p className="text-3xl font-bold text-emerald-400">{formatCurrency(changeAmount)}</p>
             </div>
           )}
 
@@ -951,7 +951,7 @@ export function POS() {
           {cashReceived && parseFloat(cashReceived) < cartTotal && (
             <div className="bg-red-500/20 border border-red-500/30 rounded-xl p-3 text-center">
               <p className="text-red-400 text-sm">
-                Insufficient amount. Need {formatSZL(cartTotal - (parseFloat(cashReceived) || 0))} more.
+                Insufficient amount. Need {formatCurrency(cartTotal - (parseFloat(cashReceived) || 0))} more.
               </p>
             </div>
           )}

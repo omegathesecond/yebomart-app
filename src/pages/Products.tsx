@@ -15,7 +15,7 @@ import { Card } from '@/components/ui/Card';
 import { ConfirmDialog } from '@/components/ui/Modal';
 import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
-import { formatSZL, PRODUCT_CATEGORIES } from '@/types';
+import { formatCurrency, PRODUCT_CATEGORIES } from '@/types';
 
 export function Products() {
   const { shop } = useAuthStore();
@@ -132,12 +132,12 @@ export function Products() {
                   <div className="flex justify-between items-baseline mb-2">
                     <span className="text-sm text-slate-400">Sell Price</span>
                     <span className="text-xl font-bold text-amber-400">
-                      {formatSZL(product.sellPrice)}
+                      {formatCurrency(product.sellPrice)}
                     </span>
                   </div>
                   <div className="flex justify-between items-baseline text-sm">
                     <span className="text-slate-400">Cost</span>
-                    <span className="text-slate-300">{formatSZL(product.costPrice)}</span>
+                    <span className="text-slate-300">{formatCurrency(product.costPrice)}</span>
                   </div>
                   <div className="flex justify-between items-baseline text-sm mt-1">
                     <span className="text-slate-400">Margin</span>

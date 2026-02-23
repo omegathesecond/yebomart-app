@@ -17,7 +17,7 @@ import { Card, CardHeader } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
 import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
-import { formatSZL, formatRelativeTime, type Product, type StockLog } from '@/types';
+import { formatCurrency, formatRelativeTime, type Product, type StockLog } from '@/types';
 import api from '@/api/client';
 
 // Adjustment types supported by API
@@ -245,7 +245,7 @@ export function Stock() {
         </Card>
         <Card gradient="emerald">
           <p className="text-sm text-slate-400">Total Stock Value</p>
-          <p className="text-2xl font-bold text-white mt-1">{formatSZL(totalValue)}</p>
+          <p className="text-2xl font-bold text-white mt-1">{formatCurrency(totalValue)}</p>
         </Card>
         <Card gradient="amber" onClick={() => setFilter('low')} hover>
           <p className="text-sm text-slate-400">Low Stock</p>
@@ -382,7 +382,7 @@ export function Stock() {
                       {product.reorderAt}
                     </td>
                     <td className="py-3 px-4 text-right text-slate-300">
-                      {formatSZL(stockValue)}
+                      {formatCurrency(stockValue)}
                     </td>
                     <td className="py-3 px-4 text-center">
                       <Badge 
@@ -710,11 +710,11 @@ export function Stock() {
               </div>
               <div className="bg-slate-700/30 p-3 rounded-lg">
                 <p className="text-xs text-slate-400">Cost Price</p>
-                <p className="text-xl font-bold text-white">{formatSZL(selectedProduct.costPrice)}</p>
+                <p className="text-xl font-bold text-white">{formatCurrency(selectedProduct.costPrice)}</p>
               </div>
               <div className="bg-slate-700/30 p-3 rounded-lg">
                 <p className="text-xs text-slate-400">Sell Price</p>
-                <p className="text-xl font-bold text-emerald-400">{formatSZL(selectedProduct.sellPrice)}</p>
+                <p className="text-xl font-bold text-emerald-400">{formatCurrency(selectedProduct.sellPrice)}</p>
               </div>
             </div>
 

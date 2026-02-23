@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeftIcon, QrCodeIcon, CheckIcon, PlusIcon, XMarkIcon, BuildingStorefrontIcon } from '@heroicons/react/24/outline';
-import { formatSZL } from '@/types';
+import { formatCurrency } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { Input, Select, Textarea } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
@@ -553,7 +553,7 @@ export function ProductForm() {
                       const wholesale = parseFloat(formData.wholesalePrice);
                       const discount = ((retail - wholesale) / retail * 100).toFixed(0);
                       return wholesale < retail 
-                        ? `${discount}% off retail (${formatSZL(retail - wholesale)} savings/unit)`
+                        ? `${discount}% off retail (${formatCurrency(retail - wholesale)} savings/unit)`
                         : 'No discount';
                     })()}
                   </span>
@@ -607,9 +607,9 @@ export function ProductForm() {
                       const savings = singleTotal - packPrice;
                       const savingsPercent = ((savings / singleTotal) * 100).toFixed(0);
                       return savings > 0 
-                        ? `${formatSZL(savings)} off (${savingsPercent}% discount)`
+                        ? `${formatCurrency(savings)} off (${savingsPercent}% discount)`
                         : savings < 0 
-                          ? `${formatSZL(Math.abs(savings))} premium`
+                          ? `${formatCurrency(Math.abs(savings))} premium`
                           : 'No discount';
                     })()}
                   </span>

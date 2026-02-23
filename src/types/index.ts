@@ -277,7 +277,7 @@ export function setCurrencyConfig(symbol: string, decimals: number) {
   _decimalPlaces = decimals;
 }
 
-export const formatSZL = (amount: number): string => {
+export const formatCurrency = (amount: number): string => {
   const formatted = amount.toLocaleString(undefined, { minimumFractionDigits: _decimalPlaces, maximumFractionDigits: _decimalPlaces });
   return `${_currencySymbol}${formatted}`;
 };

@@ -8,7 +8,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
 import { useShopStore } from '@/stores/shopStore';
 import { ShopSwitcher } from '@/components/ui/ShopSwitcher';
-import { formatSZL } from '@/types';
+import { formatCurrency } from '@/types';
 import { useState, useEffect } from 'react';
 
 const pageNames: Record<string, string> = {

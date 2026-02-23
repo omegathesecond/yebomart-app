@@ -18,7 +18,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
 import { api } from '@/api/client';
-import { formatSZL } from '@/types';
+import { formatCurrency } from '@/types';
 
 interface SaleItem {
   id: string;
@@ -315,7 +315,7 @@ export function Returns() {
                   {ret.type === 'REFUND' && (
                     <div className="text-right">
                       <p className="text-lg font-bold text-green-400">
-                        {formatSZL(ret.refundAmount)}
+                        {formatCurrency(ret.refundAmount)}
                       </p>
                       <p className="text-xs text-slate-500">Refund</p>
                     </div>
@@ -386,7 +386,7 @@ export function Returns() {
                   </div>
                   <div className="text-right">
                     <p className="text-lg font-bold text-white">
-                      {formatSZL(foundSale.totalAmount)}
+                      {formatCurrency(foundSale.totalAmount)}
                     </p>
                     <p className="text-xs text-slate-500 uppercase">
                       {foundSale.paymentMethod}
@@ -424,7 +424,7 @@ export function Returns() {
                           <div className="flex-1">
                             <p className="font-medium text-white">{item.productName}</p>
                             <p className="text-sm text-slate-400">
-                              {formatSZL(item.unitPrice)} × {item.quantity}
+                              {formatCurrency(item.unitPrice)} × {item.quantity}
                             </p>
                           </div>
                           {isSelected && (
@@ -493,7 +493,7 @@ export function Returns() {
                 <div className="p-4 bg-green-900/30 border border-green-800 rounded-xl">
                   <p className="text-sm text-green-400 mb-1">Refund Amount</p>
                   <p className="text-2xl font-bold text-green-400">
-                    {formatSZL(calculateRefundAmount())}
+                    {formatCurrency(calculateRefundAmount())}
                   </p>
                 </div>
               )}
@@ -550,7 +550,7 @@ export function Returns() {
                       <p className="text-white font-medium">{item.productName}</p>
                       <p className="text-sm text-slate-400">Qty: {item.quantity}</p>
                     </div>
-                    <p className="text-white">{formatSZL(item.unitPrice * item.quantity)}</p>
+                    <p className="text-white">{formatCurrency(item.unitPrice * item.quantity)}</p>
                   </div>
                 ))}
               </div>
@@ -561,7 +561,7 @@ export function Returns() {
               <div className="bg-green-900/30 border border-green-800 rounded-xl p-4">
                 <p className="text-sm text-green-400 mb-1">Refund Amount</p>
                 <p className="text-2xl font-bold text-green-400">
-                  {formatSZL(selectedReturn.refundAmount)}
+                  {formatCurrency(selectedReturn.refundAmount)}
                 </p>
               </div>
             )}
