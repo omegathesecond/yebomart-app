@@ -51,9 +51,16 @@ export function TierSwitcher() {
                   <p className="text-xs text-slate-400">{info.description}</p>
                 </div>
               </div>
-              <span className={`text-sm font-medium ${isActive ? 'text-amber-400' : 'text-slate-400'}`}>
-                {formatPriceForCountry(info.price, countryCode)}/mo
-              </span>
+              <div className="text-right">
+                {info.originalPrice > info.price && (
+                  <span className="text-xs text-slate-500 line-through block">
+                    {formatPriceForCountry(info.originalPrice, countryCode)}
+                  </span>
+                )}
+                <span className={`text-sm font-medium ${isActive ? 'text-green-400' : 'text-slate-400'}`}>
+                  {formatPriceForCountry(info.price, countryCode)}/mo
+                </span>
+              </div>
             </button>
           );
         })}

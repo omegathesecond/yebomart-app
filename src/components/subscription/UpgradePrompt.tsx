@@ -1,5 +1,5 @@
 import { ArrowUpCircleIcon, LockClosedIcon, SparklesIcon } from '@heroicons/react/24/outline';
-import { TIERS, formatPriceForCountry, useSubscriptionStore, type SubscriptionTier, type Feature, FEATURES } from '@/stores/subscriptionStore';
+import { TIERS, formatPriceForCountry, getDiscountInfo, useSubscriptionStore, type SubscriptionTier, type Feature, FEATURES } from '@/stores/subscriptionStore';
 import { Button } from '@/components/ui/Button';
 
 interface UpgradePromptProps {
@@ -61,10 +61,18 @@ export function UpgradePrompt({
               <p className="text-sm text-slate-400">{tierInfo.description}</p>
             </div>
             <div className="text-right">
-              <p className="text-2xl font-bold text-amber-400">{formatPriceForCountry(tierInfo.price, countryCode)}</p>
+              {tierInfo.originalPrice > tierInfo.price && (
+                <p className="text-sm text-slate-500 line-through">{formatPriceForCountry(tierInfo.originalPrice, countryCode)}</p>
+              )}
+              <p className="text-2xl font-bold text-green-400">{formatPriceForCountry(tierInfo.price, countryCode)}</p>
               <p className="text-xs text-slate-500">/month</p>
             </div>
           </div>
+          {tierInfo.originalPrice > tierInfo.price && (
+            <div className="mb-4 bg-green-500/10 border border-green-500/30 rounded-lg px-3 py-2 text-center">
+              <span className="text-xs font-bold text-green-400">🚀 {getDiscountInfo(countryCode).label} — Save {getDiscountInfo(countryCode).percent}%</span>
+            </div>
+          )}
         </div>
 
         <Button 
@@ -96,7 +104,7 @@ export function UpgradePrompt({
             Upgrade to unlock {featureInfo.name}
           </h3>
           <p className="text-sm text-slate-400 mb-4">
-            {featureInfo.description}. Available on {tierInfo.name} ({formatPriceForCountry(tierInfo.price, countryCode)}/month) and above.
+            {featureInfo.description}. Available on {tierInfo.name} (<span className="line-through text-slate-500">{formatPriceForCountry(tierInfo.originalPrice, countryCode)}</span>{' '}<span className="text-green-400">{formatPriceForCountry(tierInfo.price, countryCode)}</span>/month) and above.
           </p>
           
           <Button 

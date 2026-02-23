@@ -7,34 +7,70 @@ export type SubscriptionTier = 'lite' | 'starter' | 'business' | 'pro' | 'enterp
 export interface TierInfo {
   id: SubscriptionTier;
   name: string;
-  price: number; // Monthly price in local currency
+  price: number; // Discount (active) price in local currency
+  originalPrice: number; // Regular price before discount
   description: string;
   color: string;
 }
 
-// Country pricing matrix — revolutionary prices, cheapest POS+AI in Africa
+// Country pricing matrix with anchor pricing (original + discount)
+interface TierPrices { lite: number; starter: number; business: number; pro: number; enterprise: number }
+
 export interface CountryPricingInfo {
   currency: string;
   currencySymbol: string;
-  tiers: { lite: number; starter: number; business: number; pro: number; enterprise: number };
+  tiers: TierPrices; // Original "regular" prices
+  discountTiers: TierPrices; // Launch special prices
+  discountLabel: string;
+  discountPercent: number;
 }
 
 export const COUNTRY_PRICING: Record<string, CountryPricingInfo> = {
-  SZ: { currency: 'SZL', currencySymbol: 'E', tiers: { lite: 299, starter: 899, business: 2499, pro: 4999, enterprise: 9999 } },
-  ZA: { currency: 'ZAR', currencySymbol: 'R', tiers: { lite: 399, starter: 1299, business: 3499, pro: 6999, enterprise: 13999 } },
-  KE: { currency: 'KES', currencySymbol: 'KSh', tiers: { lite: 2499, starter: 7499, business: 19999, pro: 39999, enterprise: 79999 } },
-  NG: { currency: 'NGN', currencySymbol: '₦', tiers: { lite: 24999, starter: 74999, business: 199999, pro: 399999, enterprise: 799999 } },
-  GH: { currency: 'GHS', currencySymbol: 'GH₵', tiers: { lite: 349, starter: 999, business: 2699, pro: 5499, enterprise: 10999 } },
-  TZ: { currency: 'TZS', currencySymbol: 'TSh', tiers: { lite: 29999, starter: 89999, business: 249999, pro: 499999, enterprise: 999999 } },
-  UG: { currency: 'UGX', currencySymbol: 'USh', tiers: { lite: 59999, starter: 179999, business: 499999, pro: 999999, enterprise: 1999999 } },
-  RW: { currency: 'RWF', currencySymbol: 'FRw', tiers: { lite: 14999, starter: 44999, business: 124999, pro: 249999, enterprise: 499999 } },
-  ET: { currency: 'ETB', currencySymbol: 'Br', tiers: { lite: 1499, starter: 4499, business: 12499, pro: 24999, enterprise: 49999 } },
-  CI: { currency: 'XOF', currencySymbol: 'CFA', tiers: { lite: 9999, starter: 29999, business: 84999, pro: 169999, enterprise: 339999 } },
-  SN: { currency: 'XOF', currencySymbol: 'CFA', tiers: { lite: 7999, starter: 24999, business: 64999, pro: 129999, enterprise: 259999 } },
-  ZM: { currency: 'ZMW', currencySymbol: 'ZK', tiers: { lite: 299, starter: 899, business: 2499, pro: 4999, enterprise: 9999 } },
-  ZW: { currency: 'USD', currencySymbol: '$', tiers: { lite: 9, starter: 29, business: 79, pro: 149, enterprise: 299 } },
-  BW: { currency: 'BWP', currencySymbol: 'P', tiers: { lite: 549, starter: 1699, business: 4499, pro: 8999, enterprise: 17999 } },
-  MZ: { currency: 'MZN', currencySymbol: 'MT', tiers: { lite: 299, starter: 899, business: 2499, pro: 4999, enterprise: 9999 } },
+  SZ: { currency: 'SZL', currencySymbol: 'E', discountLabel: 'Launch Special', discountPercent: 40,
+    tiers: { lite: 499, starter: 1499, business: 3999, pro: 7999, enterprise: 15999 },
+    discountTiers: { lite: 299, starter: 899, business: 2499, pro: 4999, enterprise: 9999 } },
+  ZA: { currency: 'ZAR', currencySymbol: 'R', discountLabel: 'Launch Special', discountPercent: 40,
+    tiers: { lite: 699, starter: 2099, business: 5599, pro: 11199, enterprise: 22399 },
+    discountTiers: { lite: 399, starter: 1299, business: 3499, pro: 6999, enterprise: 13999 } },
+  KE: { currency: 'KES', currencySymbol: 'KSh', discountLabel: 'Launch Special', discountPercent: 38,
+    tiers: { lite: 3999, starter: 11999, business: 31999, pro: 63999, enterprise: 127999 },
+    discountTiers: { lite: 2499, starter: 7499, business: 19999, pro: 39999, enterprise: 79999 } },
+  NG: { currency: 'NGN', currencySymbol: '₦', discountLabel: 'Launch Special', discountPercent: 42,
+    tiers: { lite: 42999, starter: 128999, business: 343999, pro: 687999, enterprise: 1375999 },
+    discountTiers: { lite: 24999, starter: 74999, business: 199999, pro: 399999, enterprise: 799999 } },
+  GH: { currency: 'GHS', currencySymbol: 'GH₵', discountLabel: 'Launch Special', discountPercent: 37,
+    tiers: { lite: 549, starter: 1649, business: 4399, pro: 8799, enterprise: 17599 },
+    discountTiers: { lite: 349, starter: 999, business: 2699, pro: 5499, enterprise: 10999 } },
+  TZ: { currency: 'TZS', currencySymbol: 'TSh', discountLabel: 'Launch Special', discountPercent: 40,
+    tiers: { lite: 49999, starter: 149999, business: 399999, pro: 799999, enterprise: 1599999 },
+    discountTiers: { lite: 29999, starter: 89999, business: 249999, pro: 499999, enterprise: 999999 } },
+  UG: { currency: 'UGX', currencySymbol: 'USh', discountLabel: 'Launch Special', discountPercent: 40,
+    tiers: { lite: 99999, starter: 299999, business: 799999, pro: 1599999, enterprise: 3199999 },
+    discountTiers: { lite: 59999, starter: 179999, business: 499999, pro: 999999, enterprise: 1999999 } },
+  RW: { currency: 'RWF', currencySymbol: 'FRw', discountLabel: 'Launch Special', discountPercent: 40,
+    tiers: { lite: 24999, starter: 74999, business: 199999, pro: 399999, enterprise: 799999 },
+    discountTiers: { lite: 14999, starter: 44999, business: 124999, pro: 249999, enterprise: 499999 } },
+  ET: { currency: 'ETB', currencySymbol: 'Br', discountLabel: 'Launch Special', discountPercent: 40,
+    tiers: { lite: 2499, starter: 7499, business: 19999, pro: 39999, enterprise: 79999 },
+    discountTiers: { lite: 1499, starter: 4499, business: 12499, pro: 24999, enterprise: 49999 } },
+  CI: { currency: 'XOF', currencySymbol: 'CFA', discountLabel: 'Launch Special', discountPercent: 41,
+    tiers: { lite: 16999, starter: 50999, business: 135999, pro: 271999, enterprise: 543999 },
+    discountTiers: { lite: 9999, starter: 29999, business: 84999, pro: 169999, enterprise: 339999 } },
+  SN: { currency: 'XOF', currencySymbol: 'CFA', discountLabel: 'Launch Special', discountPercent: 38,
+    tiers: { lite: 12999, starter: 38999, business: 103999, pro: 207999, enterprise: 415999 },
+    discountTiers: { lite: 7999, starter: 24999, business: 64999, pro: 129999, enterprise: 259999 } },
+  ZM: { currency: 'ZMW', currencySymbol: 'ZK', discountLabel: 'Launch Special', discountPercent: 40,
+    tiers: { lite: 499, starter: 1499, business: 3999, pro: 7999, enterprise: 15999 },
+    discountTiers: { lite: 299, starter: 899, business: 2499, pro: 4999, enterprise: 9999 } },
+  ZW: { currency: 'USD', currencySymbol: '$', discountLabel: 'Launch Special', discountPercent: 40,
+    tiers: { lite: 15, starter: 45, business: 120, pro: 240, enterprise: 480 },
+    discountTiers: { lite: 9, starter: 29, business: 79, pro: 149, enterprise: 299 } },
+  BW: { currency: 'BWP', currencySymbol: 'P', discountLabel: 'Launch Special', discountPercent: 39,
+    tiers: { lite: 899, starter: 2699, business: 7199, pro: 14399, enterprise: 28799 },
+    discountTiers: { lite: 549, starter: 1699, business: 4499, pro: 8999, enterprise: 17999 } },
+  MZ: { currency: 'MZN', currencySymbol: 'MT', discountLabel: 'Launch Special', discountPercent: 40,
+    tiers: { lite: 499, starter: 1499, business: 3999, pro: 7999, enterprise: 15999 },
+    discountTiers: { lite: 299, starter: 899, business: 2499, pro: 4999, enterprise: 9999 } },
 };
 
 function getPricingForCountry(countryCode: string): CountryPricingInfo {
@@ -44,16 +80,21 @@ function getPricingForCountry(countryCode: string): CountryPricingInfo {
 function buildTiers(countryCode: string): Record<SubscriptionTier, TierInfo> {
   const pricing = getPricingForCountry(countryCode);
   return {
-    lite: { id: 'lite', name: 'Lite', price: pricing.tiers.lite, description: 'Perfect for getting started', color: 'slate' },
-    starter: { id: 'starter', name: 'Starter', price: pricing.tiers.starter, description: 'For growing businesses', color: 'blue' },
-    business: { id: 'business', name: 'Business', price: pricing.tiers.business, description: 'Advanced insights & reports', color: 'purple' },
-    pro: { id: 'pro', name: 'Professional', price: pricing.tiers.pro, description: 'AI-powered automation', color: 'amber' },
-    enterprise: { id: 'enterprise', name: 'Enterprise', price: pricing.tiers.enterprise, description: 'Full platform access', color: 'emerald' },
+    lite: { id: 'lite', name: 'Lite', price: pricing.discountTiers.lite, originalPrice: pricing.tiers.lite, description: 'Perfect for getting started', color: 'slate' },
+    starter: { id: 'starter', name: 'Starter', price: pricing.discountTiers.starter, originalPrice: pricing.tiers.starter, description: 'For growing businesses', color: 'blue' },
+    business: { id: 'business', name: 'Business', price: pricing.discountTiers.business, originalPrice: pricing.tiers.business, description: 'Advanced insights & reports', color: 'purple' },
+    pro: { id: 'pro', name: 'Professional', price: pricing.discountTiers.pro, originalPrice: pricing.tiers.pro, description: 'AI-powered automation', color: 'amber' },
+    enterprise: { id: 'enterprise', name: 'Enterprise', price: pricing.discountTiers.enterprise, originalPrice: pricing.tiers.enterprise, description: 'Full platform access', color: 'emerald' },
   };
 }
 
 // Default TIERS (Eswatini) — will be overridden by country selection
 export let TIERS: Record<SubscriptionTier, TierInfo> = buildTiers('SZ');
+
+export function getDiscountInfo(countryCode: string): { label: string; percent: number } {
+  const pricing = getPricingForCountry(countryCode);
+  return { label: pricing.discountLabel, percent: pricing.discountPercent };
+}
 
 export function formatPriceForCountry(amount: number, countryCode: string): string {
   const pricing = getPricingForCountry(countryCode);
