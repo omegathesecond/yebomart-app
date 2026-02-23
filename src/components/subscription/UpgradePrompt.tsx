@@ -1,11 +1,12 @@
 import { ArrowUpCircleIcon, LockClosedIcon, SparklesIcon } from '@heroicons/react/24/outline';
-import { TIERS, formatPriceForCountry, getDiscountInfo, useSubscriptionStore, type SubscriptionTier, type Feature, FEATURES } from '@/stores/subscriptionStore';
+import { TIERS, formatPriceForCountry, getDiscountInfo, useSubscriptionStore, AI_TIER_LIMITS, type SubscriptionTier, type Feature, FEATURES } from '@/stores/subscriptionStore';
 import { Button } from '@/components/ui/Button';
 
 interface UpgradePromptProps {
   feature: Feature;
   requiredTier: SubscriptionTier;
   variant?: 'inline' | 'card' | 'fullpage';
+  reason?: 'locked' | 'limit_reached';
   onUpgradeClick?: () => void;
 }
 
@@ -13,11 +14,14 @@ export function UpgradePrompt({
   feature, 
   requiredTier, 
   variant = 'card',
+  reason = 'locked',
   onUpgradeClick 
 }: UpgradePromptProps) {
   const tierInfo = TIERS[requiredTier];
   const featureInfo = FEATURES[feature];
   const { countryCode } = useSubscriptionStore();
+  const nextTierLimit = AI_TIER_LIMITS[requiredTier];
+  const isLimitReached = reason === 'limit_reached';
 
   const handleUpgrade = () => {
     if (onUpgradeClick) {
@@ -101,10 +105,13 @@ export function UpgradePrompt({
         
         <div className="flex-1">
           <h3 className="text-lg font-semibold text-white mb-1">
-            Upgrade to unlock {featureInfo.name}
+            {isLimitReached ? "You've used all your AI queries this month" : `Upgrade to unlock ${featureInfo.name}`}
           </h3>
           <p className="text-sm text-slate-400 mb-4">
-            {featureInfo.description}. Available on {tierInfo.name} (<span className="line-through text-slate-500">{formatPriceForCountry(tierInfo.originalPrice, countryCode)}</span>{' '}<span className="text-green-400">{formatPriceForCountry(tierInfo.price, countryCode)}</span>/month) and above.
+            {isLimitReached
+              ? <>Upgrade to <span className="text-amber-400 font-medium">{tierInfo.name}</span> for {nextTierLimit === Infinity ? 'unlimited' : nextTierLimit} queries/month.</>
+              : <>{featureInfo.description}. Available on {tierInfo.name} (<span className="line-through text-slate-500">{formatPriceForCountry(tierInfo.originalPrice, countryCode)}</span>{' '}<span className="text-green-400">{formatPriceForCountry(tierInfo.price, countryCode)}</span>/month) and above.</>
+            }
           </p>
           
           <Button 

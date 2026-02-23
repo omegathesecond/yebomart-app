@@ -153,35 +153,20 @@ export function Dashboard() {
           </div>
         </Link>
         <FeatureCheck feature="ai_assistant">
-          {({ isAvailable, requiredTier }) => (
+          {({ isAvailable }) => (
             <Link 
               to="/assistant" 
-              className={`card transition-colors ${
-                isAvailable 
-                  ? 'hover:border-purple-500/50' 
-                  : 'opacity-70 hover:border-amber-500/50'
-              }`}
+              className="card transition-colors hover:border-purple-500/50"
             >
               <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg relative ${
-                  isAvailable ? 'bg-purple-500/20' : 'bg-amber-500/20'
-                }`}>
-                  <SparklesIcon className={`w-5 h-5 ${
-                    isAvailable ? 'text-purple-400' : 'text-amber-400'
-                  }`} />
-                  {!isAvailable && (
-                    <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-amber-500 rounded-full flex items-center justify-center">
-                      <LockClosedIcon className="w-2 h-2 text-white" />
-                    </span>
-                  )}
+                <div className="p-2 rounded-lg bg-purple-500/20">
+                  <SparklesIcon className="w-5 h-5 text-purple-400" />
                 </div>
                 <div>
                   <span className="font-medium text-white">Ask {shop?.assistantName}</span>
-                  {!isAvailable && requiredTier && (
-                    <span className="block text-xs text-amber-400">
-                      {TIERS[requiredTier].name}+
-                    </span>
-                  )}
+                  <span className="block text-xs text-purple-400">
+                    AI queries left this month
+                  </span>
                 </div>
               </div>
             </Link>
@@ -240,7 +225,7 @@ export function Dashboard() {
 
         {/* AI Insights + Low Stock */}
         <div className="space-y-6">
-          {/* AI Insights - Professional+ only */}
+          {/* AI Insights — All tiers — usage limited */}
           <FeatureCheck feature="ai_assistant">
             {({ isAvailable }) => (
               isAvailable && insights.length > 0 ? (
@@ -261,26 +246,6 @@ export function Dashboard() {
                         </p>
                       </div>
                     ))}
-                  </div>
-                </Card>
-              ) : !isAvailable ? (
-                <Card gradient="purple" className="relative overflow-hidden">
-                  <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[1px] flex flex-col items-center justify-center z-10">
-                    <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center mb-2">
-                      <LockClosedIcon className="w-5 h-5 text-amber-400" />
-                    </div>
-                    <p className="text-sm font-medium text-white">AI Insights</p>
-                    <p className="text-xs text-amber-400">Professional+</p>
-                  </div>
-                  <CardHeader 
-                    title="AI says..."
-                    action={<SparklesIcon className="w-5 h-5 text-purple-400" />}
-                  />
-                  <div className="space-y-3 opacity-30">
-                    <div className="p-3 rounded-xl bg-slate-800/50 border border-slate-700/50">
-                      <p className="text-sm font-medium text-white">Smart insight</p>
-                      <p className="text-xs text-slate-400 mt-1">AI-powered business recommendations</p>
-                    </div>
                   </div>
                 </Card>
               ) : null

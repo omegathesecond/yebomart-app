@@ -389,11 +389,11 @@ export function Settings() {
               <Card>
                 <CardHeader title="Available Plans" subtitle="Choose the right plan for your business" />
                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-                  <PricingCard tier="lite" features={['pos', 'stock_management', 'basic_reports']} />
-                  <PricingCard tier="starter" features={['barcode_scanning', 'low_stock_alerts', 'staff_accounts']} highlight />
-                  <PricingCard tier="business" features={['whatsapp_reports', 'advanced_reports']} />
-                  <PricingCard tier="pro" features={['ai_assistant', 'multi_location', 'accounting_module']} />
-                  <PricingCard tier="enterprise" features={['api_access', 'dedicated_support']} />
+                  <PricingCard tier="lite" features={['pos', 'stock_management', 'basic_reports', 'ai_assistant']} />
+                  <PricingCard tier="starter" features={['barcode_scanning', 'low_stock_alerts', 'staff_accounts', 'ai_assistant']} highlight />
+                  <PricingCard tier="business" features={['whatsapp_reports', 'advanced_reports', 'ai_assistant']} />
+                  <PricingCard tier="pro" features={['multi_location', 'accounting_module', 'ai_assistant']} />
+                  <PricingCard tier="enterprise" features={['api_access', 'dedicated_support', 'ai_assistant']} />
                 </div>
               </Card>
               
