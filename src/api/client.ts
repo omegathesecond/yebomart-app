@@ -266,7 +266,7 @@ class ApiClient {
       assistantName: data.assistantName,
       businessType: data.businessType || 'general',
       countryCode: data.countryCode || 'SZ',
-      phoneCountryCode: data.phoneCountryCode || 'SZ',
+      phoneCountryCode: data.phoneCountryCode || '+268',
     };
     const response = await this.request<{ accessToken: string; refreshToken: string; shop: any }>('/api/auth/register', {
       method: 'POST',
