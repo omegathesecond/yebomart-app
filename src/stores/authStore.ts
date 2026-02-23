@@ -3,6 +3,16 @@ import { persist } from 'zustand/middleware';
 import type { User, Shop, Subscription } from '@/types';
 import api from '@/api/client';
 import { clearDatabase } from '@/lib/db';
+import { useLocaleStore } from '@/stores/localeStore';
+import { useSubscriptionStore } from '@/stores/subscriptionStore';
+
+// Sync currency/locale from shop's country
+function syncShopLocale(shop: Shop | null) {
+  if (shop?.countryCode) {
+    useLocaleStore.getState().setCountry(shop.countryCode);
+    useSubscriptionStore.getState().setCountry(shop.countryCode);
+  }
+}
 
 // Flag to prevent circular dependency issues
 let storeInitialized = false;
@@ -69,6 +79,7 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false 
           });
           
+          syncShopLocale(data.shop);
           return true;
         } catch (error) {
           console.error('Login failed:', error);
@@ -92,6 +103,7 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false 
           });
           
+          syncShopLocale(data.shop);
           return true;
         } catch (error) {
           console.error('Staff login failed:', error);
@@ -116,6 +128,7 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false 
           });
           
+          syncShopLocale(result.shop);
           return true;
         } catch (error) {
           console.error('Registration failed:', error);
@@ -173,6 +186,8 @@ export const useAuthStore = create<AuthState>()(
             isAuthenticated: true,
             isLoading: false
           });
+          
+          syncShopLocale(data.shop);
         } catch (error) {
           console.error('Failed to load user:', error);
           api.clearToken();
@@ -218,6 +233,7 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false
           });
 
+          syncShopLocale(result.shop);
           return { success: true };
         } catch (error) {
           console.error('Shop setup failed:', error);
