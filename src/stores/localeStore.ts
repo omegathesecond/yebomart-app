@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { setCurrencyConfig } from '@/types';
 import i18n from '@/lib/i18n';
 import {
   type Country,
@@ -51,6 +52,9 @@ export const useLocaleStore = create<LocaleState>()(
             country,
             language: newLang
           });
+          
+          // Sync global currency formatter
+          setCurrencyConfig(country.currencySymbol, country.decimalPlaces);
         }
       },
       
@@ -116,6 +120,8 @@ export const useLocaleStore = create<LocaleState>()(
             state.country = country;
             // Sync i18n language
             i18n.changeLanguage(state.language);
+            // Sync global currency formatter
+            setCurrencyConfig(country.currencySymbol, country.decimalPlaces);
           }
         }
       }

@@ -268,8 +268,18 @@ export const EXPENSE_CATEGORIES: { value: ExpenseCategory; label: string }[] = [
 ];
 
 // Format helpers
+// Currency formatter config — set by locale store on init
+let _currencySymbol = 'E';
+let _decimalPlaces = 2;
+
+export function setCurrencyConfig(symbol: string, decimals: number) {
+  _currencySymbol = symbol;
+  _decimalPlaces = decimals;
+}
+
 export const formatSZL = (amount: number): string => {
-  return `E${amount.toFixed(2)}`;
+  const formatted = amount.toLocaleString(undefined, { minimumFractionDigits: _decimalPlaces, maximumFractionDigits: _decimalPlaces });
+  return `${_currencySymbol}${formatted}`;
 };
 
 export const formatDate = (date: Date | string): string => {

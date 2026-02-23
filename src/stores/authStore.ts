@@ -5,12 +5,17 @@ import api from '@/api/client';
 import { clearDatabase } from '@/lib/db';
 import { useLocaleStore } from '@/stores/localeStore';
 import { useSubscriptionStore } from '@/stores/subscriptionStore';
+import { setCurrencyConfig } from '@/types';
 
 // Sync currency/locale from shop's country
 function syncShopLocale(shop: Shop | null) {
   if (shop?.countryCode) {
     useLocaleStore.getState().setCountry(shop.countryCode);
     useSubscriptionStore.getState().setCountry(shop.countryCode);
+    // Update the global currency formatter
+    const symbol = shop.currencySymbol || useLocaleStore.getState().getCurrencySymbol?.() || 'E';
+    const country = useLocaleStore.getState().country;
+    setCurrencyConfig(symbol, country?.decimalPlaces ?? 2);
   }
 }
 

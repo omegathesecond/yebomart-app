@@ -131,7 +131,8 @@ export function Settings() {
     { id: 'shop', label: t('settings.shop'), icon: BuildingOfficeIcon },
     { id: 'shops', label: t('settings.yourShops') || 'Your Shops', icon: BuildingStorefrontIcon, badge: hasMultipleShops ? shops.length : undefined },
     { id: 'profile', label: t('settings.profile'), icon: UserIcon },
-    { id: 'locale', label: t('settings.country'), icon: GlobeAltIcon },
+    // Country is set at shop creation and cannot be changed
+    // { id: 'locale', label: t('settings.country'), icon: GlobeAltIcon },
     { id: 'subscription', label: t('settings.subscription'), icon: KeyIcon },
     { id: 'notifications', label: t('settings.notifications'), icon: BellIcon },
     { id: 'ai', label: t('settings.aiAssistant'), icon: SparklesIcon },
