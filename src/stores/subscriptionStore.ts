@@ -315,10 +315,10 @@ export const useSubscriptionStore = create<SubscriptionState>()(
 
 // AI usage limits per tier (queries per month)
 export const AI_TIER_LIMITS: Record<SubscriptionTier, number> = {
-  lite: 10,
-  starter: 50,
-  business: 200,
-  pro: 1000,
+  lite: 30,
+  starter: 150,
+  business: 500,
+  pro: 3000,
   enterprise: Infinity,
 };
 

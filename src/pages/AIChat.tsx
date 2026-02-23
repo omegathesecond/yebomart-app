@@ -37,7 +37,7 @@ export function AIChat() {
   const [aiUsed, setAiUsed] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const aiLimit = AI_TIER_LIMITS[currentTier] ?? 10;
+  const aiLimit = AI_TIER_LIMITS[currentTier] ?? 30;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
