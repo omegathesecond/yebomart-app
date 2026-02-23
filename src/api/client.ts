@@ -1,4 +1,6 @@
 // YeboMart API Client
+import { COUNTRIES } from '@/lib/countries';
+
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.yebomart.com';
 
 interface ApiResponse<T> {
@@ -266,7 +268,9 @@ class ApiClient {
       assistantName: data.assistantName,
       businessType: data.businessType || 'general',
       countryCode: data.countryCode || 'SZ',
-      phoneCountryCode: data.phoneCountryCode || '+268',
+      phoneCountryCode: data.phoneCountryCode?.startsWith('+') 
+        ? data.phoneCountryCode 
+        : (COUNTRIES.find(c => c.code === data.phoneCountryCode)?.phonePrefix || '+268'),
     };
     const response = await this.request<{ accessToken: string; refreshToken: string; shop: any }>('/api/auth/register', {
       method: 'POST',
