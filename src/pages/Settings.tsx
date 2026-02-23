@@ -21,10 +21,9 @@ import { useShopStore } from '@/stores/shopStore';
 import { TierSwitcher } from '@/components/subscription';
 import { useSubscriptionStore, TIERS, FEATURES, type Feature } from '@/stores/subscriptionStore';
 import { getShopType } from '@/data/shopTypes';
-import { CountryPicker, LanguageSwitcher } from '@/components/ui/CountryPicker';
+// Country is set at shop creation — no picker needed in settings
 import { ShopSwitcher } from '@/components/ui/ShopSwitcher';
-import { useLocaleStore } from '@/stores/localeStore';
-import { LANGUAGE_LABELS } from '@/lib/countries';
+// locale imports removed — country is set at creation
 
 // Internal components for subscription tab
 function CurrentPlanCard() {
@@ -109,7 +108,7 @@ export function Settings() {
   const { t } = useTranslation();
   const { user, shop, subscription, updateShop } = useAuthStore();
   const { shops } = useShopStore();
-  const { country, language } = useLocaleStore();
+  // country/language removed — set at shop creation, not changeable
   const [activeTab, setActiveTab] = useState('shop');
   
   const hasMultipleShops = shops.length > 1;
@@ -326,56 +325,6 @@ export function Settings() {
                 )}
               </div>
             </Card>
-          )}
-
-          {activeTab === 'locale' && (
-            <div className="space-y-6">
-              <Card>
-                <CardHeader 
-                  title={t('settings.country')} 
-                  subtitle={t('countryPicker.yourCurrency')}
-                />
-                <div className="space-y-4">
-                  {/* Country Picker */}
-                  <CountryPicker variant="card" showCurrency showLanguage />
-                  
-                  {/* Current Settings Display */}
-                  {country && (
-                    <div className="grid grid-cols-2 gap-4 mt-4">
-                      <div className="p-4 bg-slate-700/30 rounded-xl">
-                        <p className="text-sm text-slate-400 mb-1">{t('settings.currency')}</p>
-                        <p className="text-lg font-semibold text-amber-400">
-                          {country.currencySymbol} {country.currency}
-                        </p>
-                        <p className="text-sm text-slate-500">{country.currencyName}</p>
-                      </div>
-                      <div className="p-4 bg-slate-700/30 rounded-xl">
-                        <p className="text-sm text-slate-400 mb-1">{t('settings.language')}</p>
-                        <p className="text-lg font-semibold text-white">
-                          {LANGUAGE_LABELS[language]?.native || language}
-                        </p>
-                        <p className="text-sm text-slate-500">
-                          {LANGUAGE_LABELS[language]?.en || language}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </Card>
-              
-              {/* Language Switcher (if country supports multiple languages) */}
-              {country && country.languages.length > 1 && (
-                <Card>
-                  <CardHeader 
-                    title={t('settings.language')} 
-                    subtitle={t('settings.selectLanguage')}
-                  />
-                  <div className="p-4">
-                    <LanguageSwitcher />
-                  </div>
-                </Card>
-              )}
-            </div>
           )}
 
           {activeTab === 'subscription' && (
