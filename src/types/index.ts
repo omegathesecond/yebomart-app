@@ -268,18 +268,29 @@ export const EXPENSE_CATEGORIES: { value: ExpenseCategory; label: string }[] = [
 ];
 
 // Format helpers
-// Currency formatter config — set by locale store on init
-let _currencySymbol = 'E';
-let _decimalPlaces = 2;
-
-export function setCurrencyConfig(symbol: string, decimals: number) {
-  _currencySymbol = symbol;
-  _decimalPlaces = decimals;
+// Currency formatter — reads from locale store persisted in localStorage
+// This ensures correct currency even before React hydration completes
+export function setCurrencyConfig(_symbol: string, _decimals: number) {
+  // Kept for backward compat — formatCurrency reads from localStorage directly
 }
 
 export const formatCurrency = (amount: number): string => {
-  const formatted = amount.toLocaleString(undefined, { minimumFractionDigits: _decimalPlaces, maximumFractionDigits: _decimalPlaces });
-  return `${_currencySymbol}${formatted}`;
+  let symbol = 'E';
+  let decimals = 2;
+  
+  try {
+    const stored = localStorage.getItem('yebomart-locale');
+    if (stored) {
+      const { state } = JSON.parse(stored);
+      if (state?.country) {
+        symbol = state.country.currencySymbol || symbol;
+        decimals = state.country.decimalPlaces ?? decimals;
+      }
+    }
+  } catch {}
+  
+  const formatted = amount.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+  return `${symbol}${formatted}`;
 };
 
 export const formatDate = (date: Date | string): string => {
