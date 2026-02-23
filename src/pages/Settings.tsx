@@ -21,9 +21,9 @@ import { useShopStore } from '@/stores/shopStore';
 import { TierSwitcher } from '@/components/subscription';
 import { useSubscriptionStore, TIERS, FEATURES, type Feature } from '@/stores/subscriptionStore';
 import { getShopType } from '@/data/shopTypes';
-// Country is set at shop creation — no picker needed in settings
+import { LanguageSwitcher } from '@/components/ui/CountryPicker';
 import { ShopSwitcher } from '@/components/ui/ShopSwitcher';
-// locale imports removed — country is set at creation
+import { useLocaleStore } from '@/stores/localeStore';
 
 // Internal components for subscription tab
 function CurrentPlanCard() {
@@ -108,7 +108,7 @@ export function Settings() {
   const { t } = useTranslation();
   const { user, shop, subscription, updateShop } = useAuthStore();
   const { shops } = useShopStore();
-  // country/language removed — set at shop creation, not changeable
+  const { country } = useLocaleStore();
   const [activeTab, setActiveTab] = useState('shop');
   
   const hasMultipleShops = shops.length > 1;
@@ -130,8 +130,7 @@ export function Settings() {
     { id: 'shop', label: t('settings.shop'), icon: BuildingOfficeIcon },
     { id: 'shops', label: t('settings.yourShops') || 'Your Shops', icon: BuildingStorefrontIcon, badge: hasMultipleShops ? shops.length : undefined },
     { id: 'profile', label: t('settings.profile'), icon: UserIcon },
-    // Country is set at shop creation and cannot be changed
-    // { id: 'locale', label: t('settings.country'), icon: GlobeAltIcon },
+    { id: 'language', label: t('settings.language') || 'Language', icon: GlobeAltIcon },
     { id: 'subscription', label: t('settings.subscription'), icon: KeyIcon },
     { id: 'notifications', label: t('settings.notifications'), icon: BellIcon },
     { id: 'ai', label: t('settings.aiAssistant'), icon: SparklesIcon },
@@ -325,6 +324,32 @@ export function Settings() {
                 )}
               </div>
             </Card>
+          )}
+
+          {activeTab === 'language' && (
+            <div className="space-y-6">
+              {country && country.languages.length > 1 ? (
+                <Card>
+                  <CardHeader 
+                    title={t('settings.language') || 'Language'} 
+                    subtitle={t('settings.selectLanguage') || 'Choose your preferred language'}
+                  />
+                  <div className="p-4">
+                    <LanguageSwitcher />
+                  </div>
+                </Card>
+              ) : (
+                <Card>
+                  <CardHeader 
+                    title={t('settings.language') || 'Language'} 
+                    subtitle="Your country only supports one language"
+                  />
+                  <div className="p-4 text-slate-400 text-sm">
+                    {country?.languages[0] === 'fr' ? 'Français' : 'English'} is the default language for your region.
+                  </div>
+                </Card>
+              )}
+            </div>
           )}
 
           {activeTab === 'subscription' && (
