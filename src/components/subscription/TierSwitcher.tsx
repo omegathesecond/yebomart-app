@@ -1,4 +1,4 @@
-import { useSubscriptionStore, TIERS, type SubscriptionTier } from '@/stores/subscriptionStore';
+import { useSubscriptionStore, TIERS, formatPriceForCountry, type SubscriptionTier } from '@/stores/subscriptionStore';
 import { CheckIcon, BeakerIcon } from '@heroicons/react/24/outline';
 
 /**
@@ -6,7 +6,7 @@ import { CheckIcon, BeakerIcon } from '@heroicons/react/24/outline';
  * Shows in settings page for testing purposes
  */
 export function TierSwitcher() {
-  const { currentTier, setTier } = useSubscriptionStore();
+  const { currentTier, setTier, countryCode } = useSubscriptionStore();
 
   const tiers: SubscriptionTier[] = ['lite', 'starter', 'business', 'pro', 'enterprise'];
 
@@ -52,7 +52,7 @@ export function TierSwitcher() {
                 </div>
               </div>
               <span className={`text-sm font-medium ${isActive ? 'text-amber-400' : 'text-slate-400'}`}>
-                E{info.price}/mo
+                {formatPriceForCountry(info.price, countryCode)}/mo
               </span>
             </button>
           );

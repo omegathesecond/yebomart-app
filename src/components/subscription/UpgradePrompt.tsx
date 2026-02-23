@@ -1,5 +1,5 @@
 import { ArrowUpCircleIcon, LockClosedIcon, SparklesIcon } from '@heroicons/react/24/outline';
-import { TIERS, type SubscriptionTier, type Feature, FEATURES } from '@/stores/subscriptionStore';
+import { TIERS, formatPriceForCountry, useSubscriptionStore, type SubscriptionTier, type Feature, FEATURES } from '@/stores/subscriptionStore';
 import { Button } from '@/components/ui/Button';
 
 interface UpgradePromptProps {
@@ -17,6 +17,7 @@ export function UpgradePrompt({
 }: UpgradePromptProps) {
   const tierInfo = TIERS[requiredTier];
   const featureInfo = FEATURES[feature];
+  const { countryCode } = useSubscriptionStore();
 
   const handleUpgrade = () => {
     if (onUpgradeClick) {
@@ -60,7 +61,7 @@ export function UpgradePrompt({
               <p className="text-sm text-slate-400">{tierInfo.description}</p>
             </div>
             <div className="text-right">
-              <p className="text-2xl font-bold text-amber-400">E{tierInfo.price}</p>
+              <p className="text-2xl font-bold text-amber-400">{formatPriceForCountry(tierInfo.price, countryCode)}</p>
               <p className="text-xs text-slate-500">/month</p>
             </div>
           </div>
@@ -95,7 +96,7 @@ export function UpgradePrompt({
             Upgrade to unlock {featureInfo.name}
           </h3>
           <p className="text-sm text-slate-400 mb-4">
-            {featureInfo.description}. Available on {tierInfo.name} (E{tierInfo.price}/month) and above.
+            {featureInfo.description}. Available on {tierInfo.name} ({formatPriceForCountry(tierInfo.price, countryCode)}/month) and above.
           </p>
           
           <Button 
