@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '@/api/client';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { formatSZL } from '@/types';
 import { Badge } from '@/components/ui/Badge';
 import {
   ArrowLeftIcon,
@@ -92,7 +93,7 @@ export function StaffDetail() {
   }, [id, period]);
 
   const formatCurrency = (amount: number) => {
-    return `E${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return formatSZL(amount);
   };
 
   const formatDate = (dateStr: string) => {
@@ -311,12 +312,12 @@ export function StaffDetail() {
               <YAxis 
                 stroke="#94a3b8" 
                 tick={{ fontSize: 10 }}
-                tickFormatter={(val) => `E${val}`} 
+                tickFormatter={(val) => formatSZL(Number(val))} 
               />
               <Tooltip
                 contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
                 labelStyle={{ color: '#f8fafc' }}
-                formatter={(value) => [`E${Number(value).toFixed(2)}`, 'Revenue']}
+                formatter={(value) => [formatSZL(Number(value)), 'Revenue']}
                 labelFormatter={(label) => new Date(label).toLocaleDateString()}
               />
               <Line type="monotone" dataKey="revenue" stroke="#f59e0b" strokeWidth={2} dot={false} />
