@@ -274,32 +274,17 @@ export function setCurrencyConfig(symbol: string, decimals: number) {
   updateCurrencyCache(symbol, decimals);
 }
 
-// Runtime currency cache — initialized from localStorage, updated by localeStore
+// Runtime currency cache — set from shop API response
 let _currencySymbol = 'E';
 let _currencyDecimals = 2;
 
-// Initialize from localStorage immediately (before any React renders)
+// Initialize from saved shop data immediately
 try {
-  const stored = localStorage.getItem('yebomart-locale');
-  if (stored) {
-    const { state } = JSON.parse(stored);
-    if (state?.countryCode) {
-      // Inline country lookup to avoid circular imports
-      const CURRENCY_MAP: Record<string, { symbol: string; decimals: number }> = {
-        SZ: { symbol: 'E', decimals: 2 }, ZA: { symbol: 'R', decimals: 2 },
-        KE: { symbol: 'KSh', decimals: 0 }, NG: { symbol: '₦', decimals: 0 },
-        GH: { symbol: 'GH₵', decimals: 2 }, TZ: { symbol: 'TSh', decimals: 0 },
-        UG: { symbol: 'USh', decimals: 0 }, RW: { symbol: 'FRw', decimals: 0 },
-        ET: { symbol: 'Br', decimals: 2 }, ZW: { symbol: '$', decimals: 2 },
-        BW: { symbol: 'P', decimals: 2 }, MZ: { symbol: 'MT', decimals: 0 },
-        ZM: { symbol: 'ZK', decimals: 2 }, MW: { symbol: 'MK', decimals: 0 },
-        CM: { symbol: 'FCFA', decimals: 0 }, SN: { symbol: 'CFA', decimals: 0 },
-        CI: { symbol: 'CFA', decimals: 0 }, CD: { symbol: 'FC', decimals: 2 },
-        AO: { symbol: 'Kz', decimals: 2 }, MG: { symbol: 'Ar', decimals: 0 },
-        NA: { symbol: 'N$', decimals: 2 }, LS: { symbol: 'L', decimals: 2 },
-      };
-      const c = CURRENCY_MAP[state.countryCode];
-      if (c) { _currencySymbol = c.symbol; _currencyDecimals = c.decimals; }
+  const auth = localStorage.getItem('yebomart-auth');
+  if (auth) {
+    const { state } = JSON.parse(auth);
+    if (state?.shop?.currencySymbol) {
+      _currencySymbol = state.shop.currencySymbol;
     }
   }
 } catch {}

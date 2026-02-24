@@ -12,10 +12,8 @@ function syncShopLocale(shop: Shop | null) {
   if (shop?.countryCode) {
     useLocaleStore.getState().setCountry(shop.countryCode);
     useSubscriptionStore.getState().setCountry(shop.countryCode);
-    // Update the global currency formatter
-    const symbol = shop.currencySymbol || useLocaleStore.getState().getCurrencySymbol?.() || 'E';
-    const country = useLocaleStore.getState().country;
-    setCurrencyConfig(symbol, country?.decimalPlaces ?? 2);
+    // Use the symbol straight from the API response
+    setCurrencyConfig(shop.currencySymbol || 'E', 2);
   }
 }
 
@@ -249,7 +247,8 @@ export const useAuthStore = create<AuthState>()(
     {
       name: 'yebomart-auth',
       partialize: (state) => ({ 
-        isAuthenticated: state.isAuthenticated 
+        isAuthenticated: state.isAuthenticated,
+        shop: state.shop
       })
     }
   )
