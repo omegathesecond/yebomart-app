@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { 
   MagnifyingGlassIcon, 
   PlusIcon, 
@@ -11,7 +12,8 @@ import {
   PrinterIcon,
   XMarkIcon,
   ReceiptPercentIcon,
-  EnvelopeIcon
+  EnvelopeIcon,
+  DevicePhoneMobileIcon
 } from '@heroicons/react/24/outline';
 import api from '@/api/client';
 import { Button } from '@/components/ui/Button';
@@ -294,6 +296,15 @@ export function POS() {
               </Button>
             )}
           </FeatureCheck>
+          {/* Mobile POS link - scan-centric mode */}
+          <Link
+            to="/pos/mobile"
+            className="px-4 py-2 bg-teal-500 hover:bg-teal-400 text-white rounded-xl flex items-center gap-2 transition-colors md:hidden"
+            title="Mobile Scan Mode"
+          >
+            <DevicePhoneMobileIcon className="w-5 h-5" />
+            <span className="text-sm font-medium">Scan Mode</span>
+          </Link>
         </div>
 
         {/* Product Grid */}

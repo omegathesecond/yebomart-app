@@ -24,6 +24,7 @@ const Staff = lazy(() => import('@/pages/Staff').then(m => ({ default: m.Staff }
 const StaffDetail = lazy(() => import('@/pages/StaffDetail').then(m => ({ default: m.StaffDetail })));
 const Returns = lazy(() => import('@/pages/Returns').then(m => ({ default: m.Returns })));
 const Suppliers = lazy(() => import('@/pages/Suppliers').then(m => ({ default: m.Suppliers })));
+const MobilePOS = lazy(() => import('@/pages/MobilePOS').then(m => ({ default: m.MobilePOS })));
 
 // Create queryClient outside component to avoid re-creation
 const queryClient = new QueryClient({
@@ -115,6 +116,18 @@ function AppRoutes() {
           path="/login"
           element={
             isAuthenticated && shop ? <Navigate to="/" replace /> : <Login />
+          }
+        />
+        
+        {/* Mobile POS - Full screen without layout */}
+        <Route
+          path="/pos/mobile"
+          element={
+            <ProtectedRoute>
+              <InitialSync>
+                <Suspense fallback={<AppLoader />}><MobilePOS /></Suspense>
+              </InitialSync>
+            </ProtectedRoute>
           }
         />
         

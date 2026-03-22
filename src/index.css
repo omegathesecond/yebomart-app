@@ -376,3 +376,85 @@ input[type="number"]::-webkit-outer-spin-button {
 input[type="number"] {
   -moz-appearance: textfield;
 }
+
+/* Mobile POS Scanner Styles */
+#mobile-scanner-region {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+#mobile-scanner-region video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+
+#mobile-scanner-region #qr-shaded-region {
+  border-width: 0 !important;
+}
+
+/* Hide html5-qrcode default UI elements */
+#mobile-scanner-region img[alt="Info icon"],
+#mobile-scanner-region button[id*="camera"],
+#mobile-scanner-region div[id*="permission"],
+#mobile-scanner-region span[style*="text-align"] {
+  display: none !important;
+}
+
+/* Scanner scanning line animation */
+@keyframes scanner-line {
+  0%, 100% { 
+    transform: translateY(-50%) scaleX(0.8);
+    opacity: 0.5;
+  }
+  50% { 
+    transform: translateY(-50%) scaleX(1);
+    opacity: 1;
+  }
+}
+
+.scanner-line-animate {
+  animation: scanner-line 1.5s ease-in-out infinite;
+}
+
+/* Teal color utilities for scanner */
+.border-teal-400 {
+  border-color: #2dd4bf;
+}
+
+.bg-teal-500 {
+  background-color: #14b8a6;
+}
+
+.bg-teal-500\/20 {
+  background-color: rgba(20, 184, 166, 0.2);
+}
+
+.bg-teal-500\/30 {
+  background-color: rgba(20, 184, 166, 0.3);
+}
+
+.text-teal-400 {
+  color: #2dd4bf;
+}
+
+.text-teal-500 {
+  color: #14b8a6;
+}
+
+.hover\:bg-teal-400:hover {
+  background-color: #2dd4bf;
+}
+
+.hover\:bg-teal-500\/30:hover {
+  background-color: rgba(20, 184, 166, 0.3);
+}
+
+.focus\:ring-teal-500:focus {
+  --tw-ring-color: #14b8a6;
+}
+
+.border-3 {
+  border-width: 3px;
+}
