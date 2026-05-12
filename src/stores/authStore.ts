@@ -4,20 +4,18 @@ import type { User, Shop, Subscription } from '@/types';
 import api from '@/api/client';
 import { clearDatabase } from '@/lib/db';
 import { useLocaleStore } from '@/stores/localeStore';
-import { useSubscriptionStore } from '@/stores/subscriptionStore';
 import { setCurrencyConfig } from '@/types';
+import * as yeboid from '@/lib/yeboid';
+import type { ShopBootstrap } from '@/lib/yeboid';
 
 // Sync currency/locale from shop's country
 function syncShopLocale(shop: Shop | null) {
   if (shop?.countryCode) {
     useLocaleStore.getState().setCountry(shop.countryCode);
-    useSubscriptionStore.getState().setCountry(shop.countryCode);
-    // Use the symbol straight from the API response
     setCurrencyConfig(shop.currencySymbol || 'E', 2);
   }
 }
 
-// Flag to prevent circular dependency issues
 let storeInitialized = false;
 
 interface AuthState {
@@ -26,30 +24,34 @@ interface AuthState {
   subscription: Subscription | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  
-  // Actions
-  login: (phone: string, password: string) => Promise<boolean>;
+
+  /** 'owner' when YeboID-authed, 'staff' when PIN-authed, null when signed out. */
+  authMode: 'owner' | 'staff' | null;
+
+  /** Owner sign-in: full-page redirect to YeboID. Optionally stashes bootstrap fields for a first-time signup. */
+  signInWithYeboID: (bootstrap?: ShopBootstrap) => Promise<void>;
+
+  /**
+   * Owner callback handler: takes the YeboID access_token (already obtained
+   * by the AuthCallback page via PKCE code → token exchange) and hands it to
+   * yebomart-api which looks up / creates the Shop keyed on the YeboID `sub`.
+   */
+  exchangeYeboidToken: (
+    accessToken: string,
+    bootstrap?: ShopBootstrap,
+  ) => Promise<{ success: boolean; isNewShop?: boolean; error?: string }>;
+
+  /** Staff PIN login (cashier signing in on a shop's POS device). */
   staffLogin: (phone: string, pin: string) => Promise<boolean>;
-  logout: () => void;
-  register: (data: { shopName: string; ownerName: string; phone: string; password: string }) => Promise<boolean>;
+
+  logout: () => Promise<void>;
   loadUser: () => Promise<void>;
   updateShop: (updates: Partial<Shop>) => Promise<void>;
-  setupShop: (data: { 
-    shopName: string; 
-    ownerName: string; 
-    ownerPhone: string; 
-    pin: string; 
-    assistantName: string; 
-    businessType?: string;
-    countryCode?: string;
-    phoneCountryCode?: string;
-  }) => Promise<{ success: boolean; error?: string }>;
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => {
-      // Register session expired callback once store is created
       if (!storeInitialized) {
         storeInitialized = true;
         api.setSessionExpiredCallback(() => {
@@ -59,197 +61,115 @@ export const useAuthStore = create<AuthState>()(
       }
 
       return {
-      user: null,
-      shop: null,
-      subscription: null,
-      isAuthenticated: false,
-      isLoading: true,
+        user: null,
+        shop: null,
+        subscription: null,
+        isAuthenticated: false,
+        isLoading: true,
+        authMode: null,
 
-      login: async (phone: string, password: string) => {
-        try {
-          const { data, error } = await api.login(phone, password);
-          
+        signInWithYeboID: async (bootstrap) => {
+          await yeboid.initiateLogin({ bootstrap });
+        },
+
+        exchangeYeboidToken: async (accessToken, bootstrap) => {
+          const { data, error } = await api.exchangeYeboid(accessToken, bootstrap);
           if (error || !data) {
-            return false;
+            return { success: false, error: error ?? 'Sign-in failed' };
           }
-
-          api.setToken(data.token);
-          
-          set({ 
-            user: data.user, 
-            shop: data.shop,
-            isAuthenticated: true, 
-            isLoading: false 
-          });
-          
-          syncShopLocale(data.shop);
-          return true;
-        } catch (error) {
-          console.error('Login failed:', error);
-          return false;
-        }
-      },
-
-      staffLogin: async (phone: string, pin: string) => {
-        try {
-          // Staff login with phone + PIN
-          const { data, error } = await api.staffLogin(phone, pin);
-          
-          if (error || !data) {
-            return false;
-          }
-          
-          set({ 
-            user: data.user, 
-            shop: data.shop,
-            isAuthenticated: true, 
-            isLoading: false 
-          });
-          
-          syncShopLocale(data.shop);
-          return true;
-        } catch (error) {
-          console.error('Staff login failed:', error);
-          return false;
-        }
-      },
-
-      register: async (data) => {
-        try {
-          const { data: result, error } = await api.register(data);
-          
-          if (error || !result) {
-            return false;
-          }
-
-          api.setToken(result.token);
-          
-          set({ 
-            user: result.user, 
-            shop: result.shop,
-            isAuthenticated: true, 
-            isLoading: false 
-          });
-          
-          syncShopLocale(result.shop);
-          return true;
-        } catch (error) {
-          console.error('Registration failed:', error);
-          return false;
-        }
-      },
-
-      logout: async () => {
-        api.clearToken();
-        
-        // Clear local database to prevent data leaking between users
-        await clearDatabase();
-        
-        set({ 
-          user: null, 
-          shop: null,
-          subscription: null,
-          isAuthenticated: false 
-        });
-      },
-
-      loadUser: async () => {
-        try {
-          set({ isLoading: true });
-          
-          const token = api.getToken();
-          if (!token) {
-            set({ isLoading: false, isAuthenticated: false });
-            return;
-          }
-
-          // Ensure token is valid before making request
-          const hasValidToken = await api.ensureValidToken();
-          if (!hasValidToken) {
-            api.clearToken();
-            set({ isLoading: false, isAuthenticated: false });
-            return;
-          }
-
-          // Verify token by getting user info
-          const { data, error } = await api.getMe();
-          
-          if (error || !data) {
-            // The request method already handles token refresh on 401
-            // If we still got an error, the session is truly invalid
-            api.clearToken();
-            set({ isLoading: false, isAuthenticated: false });
-            return;
-          }
-
           set({
-            user: data.user,
+            user: null,
             shop: data.shop,
-            subscription: data.subscription,
             isAuthenticated: true,
-            isLoading: false
+            isLoading: false,
+            authMode: 'owner',
           });
-          
           syncShopLocale(data.shop);
-        } catch (error) {
-          console.error('Failed to load user:', error);
-          api.clearToken();
-          set({ isLoading: false, isAuthenticated: false });
-        }
-      },
+          return { success: true, isNewShop: data.isNewShop };
+        },
 
-      updateShop: async (updates: Partial<Shop>) => {
-        const { shop } = get();
-        if (!shop) return;
-        
-        // Optimistic update
-        set({ shop: { ...shop, ...updates } as Shop });
-        
-        // TODO: Call API to persist
-        // await api.updateShop(updates);
-      },
+        staffLogin: async (phone, pin) => {
+          try {
+            const { data, error } = await api.staffLogin(phone, pin);
+            if (error || !data) return false;
 
-      setupShop: async (data) => {
-        try {
-          const { data: result, error } = await api.register({
-            shopName: data.shopName,
-            ownerName: data.ownerName,
-            phone: data.ownerPhone,
-            password: data.pin,
-            assistantName: data.assistantName,
-            businessType: data.businessType,
-            // Multi-country support
-            countryCode: data.countryCode,
-            phoneCountryCode: data.phoneCountryCode
-          });
-          
-          if (error || !result) {
-            return { success: false, error: error || 'Registration failed' };
+            set({
+              user: data.user,
+              shop: data.shop,
+              isAuthenticated: true,
+              isLoading: false,
+              authMode: 'staff',
+            });
+            syncShopLocale(data.shop);
+            return true;
+          } catch (err) {
+            console.error('Staff login failed:', err);
+            return false;
           }
+        },
 
-          api.setToken(result.token);
-          
+        logout: async () => {
+          api.clearAllTokens();
+          await clearDatabase();
           set({
-            shop: result.shop,
-            user: result.user,
-            isAuthenticated: true,
-            isLoading: false
+            user: null,
+            shop: null,
+            subscription: null,
+            isAuthenticated: false,
+            authMode: null,
           });
+        },
 
-          syncShopLocale(result.shop);
-          return { success: true };
-        } catch (error) {
-          console.error('Shop setup failed:', error);
-          return { success: false, error: 'Something went wrong. Please try again.' };
-        }
-      }
-    }},
+        loadUser: async () => {
+          try {
+            set({ isLoading: true });
+
+            const staffToken = localStorage.getItem('yebomart_staff_token');
+            const yeboidToken = await yeboid.getAccessToken();
+            const hasToken = !!staffToken || !!yeboidToken;
+
+            if (!hasToken) {
+              set({ isLoading: false, isAuthenticated: false, authMode: null });
+              return;
+            }
+
+            const { data, error } = await api.getMe();
+            if (error || !data) {
+              api.clearAllTokens();
+              set({ isLoading: false, isAuthenticated: false, authMode: null });
+              return;
+            }
+
+            set({
+              user: data.user,
+              shop: data.shop,
+              subscription: data.subscription,
+              isAuthenticated: true,
+              isLoading: false,
+              authMode: staffToken ? 'staff' : 'owner',
+            });
+            syncShopLocale(data.shop);
+          } catch (err) {
+            console.error('Failed to load user:', err);
+            api.clearAllTokens();
+            set({ isLoading: false, isAuthenticated: false, authMode: null });
+          }
+        },
+
+        updateShop: async (updates: Partial<Shop>) => {
+          const { shop } = get();
+          if (!shop) return;
+          set({ shop: { ...shop, ...updates } as Shop });
+        },
+      };
+    },
     {
       name: 'yebomart-auth',
-      partialize: (state) => ({ 
+      partialize: (state) => ({
         isAuthenticated: state.isAuthenticated,
-        shop: state.shop
-      })
-    }
-  )
+        shop: state.shop,
+        authMode: state.authMode,
+      }),
+    },
+  ),
 );

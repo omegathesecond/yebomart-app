@@ -11,6 +11,7 @@ import './index.css';
 // Lazy load all pages
 const Onboarding = lazy(() => import('@/pages/Onboarding').then(m => ({ default: m.Onboarding })));
 const Login = lazy(() => import('@/pages/Login').then(m => ({ default: m.Login })));
+const AuthCallback = lazy(() => import('@/pages/AuthCallback').then(m => ({ default: m.AuthCallback })));
 const Dashboard = lazy(() => import('@/pages/Dashboard').then(m => ({ default: m.Dashboard })));
 const POS = lazy(() => import('@/pages/POS').then(m => ({ default: m.POS })));
 const Products = lazy(() => import('@/pages/Products').then(m => ({ default: m.Products })));
@@ -118,7 +119,10 @@ function AppRoutes() {
             isAuthenticated && shop ? <Navigate to="/" replace /> : <Login />
           }
         />
-        
+
+        {/* YeboID OAuth callback */}
+        <Route path="/auth/callback" element={<AuthCallback />} />
+
         {/* Mobile POS - Full screen without layout */}
         <Route
           path="/pos/mobile"

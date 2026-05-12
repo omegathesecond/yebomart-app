@@ -9,7 +9,6 @@ import {
   SparklesIcon,
   PlusIcon,
   ArrowRightIcon,
-  LockClosedIcon
 } from '@heroicons/react/24/outline';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -17,8 +16,6 @@ import { Button } from '@/components/ui/Button';
 import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
 import { formatCurrency, formatRelativeTime, type DashboardMetrics } from '@/types';
-import { FeatureCheck } from '@/components/subscription/FeatureGate';
-import { useSubscriptionStore, TIERS } from '@/stores/subscriptionStore';
 import { getShopType } from '@/data/shopTypes';
 
 export function Dashboard() {
@@ -152,26 +149,14 @@ export function Dashboard() {
             <span className="font-medium text-white">View Reports</span>
           </div>
         </Link>
-        <FeatureCheck feature="ai_assistant">
-          {({ isAvailable }) => (
-            <Link 
-              to="/assistant" 
-              className="card transition-colors hover:border-purple-500/50"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-purple-500/20">
-                  <SparklesIcon className="w-5 h-5 text-purple-400" />
-                </div>
-                <div>
-                  <span className="font-medium text-white">Ask {shop?.assistantName}</span>
-                  <span className="block text-xs text-purple-400">
-                    AI queries left this month
-                  </span>
-                </div>
-              </div>
-            </Link>
-          )}
-        </FeatureCheck>
+        <Link to="/assistant" className="card transition-colors hover:border-purple-500/50">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-purple-500/20">
+              <SparklesIcon className="w-5 h-5 text-purple-400" />
+            </div>
+            <span className="font-medium text-white">Ask {shop?.assistantName}</span>
+          </div>
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -225,93 +210,71 @@ export function Dashboard() {
 
         {/* AI Insights + Low Stock */}
         <div className="space-y-6">
-          {/* AI Insights — All tiers — usage limited */}
-          <FeatureCheck feature="ai_assistant">
-            {({ isAvailable }) => (
-              isAvailable && insights.length > 0 ? (
-                <Card gradient="purple">
-                  <CardHeader 
-                    title={`${shop?.assistantName || 'AI'} says...`}
-                    action={<SparklesIcon className="w-5 h-5 text-purple-400" />}
-                  />
-                  <div className="space-y-3">
-                    {insights.slice(0, 2).map((insight) => (
-                      <div 
-                        key={insight.id}
-                        className="p-3 rounded-xl bg-slate-800/50 border border-slate-700/50"
-                      >
-                        <p className="text-sm font-medium text-white">{insight.title}</p>
-                        <p className="text-xs text-slate-400 mt-1 line-clamp-2">
-                          {insight.description}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-              ) : null
-            )}
-          </FeatureCheck>
-
-          {/* Low Stock Alerts - Starter+ only */}
-          <FeatureCheck feature="low_stock_alerts">
-            {({ isAvailable, requiredTier }) => (
-              isAvailable && alerts.length > 0 ? (
-                <Card gradient="red">
-                  <CardHeader 
-                    title="Low Stock Alerts"
-                    subtitle={`${alerts.length} product${alerts.length > 1 ? 's' : ''} need attention`}
-                  />
-                  <div className="space-y-2">
-                    {alerts.slice(0, 3).map((alert) => (
-                      <div 
-                        key={alert.id}
-                        className="flex items-center justify-between p-2 rounded-lg bg-slate-800/50"
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className={`w-2 h-2 rounded-full ${
-                            alert.severity === 'out' ? 'bg-red-500' :
-                            alert.severity === 'critical' ? 'bg-amber-500' : 'bg-yellow-500'
-                          }`} />
-                          <span className="text-sm text-white truncate max-w-32">
-                            {alert.productName}
-                          </span>
-                        </div>
-                        <Badge variant={alert.severity === 'out' ? 'danger' : 'warning'} size="sm">
-                          {alert.currentQty} left
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                  <Link 
-                    to="/stock/alerts" 
-                    className="flex items-center justify-center gap-1 mt-3 text-sm text-amber-400 hover:text-amber-300"
+          {insights.length > 0 && (
+            <Card gradient="purple">
+              <CardHeader
+                title={`${shop?.assistantName || 'AI'} says...`}
+                action={<SparklesIcon className="w-5 h-5 text-purple-400" />}
+              />
+              <div className="space-y-3">
+                {insights.slice(0, 2).map((insight) => (
+                  <div
+                    key={insight.id}
+                    className="p-3 rounded-xl bg-slate-800/50 border border-slate-700/50"
                   >
-                    View all alerts <ArrowRightIcon className="w-4 h-4" />
-                  </Link>
-                </Card>
-              ) : !isAvailable ? (
-                <Card gradient="amber" className="relative overflow-hidden">
-                  <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[1px] flex flex-col items-center justify-center z-10">
-                    <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center mb-2">
-                      <LockClosedIcon className="w-5 h-5 text-amber-400" />
-                    </div>
-                    <p className="text-sm font-medium text-white">Low Stock Alerts</p>
-                    <p className="text-xs text-amber-400">{requiredTier && TIERS[requiredTier].name}+</p>
+                    <p className="text-sm font-medium text-white">{insight.title}</p>
+                    <p className="text-xs text-slate-400 mt-1 line-clamp-2">
+                      {insight.description}
+                    </p>
                   </div>
-                  <CardHeader 
-                    title="Stock Alerts"
-                    subtitle="Never run out of stock"
-                  />
-                  <div className="space-y-2 opacity-30">
-                    <div className="flex items-center justify-between p-2 rounded-lg bg-slate-800/50">
-                      <span className="text-sm text-white">Product name</span>
-                      <Badge variant="warning" size="sm">5 left</Badge>
+                ))}
+              </div>
+            </Card>
+          )}
+
+          {alerts.length > 0 && (
+            <Card gradient="red">
+              <CardHeader
+                title="Low Stock Alerts"
+                subtitle={`${alerts.length} product${alerts.length > 1 ? 's' : ''} need attention`}
+              />
+              <div className="space-y-2">
+                {alerts.slice(0, 3).map((alert) => (
+                  <div
+                    key={alert.id}
+                    className="flex items-center justify-between p-2 rounded-lg bg-slate-800/50"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`w-2 h-2 rounded-full ${
+                          alert.severity === 'out'
+                            ? 'bg-red-500'
+                            : alert.severity === 'critical'
+                            ? 'bg-amber-500'
+                            : 'bg-yellow-500'
+                        }`}
+                      />
+                      <span className="text-sm text-white truncate max-w-32">
+                        {alert.productName}
+                      </span>
                     </div>
+                    <Badge
+                      variant={alert.severity === 'out' ? 'danger' : 'warning'}
+                      size="sm"
+                    >
+                      {alert.currentQty} left
+                    </Badge>
                   </div>
-                </Card>
-              ) : null
-            )}
-          </FeatureCheck>
+                ))}
+              </div>
+              <Link
+                to="/stock/alerts"
+                className="flex items-center justify-center gap-1 mt-3 text-sm text-amber-400 hover:text-amber-300"
+              >
+                View all alerts <ArrowRightIcon className="w-4 h-4" />
+              </Link>
+            </Card>
+          )}
 
           {/* Top Products */}
           {metrics?.topProducts && metrics.topProducts.length > 0 && (

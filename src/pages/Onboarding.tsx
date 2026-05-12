@@ -18,17 +18,16 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { PhoneInput } from '@/components/ui/PhoneInput';
 import { ShopCountryPicker } from '@/components/ui/ShopCountryPicker';
-import { useAuthStore } from '@/stores/authStore';
 import { useShopStore } from '@/stores/shopStore';
 import { shopTypes, ShopType } from '@/data/shopTypes';
 import { COUNTRIES, getCountryByCode, type Country } from '@/lib/countries';
+import * as yeboid from '@/lib/yeboid';
 
 type OnboardingStep = 'entry' | 'instructions' | 'shopType' | 'country' | 'setup';
 
 export function Onboarding() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { setupShop } = useAuthStore();
   const { createShop } = useShopStore();
   
   const isNewShop = searchParams.get('mode') === 'new-shop';
@@ -42,8 +41,6 @@ export function Onboarding() {
   const [ownerName, setOwnerName] = useState('');
   const [ownerPhone, setOwnerPhone] = useState('');
   const [phoneCountryCode, setPhoneCountryCode] = useState('SZ');
-  const [fullPhoneNumber, setFullPhoneNumber] = useState('');
-  const [pin, setPin] = useState('');
   const [assistantName, setAssistantName] = useState('Yebo');
   
   const [isLoading, setIsLoading] = useState(false);
@@ -73,29 +70,24 @@ export function Onboarding() {
 
   const validate = (): boolean => {
     const errors: Record<string, string> = {};
-    
+
     if (!shopName.trim()) {
       errors.shopName = 'Shop name is required';
     } else if (shopName.trim().length < 2) {
       errors.shopName = 'Shop name must be at least 2 characters';
     }
-    
-    if (!ownerName.trim()) {
-      errors.ownerName = 'Your name is required';
+
+    // For the additional-shop path (multi-shop owner) we still capture full
+    // owner contact details — that endpoint doesn't go through YeboID. For
+    // the first-time signup, owner identity (name/phone/PIN) comes from
+    // YeboID's hosted UI, so those fields are skipped here.
+    if (isNewShop) {
+      if (!ownerName.trim()) errors.ownerName = 'Your name is required';
+      if (!ownerPhone.trim()) errors.ownerPhone = 'Phone number is required';
+      else if (ownerPhone.length < 7)
+        errors.ownerPhone = 'Enter a valid phone number';
     }
-    
-    if (!ownerPhone.trim()) {
-      errors.ownerPhone = 'Phone number is required';
-    } else if (ownerPhone.length < 7) {
-      errors.ownerPhone = 'Enter a valid phone number';
-    }
-    
-    if (!pin) {
-      errors.pin = 'PIN is required';
-    } else if (!/^\d{6}$/.test(pin)) {
-      errors.pin = 'PIN must be exactly 6 digits';
-    }
-    
+
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -106,10 +98,9 @@ export function Onboarding() {
     }
   };
 
-  const handlePhoneChange = (phone: string, countryCode: string, fullNumber: string) => {
+  const handlePhoneChange = (phone: string, countryCode: string, _fullNumber: string) => {
     setOwnerPhone(phone);
     setPhoneCountryCode(countryCode);
-    setFullPhoneNumber(fullNumber);
     clearFieldError('ownerPhone');
   };
 
@@ -124,53 +115,52 @@ export function Onboarding() {
   const handleSetup = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    
+
     if (!validate()) return;
-    
+
     setIsLoading(true);
 
     try {
       if (isNewShop) {
-        // Creating additional shop
+        // Creating an additional shop while already signed in. This endpoint
+        // is independent of YeboID auth and stays unchanged for now (multi-
+        // shop ownership is a future feature per the YeboID plan).
         const result = await createShop({
           name: shopName,
           ownerName,
-          ownerPhone: ownerPhone,
+          ownerPhone,
           phoneCountryCode,
           countryCode: shopCountryCode,
           businessType: selectedShopType || 'general',
-          assistantName
+          assistantName,
         });
-        
+
         if (result.success) {
           navigate('/');
         } else {
           setError(result.error || 'Failed to create shop');
         }
       } else {
-        // First-time setup
-        const result = await setupShop({
-          shopName,
-          ownerName,
-          ownerPhone: fullPhoneNumber || ownerPhone,
-          pin,
-          assistantName,
-          businessType: selectedShopType || 'general',
-          // Pass country info
-          countryCode: shopCountryCode,
-          phoneCountryCode
+        // First-time signup: stash shop bootstrap fields and redirect to
+        // YeboID. The /auth/callback page picks up the bootstrap and passes
+        // it to /api/auth/yeboid/exchange so the new Shop row gets the right
+        // name/business type/assistant name on creation.
+        await yeboid.initiateLogin({
+          bootstrap: {
+            shopName,
+            businessType: selectedShopType || 'general',
+            assistantName,
+            countryCode: shopCountryCode,
+            phoneCountryCode,
+          },
         });
-        
-        if (result.success) {
-          navigate('/');
-        } else {
-          setError(result.error || 'Setup failed. Please try again.');
-        }
+        // Full-page redirect — this component unmounts.
       }
     } catch (err) {
-      setError('Setup failed. Please try again.');
-    } finally {
       setIsLoading(false);
+      setError(
+        err instanceof Error ? err.message : 'Setup failed. Please try again.',
+      );
     }
   };
 
@@ -527,36 +517,27 @@ export function Onboarding() {
               error={fieldErrors.shopName}
             />
 
-            <Input
-              label="Your Name"
-              value={ownerName}
-              onChange={(e) => { setOwnerName(e.target.value); clearFieldError('ownerName'); }}
-              placeholder="Your full name"
-              leftIcon={<UserPlusIcon className="w-5 h-5" />}
-              error={fieldErrors.ownerName}
-            />
+            {isNewShop && (
+              <>
+                <Input
+                  label="Your Name"
+                  value={ownerName}
+                  onChange={(e) => { setOwnerName(e.target.value); clearFieldError('ownerName'); }}
+                  placeholder="Your full name"
+                  leftIcon={<UserPlusIcon className="w-5 h-5" />}
+                  error={fieldErrors.ownerName}
+                />
 
-            <PhoneInput
-              label="Phone Number"
-              value={ownerPhone}
-              onChange={handlePhoneChange}
-              defaultCountryCode={phoneCountryCode}
-              placeholder="Phone number"
-              error={fieldErrors.ownerPhone}
-              hint={!fieldErrors.ownerPhone ? "We'll send daily reports here via WhatsApp" : undefined}
-            />
-
-            {!isNewShop && (
-              <Input
-                label="Create PIN"
-                type="password"
-                value={pin}
-                onChange={(e) => { setPin(e.target.value.replace(/\D/g, '').slice(0, 6)); clearFieldError('pin'); }}
-                placeholder="6-digit PIN"
-                hint={!fieldErrors.pin ? "You'll use this to login" : undefined}
-                maxLength={6}
-                error={fieldErrors.pin}
-              />
+                <PhoneInput
+                  label="Phone Number"
+                  value={ownerPhone}
+                  onChange={handlePhoneChange}
+                  defaultCountryCode={phoneCountryCode}
+                  placeholder="Phone number"
+                  error={fieldErrors.ownerPhone}
+                  hint={!fieldErrors.ownerPhone ? "We'll send daily reports here via WhatsApp" : undefined}
+                />
+              </>
             )}
 
             <Input
@@ -566,6 +547,13 @@ export function Onboarding() {
               placeholder="Yebo"
               hint="Give your shop's AI a name (optional)"
             />
+
+            {!isNewShop && (
+              <p className="text-xs text-slate-400 px-1">
+                Next, you'll verify your phone number with YeboID. Your daily
+                WhatsApp reports will go to that number.
+              </p>
+            )}
 
             {error && (
               <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30">
@@ -578,7 +566,7 @@ export function Onboarding() {
                 Back
               </Button>
               <Button type="submit" className="flex-[2]" isLoading={isLoading}>
-                {isNewShop ? 'Create Shop' : 'Create My Shop'}
+                {isNewShop ? 'Create Shop' : 'Continue with YeboID'}
                 <ArrowRightIcon className="w-4 h-4 ml-2" />
               </Button>
             </div>

@@ -9,7 +9,6 @@ import {
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { useAuthStore } from '@/stores/authStore';
-import { useSubscriptionStore, AI_TIER_LIMITS } from '@/stores/subscriptionStore';
 import api from '@/api/client';
 import { getSmartErrorResponse } from '@/utils/errorMessages';
 
@@ -29,15 +28,12 @@ const QUICK_ACTIONS = [
 
 export function AIChat() {
   const { shop } = useAuthStore();
-  const { currentTier } = useSubscriptionStore();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const [aiUsed, setAiUsed] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const aiLimit = AI_TIER_LIMITS[currentTier] ?? 30;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -86,13 +82,6 @@ export function AIChat() {
         });
       } else {
         responseContent = data?.response || data?.message || 'I understand. Is there anything else you need help with?';
-        // Update usage from API response if available
-        const usage = (data as any)?.aiUsage;
-        if (usage) {
-          setAiUsed(usage.used);
-        } else {
-          setAiUsed(prev => prev + 1);
-        }
       }
       
       const assistantMessage: Message = {
@@ -168,11 +157,6 @@ export function AIChat() {
             {shop?.assistantName || 'Yebo'} AI
           </h1>
           <p className="text-sm text-slate-400">Your smart shop assistant</p>
-        </div>
-        <div className="ml-auto text-right">
-          <p className="text-xs text-purple-400">
-            ✨ {aiUsed}/{aiLimit === Infinity ? '∞' : aiLimit} AI queries used this month
-          </p>
         </div>
       </div>
 

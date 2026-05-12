@@ -1,19 +1,18 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  MagnifyingGlassIcon, 
-  PlusIcon, 
+import {
+  MagnifyingGlassIcon,
+  PlusIcon,
   MinusIcon,
   TrashIcon,
   QrCodeIcon,
   BanknotesIcon,
   CheckCircleIcon,
-  LockClosedIcon,
   PrinterIcon,
   XMarkIcon,
   ReceiptPercentIcon,
   EnvelopeIcon,
-  DevicePhoneMobileIcon
+  DevicePhoneMobileIcon,
 } from '@heroicons/react/24/outline';
 import api from '@/api/client';
 import { Button } from '@/components/ui/Button';
@@ -24,8 +23,6 @@ import { useInventoryStore } from '@/stores/inventoryStore';
 import { useCartStore, useCartTotal, useCartSubtotal, useCartDiscount } from '@/stores/cartStore';
 import { formatCurrency, type Product, PAYMENT_METHODS } from '@/types';
 import { BarcodeScanner } from '@/components/scanner/BarcodeScanner';
-import { FeatureGate, FeatureCheck } from '@/components/subscription/FeatureGate';
-import { TIERS } from '@/stores/subscriptionStore';
 
 // Discount reasons for quick selection
 const DISCOUNT_REASONS = [
@@ -279,23 +276,14 @@ export function POS() {
               leftIcon={<MagnifyingGlassIcon className="w-5 h-5" />}
             />
           </div>
-          <FeatureCheck feature="barcode_scanning">
-            {({ isAvailable, requiredTier }) => (
-              <Button 
-                variant="secondary" 
-                onClick={isAvailable ? () => setShowScanner(true) : undefined}
-                className={`px-4 relative ${!isAvailable ? 'opacity-60' : ''}`}
-                title={isAvailable ? 'Scan barcode' : `Upgrade to ${requiredTier ? TIERS[requiredTier].name : 'unlock'}`}
-              >
-                <QrCodeIcon className="w-5 h-5" />
-                {!isAvailable && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 rounded-full flex items-center justify-center">
-                    <LockClosedIcon className="w-2.5 h-2.5 text-white" />
-                  </span>
-                )}
-              </Button>
-            )}
-          </FeatureCheck>
+          <Button
+            variant="secondary"
+            onClick={() => setShowScanner(true)}
+            className="px-4"
+            title="Scan barcode"
+          >
+            <QrCodeIcon className="w-5 h-5" />
+          </Button>
           {/* Mobile POS link - scan-centric mode */}
           <Link
             to="/pos/mobile"
@@ -582,14 +570,12 @@ export function POS() {
       </div>
 
       {/* Barcode Scanner Modal */}
-      <FeatureGate feature="barcode_scanning" fallback="hidden">
-        {showScanner && (
-          <BarcodeScanner
-            onScan={handleBarcodeScan}
-            onClose={() => setShowScanner(false)}
-          />
-        )}
-      </FeatureGate>
+      {showScanner && (
+        <BarcodeScanner
+          onScan={handleBarcodeScan}
+          onClose={() => setShowScanner(false)}
+        />
+      )}
 
       {/* Receipt Modal */}
       <Modal 

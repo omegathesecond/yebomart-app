@@ -4,13 +4,12 @@ import {
   UserIcon,
   BuildingOfficeIcon,
   BuildingStorefrontIcon,
-  KeyIcon,
   BellIcon,
   DevicePhoneMobileIcon,
   SparklesIcon,
   PaintBrushIcon,
   TagIcon,
-  GlobeAltIcon
+  GlobeAltIcon,
 } from '@heroicons/react/24/outline';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -18,99 +17,18 @@ import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { useAuthStore } from '@/stores/authStore';
 import { useShopStore } from '@/stores/shopStore';
-import { TierSwitcher } from '@/components/subscription';
-import { useSubscriptionStore, TIERS, FEATURES, type Feature } from '@/stores/subscriptionStore';
 import { getShopType } from '@/data/shopTypes';
 import { LanguageSwitcher } from '@/components/ui/CountryPicker';
 import { ShopSwitcher } from '@/components/ui/ShopSwitcher';
 import { useLocaleStore } from '@/stores/localeStore';
 
-// Internal components for subscription tab
-function CurrentPlanCard() {
-  const { currentTier, hasFeature } = useSubscriptionStore();
-  const tierInfo = TIERS[currentTier];
-  
-  return (
-    <div className="p-4 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 rounded-xl">
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <h3 className="text-xl font-bold text-white">{tierInfo.name}</h3>
-            <Badge variant="warning">Active</Badge>
-          </div>
-          <p className="text-slate-400 mt-1">{tierInfo.description}</p>
-        </div>
-        <div className="text-right">
-          <p className="text-3xl font-bold text-amber-400">E{tierInfo.price}</p>
-          <p className="text-sm text-slate-500">/month</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function PricingCard({ tier, features, highlight }: { 
-  tier: keyof typeof TIERS; 
-  features: Feature[];
-  highlight?: boolean;
-}) {
-  const { currentTier } = useSubscriptionStore();
-  const tierInfo = TIERS[tier];
-  const isCurrentTier = currentTier === tier;
-  
-  return (
-    <div className={`p-4 rounded-xl border ${
-      isCurrentTier 
-        ? 'border-amber-500/50 bg-amber-500/10' 
-        : highlight 
-          ? 'border-blue-500/50 bg-blue-500/5' 
-          : 'border-slate-700 bg-slate-800/30'
-    }`}>
-      <div className="flex items-center justify-between mb-3">
-        <h4 className={`font-semibold ${isCurrentTier ? 'text-amber-400' : 'text-white'}`}>
-          {tierInfo.name}
-        </h4>
-        {isCurrentTier && <Badge variant="success" size="sm">Current</Badge>}
-      </div>
-      <p className="text-2xl font-bold text-white">
-        E{tierInfo.price}
-        <span className="text-sm font-normal text-slate-400">/mo</span>
-      </p>
-      <p className="text-xs text-slate-500 mb-3">{tierInfo.description}</p>
-      <ul className="space-y-2 text-sm">
-        {features.map((featureId) => {
-          const feature = FEATURES[featureId];
-          return (
-            <li key={featureId} className="flex items-center gap-2 text-slate-300">
-              <span className="text-emerald-400">✓</span>
-              {feature.name}
-            </li>
-          );
-        })}
-      </ul>
-      {!isCurrentTier && (
-        <Button 
-          variant={highlight ? 'primary' : 'secondary'} 
-          size="sm" 
-          className="w-full mt-4"
-        >
-          {currentTier && TIERS[currentTier] && tierInfo.price > TIERS[currentTier].price 
-            ? 'Upgrade' 
-            : 'Switch'
-          }
-        </Button>
-      )}
-    </div>
-  );
-}
-
 export function Settings() {
   const { t } = useTranslation();
-  const { user, shop, subscription, updateShop } = useAuthStore();
+  const { user, shop, updateShop } = useAuthStore();
   const { shops } = useShopStore();
   const { country } = useLocaleStore();
   const [activeTab, setActiveTab] = useState('shop');
-  
+
   const hasMultipleShops = shops.length > 1;
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -121,7 +39,7 @@ export function Settings() {
   const [ownerName, setOwnerName] = useState(shop?.ownerName || '');
   const [assistantName, setAssistantName] = useState(shop?.assistantName || 'Yebo');
   const [address, setAddress] = useState(shop?.address || '');
-  
+
   const clearError = (field: string) => {
     if (errors[field]) setErrors({ ...errors, [field]: '' });
   };
@@ -131,10 +49,9 @@ export function Settings() {
     { id: 'shops', label: t('settings.yourShops') || 'Your Shops', icon: BuildingStorefrontIcon, badge: hasMultipleShops ? shops.length : undefined },
     { id: 'profile', label: t('settings.profile'), icon: UserIcon },
     { id: 'language', label: t('settings.language') || 'Language', icon: GlobeAltIcon },
-    { id: 'subscription', label: t('settings.subscription'), icon: KeyIcon },
     { id: 'notifications', label: t('settings.notifications'), icon: BellIcon },
     { id: 'ai', label: t('settings.aiAssistant'), icon: SparklesIcon },
-    { id: 'appearance', label: t('settings.appearance'), icon: PaintBrushIcon }
+    { id: 'appearance', label: t('settings.appearance'), icon: PaintBrushIcon },
   ];
 
   const validateShop = (): boolean => {
@@ -165,16 +82,6 @@ export function Settings() {
     setIsSaving(false);
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 3000);
-  };
-
-  const getPlanBadge = () => {
-    const plan = subscription?.plan || 'free';
-    const variants: Record<string, 'success' | 'warning' | 'info'> = {
-      free: 'info',
-      pro: 'warning',
-      business: 'success'
-    };
-    return <Badge variant={variants[plan]}>{plan.toUpperCase()}</Badge>;
   };
 
   return (
@@ -352,31 +259,6 @@ export function Settings() {
             </div>
           )}
 
-          {activeTab === 'subscription' && (
-            <div className="space-y-6">
-              <Card>
-                <CardHeader title="Current Plan" subtitle="Your subscription status" />
-                <div className="space-y-4">
-                  <CurrentPlanCard />
-                </div>
-              </Card>
-              
-              <Card>
-                <CardHeader title="Available Plans" subtitle="Choose the right plan for your business" />
-                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-                  <PricingCard tier="lite" features={['pos', 'stock_management', 'basic_reports', 'ai_assistant']} />
-                  <PricingCard tier="starter" features={['barcode_scanning', 'low_stock_alerts', 'staff_accounts', 'ai_assistant']} highlight />
-                  <PricingCard tier="business" features={['whatsapp_reports', 'advanced_reports', 'ai_assistant']} />
-                  <PricingCard tier="pro" features={['multi_location', 'accounting_module', 'ai_assistant']} />
-                  <PricingCard tier="enterprise" features={['api_access', 'dedicated_support', 'ai_assistant']} />
-                </div>
-              </Card>
-              
-              {/* Dev testing tool */}
-              <TierSwitcher />
-            </div>
-          )}
-
           {activeTab === 'ai' && (
             <Card>
               <CardHeader title="AI Assistant" subtitle="Customize your shop assistant" />
@@ -420,9 +302,7 @@ export function Settings() {
                       <p className="text-sm text-slate-400">Daily summary to your WhatsApp</p>
                     </div>
                   </div>
-                  <Badge variant={subscription?.hasWhatsApp ? 'success' : 'info'}>
-                    {subscription?.hasWhatsApp ? 'Enabled' : 'Pro Plan'}
-                  </Badge>
+                  <Badge variant="success">Enabled</Badge>
                 </div>
                 <div className="flex items-center justify-between p-4 bg-slate-700/30 rounded-xl">
                   <div className="flex items-center gap-3">
