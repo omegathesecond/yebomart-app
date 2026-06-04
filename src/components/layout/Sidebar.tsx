@@ -7,6 +7,7 @@ import {
   BanknotesIcon,
   ChartBarIcon,
   UsersIcon,
+  UserGroupIcon,
   Cog6ToothIcon,
   ArrowRightOnRectangleIcon,
   SparklesIcon,
@@ -27,6 +28,7 @@ const navigation = [
   { name: 'Sales', href: '/sales', icon: BanknotesIcon },
   { name: 'Returns', href: '/returns', icon: ArrowUturnLeftIcon },
   { name: 'Suppliers', href: '/suppliers', icon: BuildingStorefrontIcon },
+  { name: 'Customers', href: '/customers', icon: UserGroupIcon },
   { name: 'Reports', href: '/reports', icon: ChartBarIcon },
   { name: 'Staff', href: '/staff', icon: UsersIcon },
   { name: 'Settings', href: '/settings', icon: Cog6ToothIcon }

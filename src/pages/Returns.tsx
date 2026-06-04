@@ -10,14 +10,19 @@ import {
   ArrowsRightLeftIcon,
   PlusIcon,
   ReceiptPercentIcon,
-  DocumentMagnifyingGlassIcon
+  DocumentMagnifyingGlassIcon,
+  UserPlusIcon,
+  UserCircleIcon,
+  XMarkIcon
 } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
-import { api } from '@/api/client';
+import { Toast, useToast } from '@/components/ui/Toast';
+import { CustomerPicker } from '@/components/CustomerPicker';
+import { api, type Customer } from '@/api/client';
 import { formatCurrency } from '@/types';
 
 interface SaleItem {
@@ -78,6 +83,7 @@ const TYPE_CONFIG = {
 };
 
 export function Returns() {
+  const { toast, showToast, dismissToast } = useToast();
   const [returns, setReturns] = useState<Return[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -95,14 +101,20 @@ export function Returns() {
   const [returnType, setReturnType] = useState<'REFUND' | 'EXCHANGE' | 'STORE_CREDIT'>('REFUND');
   const [returnReason, setReturnReason] = useState('');
   const [creatingReturn, setCreatingReturn] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [showCustomerPicker, setShowCustomerPicker] = useState(false);
 
   const fetchReturns = async () => {
     setLoading(true);
     try {
       const response = await api.getReturns(statusFilter ? { status: statusFilter } : undefined);
+      if (response.error) {
+        showToast(response.error, 'error');
+        return;
+      }
       setReturns(response.data || []);
-    } catch (error) {
-      console.error('Failed to fetch returns:', error);
+    } catch (error: any) {
+      showToast(error?.message || 'Failed to load returns', 'error');
     } finally {
       setLoading(false);
     }
@@ -119,10 +131,12 @@ export function Returns() {
     setFoundSale(null);
     try {
       const response = await api.searchSaleByReceipt(receiptSearch.trim());
-      if (response.data) {
-        setFoundSale(response.data);
-        setSelectedItems(new Map());
+      if (response.error || !response.data) {
+        setSaleError(response.error || 'Receipt not found');
+        return;
       }
+      setFoundSale(response.data);
+      setSelectedItems(new Map());
     } catch (error: any) {
       setSaleError(error.message || 'Receipt not found');
     } finally {
@@ -177,23 +191,31 @@ export function Returns() {
         };
       });
 
-      await api.createReturn({
+      const { error } = await api.createReturn({
         saleId: foundSale.id,
+        customerId: selectedCustomer?.id,
         reason: returnReason,
         type: returnType,
         items,
         refundAmount: returnType === 'REFUND' ? calculateRefundAmount() : 0,
       });
 
+      if (error) {
+        showToast(error, 'error');
+        return;
+      }
+
       // Reset and refresh
+      showToast('Return created');
       setShowNewReturn(false);
       setFoundSale(null);
       setReceiptSearch('');
       setSelectedItems(new Map());
       setReturnReason('');
+      setSelectedCustomer(null);
       await fetchReturns();
-    } catch (error) {
-      console.error('Failed to create return:', error);
+    } catch (error: any) {
+      showToast(error?.message || 'Failed to create return', 'error');
     } finally {
       setCreatingReturn(false);
     }
@@ -203,11 +225,15 @@ export function Returns() {
     if (!selectedReturn) return;
     setProcessing(true);
     try {
-      await api.processReturn(selectedReturn.id, action);
+      const { error } = await api.processReturn(selectedReturn.id, action);
+      if (error) {
+        showToast(error, 'error');
+        return;
+      }
       await fetchReturns();
       setSelectedReturn(null);
-    } catch (error) {
-      console.error('Failed to process return:', error);
+    } catch (error: any) {
+      showToast(error?.message || 'Failed to process return', 'error');
     } finally {
       setProcessing(false);
     }
@@ -337,6 +363,7 @@ export function Returns() {
           setSaleError('');
           setSelectedItems(new Map());
           setReturnReason('');
+          setSelectedCustomer(null);
         }}
         title="New Return"
       >
@@ -488,6 +515,43 @@ export function Returns() {
                 />
               </div>
 
+              {/* Customer (optional) */}
+              <div>
+                <label className="block text-sm text-slate-400 mb-2">
+                  Customer (optional)
+                </label>
+                {selectedCustomer ? (
+                  <div className="flex items-center gap-2 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2">
+                    <UserCircleIcon className="w-5 h-5 text-amber-400 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-white truncate">
+                        {selectedCustomer.name}
+                      </p>
+                      {selectedCustomer.phone && (
+                        <p className="text-xs text-slate-400 truncate">
+                          {selectedCustomer.phone}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => setSelectedCustomer(null)}
+                      className="p-1 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-red-400"
+                      title="Remove customer"
+                    >
+                      <XMarkIcon className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setShowCustomerPicker(true)}
+                    className="flex items-center gap-2 w-full px-3 py-2 rounded-xl border border-dashed border-slate-600 text-slate-400 hover:border-amber-500/50 hover:text-amber-400 transition-colors text-sm"
+                  >
+                    <UserPlusIcon className="w-5 h-5" />
+                    Attach customer
+                  </button>
+                )}
+              </div>
+
               {/* Refund Amount */}
               {returnType === 'REFUND' && selectedItems.size > 0 && (
                 <div className="p-4 bg-green-900/30 border border-green-800 rounded-xl">
@@ -600,6 +664,18 @@ export function Returns() {
           </div>
         )}
       </Modal>
+
+      {/* Customer Picker */}
+      <CustomerPicker
+        isOpen={showCustomerPicker}
+        onClose={() => setShowCustomerPicker(false)}
+        onSelect={(c) => {
+          setSelectedCustomer(c);
+          setShowCustomerPicker(false);
+        }}
+      />
+
+      <Toast toast={toast} onDismiss={dismissToast} />
     </div>
   );
 }
