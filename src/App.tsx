@@ -25,6 +25,7 @@ const Staff = lazy(() => import('@/pages/Staff').then(m => ({ default: m.Staff }
 const StaffDetail = lazy(() => import('@/pages/StaffDetail').then(m => ({ default: m.StaffDetail })));
 const Returns = lazy(() => import('@/pages/Returns').then(m => ({ default: m.Returns })));
 const Suppliers = lazy(() => import('@/pages/Suppliers').then(m => ({ default: m.Suppliers })));
+const Customers = lazy(() => import('@/pages/Customers').then(m => ({ default: m.Customers })));
 const MobilePOS = lazy(() => import('@/pages/MobilePOS').then(m => ({ default: m.MobilePOS })));
 
 // Create queryClient outside component to avoid re-creation
@@ -158,6 +159,7 @@ function AppRoutes() {
           <Route path="staff/:id" element={<Suspense fallback={<PageLoader />}><StaffDetail /></Suspense>} />
           <Route path="returns" element={<Suspense fallback={<PageLoader />}><Returns /></Suspense>} />
           <Route path="suppliers" element={<Suspense fallback={<PageLoader />}><Suppliers /></Suspense>} />
+          <Route path="customers" element={<Suspense fallback={<PageLoader />}><Customers /></Suspense>} />
           <Route path="assistant" element={<Suspense fallback={<PageLoader />}><AIChat /></Suspense>} />
           <Route path="settings" element={<Suspense fallback={<PageLoader />}><Settings /></Suspense>} />
         </Route>

@@ -24,6 +24,55 @@ interface ApiResponse<T> {
   details?: any;
 }
 
+// ── Customer shapes (mirror api/src/controllers/customer.controller.ts) ──
+
+export interface Customer {
+  id: string;
+  shopId: string;
+  name: string;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+  creditLimit: number;
+  balance: number; // positive = customer owes the shop
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  _count?: { sales: number; credits: number };
+}
+
+export type CreditType = 'PURCHASE' | 'PAYMENT' | 'ADJUSTMENT' | 'REFUND';
+
+export interface CustomerCredit {
+  id: string;
+  customerId: string;
+  type: CreditType;
+  amount: number;
+  saleId?: string | null;
+  note?: string | null;
+  createdAt: string;
+}
+
+export interface CustomerSale {
+  id: string;
+  receiptNumber?: string | null;
+  totalAmount: number;
+  paymentMethod: string;
+  createdAt: string;
+  items?: Array<{
+    id: string;
+    productName: string;
+    quantity: number;
+    unitPrice: number;
+    totalPrice: number;
+  }>;
+}
+
+export interface CustomerDetail extends Customer {
+  credits: CustomerCredit[];
+  sales: CustomerSale[];
+}
+
 class ApiClient {
   // ── Token surface ─────────────────────────────────────────────────────
 
@@ -253,6 +302,7 @@ class ApiClient {
     discountPercent?: number;
     discountReason?: string;
     discountApprovedBy?: string;
+    customerId?: string | null;
   }) {
     return this.request<any>('/api/sales', {
       method: 'POST',
@@ -450,6 +500,74 @@ class ApiClient {
       method: 'PUT',
       body: JSON.stringify({ supplierIds }),
     });
+  }
+
+  // ── Customers ─────────────────────────────────────────────────────────
+
+  /** GET /api/customers — list/search. `search` matches name or phone. */
+  async getCustomers(params?: { search?: string; hasBalance?: boolean }) {
+    const query = new URLSearchParams();
+    if (params?.search) query.set('search', params.search);
+    if (params?.hasBalance) query.set('hasBalance', 'true');
+    const qs = query.toString();
+    return this.request<{ customers: Customer[]; totalOwed: number }>(
+      `/api/customers${qs ? `?${qs}` : ''}`,
+    );
+  }
+
+  /** GET /api/customers/:id — detail with recent credits + sales (purchase history). */
+  async getCustomer(id: string) {
+    return this.request<CustomerDetail>(`/api/customers/${id}`);
+  }
+
+  async createCustomer(data: {
+    name: string;
+    phone?: string;
+    email?: string;
+    address?: string;
+    creditLimit?: number;
+  }) {
+    return this.request<Customer>('/api/customers', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  /** PATCH /api/customers/:id — manager-only on the API. */
+  async updateCustomer(
+    id: string,
+    data: Partial<{
+      name: string;
+      phone: string;
+      email: string;
+      address: string;
+      creditLimit: number;
+      isActive: boolean;
+    }>,
+  ) {
+    return this.request<null>(`/api/customers/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  /** POST /api/customers/:id/credit — record a ledger entry (payment, manual adjustment, etc.). */
+  async addCustomerCredit(
+    id: string,
+    data: {
+      type: 'PURCHASE' | 'PAYMENT' | 'ADJUSTMENT' | 'REFUND';
+      amount: number;
+      note?: string;
+      saleId?: string;
+    },
+  ) {
+    return this.request<{ credit: CustomerCredit; newBalance: number }>(
+      `/api/customers/${id}/credit`,
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      },
+    );
   }
 
   // ── Email receipt ─────────────────────────────────────────────────────

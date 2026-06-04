@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { CartItem, Product, PaymentMethod, Sale, SaleItem } from '@/types';
+import type { Customer } from '@/api/client';
 import api from '@/api/client';
 
 interface DiscountInfo {
@@ -13,6 +14,7 @@ interface CartState {
   items: CartItem[];
   paymentMethod: PaymentMethod;
   discount: DiscountInfo | null;
+  customer: Customer | null;
   isProcessing: boolean;
   error: string | null;
   
@@ -31,6 +33,7 @@ interface CartState {
   setDiscountAmount: (amount: number, reason?: string, approvedBy?: string) => void;
   clearDiscount: () => void;
   setPaymentMethod: (method: PaymentMethod) => void;
+  setCustomer: (customer: Customer | null) => void;
   clear: () => void;
   checkout: (userId: string, shopId: string) => Promise<Sale | null>;
 }
@@ -50,6 +53,7 @@ export const useCartStore = create<CartState>((set, get) => ({
   items: [],
   paymentMethod: 'cash',
   discount: null,
+  customer: null,
   isProcessing: false,
   error: null,
 
@@ -167,13 +171,17 @@ export const useCartStore = create<CartState>((set, get) => ({
     set({ paymentMethod: method });
   },
 
+  setCustomer: (customer: Customer | null) => {
+    set({ customer });
+  },
+
   clear: () => {
-    set({ items: [], paymentMethod: 'cash', discount: null, error: null });
+    set({ items: [], paymentMethod: 'cash', discount: null, customer: null, error: null });
   },
 
   // Checkout via API
   checkout: async (_userId: string, _shopId: string) => {
-    const { items, paymentMethod, discount } = get();
+    const { items, paymentMethod, discount, customer } = get();
     
     // Calculate subtotal with custom/pack pricing
     const subtotal = items.reduce((sum, item) => {
@@ -224,7 +232,8 @@ export const useCartStore = create<CartState>((set, get) => ({
         discount: discountAmount,
         discountPercent: discount?.percent,
         discountReason: discount?.reason,
-        discountApprovedBy: discount?.approvedBy
+        discountApprovedBy: discount?.approvedBy,
+        customerId: customer?.id
       });
 
       if (error || !data) {
@@ -266,7 +275,7 @@ export const useCartStore = create<CartState>((set, get) => ({
       });
 
       // Clear cart on success
-      set({ items: [], paymentMethod: 'cash', discount: null, isProcessing: false });
+      set({ items: [], paymentMethod: 'cash', discount: null, customer: null, isProcessing: false });
 
       // Return the sale with formatted items for UI
       return {

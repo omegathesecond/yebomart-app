@@ -13,11 +13,14 @@ import {
   ReceiptPercentIcon,
   EnvelopeIcon,
   DevicePhoneMobileIcon,
+  UserPlusIcon,
+  UserCircleIcon,
 } from '@heroicons/react/24/outline';
 import api from '@/api/client';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
+import { CustomerPicker } from '@/components/CustomerPicker';
 import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
 import { useCartStore, useCartTotal, useCartSubtotal, useCartDiscount } from '@/stores/cartStore';
@@ -38,9 +41,10 @@ const DISCOUNT_REASONS = [
 export function POS() {
   const { user, shop } = useAuthStore();
   const { products, loadAll, getProductByBarcode } = useInventoryStore();
-  const { 
+  const {
     items, addItem, removeItem, updateQuantity, setPaymentMethod, checkout, clear,
-    setDiscountPercent, setDiscountAmount, clearDiscount
+    setDiscountPercent, setDiscountAmount, clearDiscount,
+    customer, setCustomer
   } = useCartStore();
   const cartTotal = useCartTotal();
   const cartSubtotal = useCartSubtotal();
@@ -48,6 +52,7 @@ export function POS() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [showScanner, setShowScanner] = useState(false);
+  const [showCustomerPicker, setShowCustomerPicker] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastSale, setLastSale] = useState<{ 
@@ -386,11 +391,11 @@ export function POS() {
       {/* Cart Section */}
       <div className="lg:w-96 flex flex-col bg-slate-800/50 rounded-2xl border border-slate-700/50">
         {/* Cart Header */}
-        <div className="p-4 border-b border-slate-700">
+        <div className="p-4 border-b border-slate-700 space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-white">Cart</h2>
             {items.length > 0 && (
-              <button 
+              <button
                 onClick={clear}
                 className="text-sm text-red-400 hover:text-red-300"
               >
@@ -398,6 +403,34 @@ export function POS() {
               </button>
             )}
           </div>
+
+          {/* Customer attach */}
+          {customer ? (
+            <div className="flex items-center gap-2 bg-slate-700/50 rounded-xl px-3 py-2">
+              <UserCircleIcon className="w-5 h-5 text-amber-400 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-white truncate">{customer.name}</p>
+                {customer.phone && (
+                  <p className="text-xs text-slate-400 truncate">{customer.phone}</p>
+                )}
+              </div>
+              <button
+                onClick={() => setCustomer(null)}
+                className="p-1 rounded-lg hover:bg-slate-600 text-slate-400 hover:text-red-400"
+                title="Remove customer"
+              >
+                <XMarkIcon className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowCustomerPicker(true)}
+              className="flex items-center gap-2 w-full px-3 py-2 rounded-xl border border-dashed border-slate-600 text-slate-400 hover:border-amber-500/50 hover:text-amber-400 transition-colors text-sm"
+            >
+              <UserPlusIcon className="w-5 h-5" />
+              Attach customer (optional)
+            </button>
+          )}
         </div>
 
         {/* Cart Items */}
@@ -576,6 +609,16 @@ export function POS() {
           onClose={() => setShowScanner(false)}
         />
       )}
+
+      {/* Customer Picker */}
+      <CustomerPicker
+        isOpen={showCustomerPicker}
+        onClose={() => setShowCustomerPicker(false)}
+        onSelect={(c) => {
+          setCustomer(c);
+          setShowCustomerPicker(false);
+        }}
+      />
 
       {/* Receipt Modal */}
       <Modal 
