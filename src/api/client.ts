@@ -12,6 +12,7 @@
 // on 401 for staff mode we surface it (no refresh — staff re-signs-in).
 
 import * as yeboid from '@/lib/yeboid';
+import type { Expense, ExpenseCategory } from '@/types';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.yebomart.com';
 
@@ -71,6 +72,48 @@ export interface CustomerSale {
 export interface CustomerDetail extends Customer {
   credits: CustomerCredit[];
   sales: CustomerSale[];
+}
+
+// ── Expense shapes (mirror api/src/controllers/expense.controller.ts) ──
+
+/** Raw expense as returned by yebomart-api (UPPERCASE category, ISO dates). */
+interface ApiExpense {
+  id: string;
+  shopId: string;
+  userId?: string | null;
+  category: string;
+  amount: number;
+  description?: string | null;
+  date: string;
+  receiptUrl?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ExpenseSummary {
+  thisMonth: number;
+  lastMonth: number;
+  count: number;
+  byCategory: Record<string, number>;
+}
+
+export interface ExpenseListResult {
+  expenses: Expense[];
+  totals: Record<string, number>;
+  pagination: { page: number; limit: number; total: number; pages: number };
+}
+
+/** Map the API's expense shape into the app's domain `Expense` (lowercase category, Date objects). */
+function mapApiExpense(e: ApiExpense): Expense {
+  return {
+    id: e.id,
+    shopId: e.shopId,
+    category: (e.category?.toLowerCase() || 'other') as ExpenseCategory,
+    amount: e.amount,
+    description: e.description ?? undefined,
+    date: new Date(e.date),
+    createdAt: new Date(e.createdAt),
+  };
 }
 
 class ApiClient {
@@ -568,6 +611,66 @@ class ApiClient {
         body: JSON.stringify(data),
       },
     );
+  }
+
+  // ── Expenses ──────────────────────────────────────────────────────────
+
+  /** GET /api/expenses — list (newest first), scoped to the caller's shop. */
+  async listExpenses(params?: {
+    page?: number;
+    limit?: number;
+    category?: ExpenseCategory | string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<ApiResponse<ExpenseListResult>> {
+    const query = new URLSearchParams();
+    if (params?.page) query.set('page', String(params.page));
+    if (params?.limit) query.set('limit', String(params.limit));
+    if (params?.category) query.set('category', String(params.category).toUpperCase());
+    if (params?.startDate) query.set('startDate', params.startDate);
+    if (params?.endDate) query.set('endDate', params.endDate);
+    const qs = query.toString();
+
+    const res = await this.request<{
+      expenses: ApiExpense[];
+      totals: Record<string, number>;
+      pagination: ExpenseListResult['pagination'];
+    }>(`/api/expenses${qs ? `?${qs}` : ''}`);
+
+    if (res.error || !res.data) return { error: res.error ?? 'Failed to load expenses', details: res.details };
+    return {
+      data: {
+        expenses: (res.data.expenses || []).map(mapApiExpense),
+        totals: res.data.totals || {},
+        pagination: res.data.pagination,
+      },
+    };
+  }
+
+  /** GET /api/expenses/summary — this/last month totals + per-category breakdown. */
+  async getExpenseSummary() {
+    return this.request<ExpenseSummary>('/api/expenses/summary');
+  }
+
+  /** POST /api/expenses — manager-only on the API (managerAuth). */
+  async createExpense(data: {
+    category: ExpenseCategory | string;
+    amount: number;
+    description?: string;
+    date?: string;
+    receiptUrl?: string;
+  }): Promise<ApiResponse<Expense>> {
+    const res = await this.request<ApiExpense>('/api/expenses', {
+      method: 'POST',
+      body: JSON.stringify({ ...data, category: String(data.category).toUpperCase() }),
+    });
+    if (res.error || !res.data) return { error: res.error ?? 'Failed to record expense', details: res.details };
+    return { data: mapApiExpense(res.data), message: res.message };
+  }
+
+  /** DELETE /api/expenses/:id — manager-only on the API (managerAuth). */
+  async deleteExpense(id: string) {
+    return this.request<null>(`/api/expenses/${id}`, { method: 'DELETE' });
   }
 
   // ── Email receipt ─────────────────────────────────────────────────────

@@ -19,7 +19,7 @@ type Period = 'today' | 'week' | 'month';
 
 export function Reports() {
   const { shop } = useAuthStore();
-  const { products, sales, loadAll } = useInventoryStore();
+  const { products, sales, expenses, loadAll } = useInventoryStore();
   const [period, setPeriod] = useState<Period>('today');
   const [report, setReport] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -59,16 +59,22 @@ export function Reports() {
   const totalTransactions = filteredSales.length;
   const avgBasket = totalTransactions > 0 ? totalRevenue / totalTransactions : 0;
 
-  // Calculate profit
-  let totalProfit = 0;
+  // Calculate gross profit (revenue - cost of goods sold)
+  let grossProfit = 0;
   for (const sale of filteredSales) {
     for (const item of sale.items) {
       const product = products.find(p => p.id === item.productId);
       if (product) {
-        totalProfit += (item.unitPrice - product.costPrice) * item.quantity;
+        grossProfit += (item.unitPrice - product.costPrice) * item.quantity;
       }
     }
   }
+
+  // Expenses for the selected period → net profit = gross profit - expenses
+  const periodExpenses = expenses
+    .filter(e => new Date(e.date) >= getStartDate())
+    .reduce((sum, e) => sum + e.amount, 0);
+  const netProfit = grossProfit - periodExpenses;
 
   // Top products
   const productSales: Record<string, { name: string; qty: number; revenue: number }> = {};
@@ -140,8 +146,8 @@ export function Reports() {
               <ArrowTrendingUpIcon className="w-6 h-6 text-blue-400" />
             </div>
             <div>
-              <p className="text-sm text-slate-400">Profit</p>
-              <p className="text-2xl font-bold text-white">{formatCurrency(totalProfit)}</p>
+              <p className="text-sm text-slate-400">Net Profit</p>
+              <p className="text-2xl font-bold text-white">{formatCurrency(netProfit)}</p>
             </div>
           </div>
         </Card>
@@ -235,21 +241,31 @@ export function Reports() {
       {/* Profit Margin */}
       <Card>
         <h3 className="text-lg font-semibold text-white mb-4">💰 Profit Analysis</h3>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
           <div className="text-center p-4 bg-slate-700/30 rounded-lg">
             <p className="text-sm text-slate-400">Revenue</p>
             <p className="text-xl font-bold text-white">{formatCurrency(totalRevenue)}</p>
           </div>
           <div className="text-center p-4 bg-slate-700/30 rounded-lg">
-            <p className="text-sm text-slate-400">Cost</p>
-            <p className="text-xl font-bold text-red-400">{formatCurrency(totalRevenue - totalProfit)}</p>
+            <p className="text-sm text-slate-400">Cost of Goods</p>
+            <p className="text-xl font-bold text-red-400">{formatCurrency(totalRevenue - grossProfit)}</p>
           </div>
           <div className="text-center p-4 bg-slate-700/30 rounded-lg">
-            <p className="text-sm text-slate-400">Profit</p>
-            <p className="text-xl font-bold text-emerald-400">{formatCurrency(totalProfit)}</p>
+            <p className="text-sm text-slate-400">Gross Profit</p>
+            <p className="text-xl font-bold text-white">{formatCurrency(grossProfit)}</p>
+          </div>
+          <div className="text-center p-4 bg-slate-700/30 rounded-lg">
+            <p className="text-sm text-slate-400">Expenses</p>
+            <p className="text-xl font-bold text-orange-400">{formatCurrency(periodExpenses)}</p>
+          </div>
+          <div className="text-center p-4 bg-slate-700/30 rounded-lg">
+            <p className="text-sm text-slate-400">Net Profit</p>
+            <p className={`text-xl font-bold ${netProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+              {formatCurrency(netProfit)}
+            </p>
             {totalRevenue > 0 && (
               <p className="text-xs text-slate-400">
-                {((totalProfit / totalRevenue) * 100).toFixed(1)}% margin
+                {((netProfit / totalRevenue) * 100).toFixed(1)}% margin
               </p>
             )}
           </div>

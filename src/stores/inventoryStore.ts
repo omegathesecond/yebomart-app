@@ -54,6 +54,7 @@ interface InventoryState {
   deleteStaff: (id: string) => Promise<void>;
   
   // Expenses
+  loadExpenses: () => Promise<void>;
   addExpense: (expense: Omit<Expense, 'id' | 'createdAt'>) => Promise<string>;
   deleteExpense: (id: string) => Promise<void>;
   
@@ -134,6 +135,12 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
       }
       console.log('[inventoryStore] Mapped staff:', staff);
 
+      // Fetch expenses (API scopes to the caller's shop automatically)
+      const { data: expensesData, error: expensesError } = await api.listExpenses({ limit: 100 });
+      if (expensesError) {
+        console.error('[inventoryStore] Failed to load expenses:', expensesError);
+      }
+
       // Calculate low stock alerts from products
       const alerts: LowStockAlert[] = allProducts
         .filter(p => p.isActive && p.quantity <= p.reorderAt)
@@ -152,6 +159,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
         products: allProducts.filter(p => p.isActive),
         sales: sales.slice(0, 50),
         staff,
+        expenses: expensesData?.expenses || [],
         alerts,
         isLoading: false,
         lastSync: new Date()
@@ -385,37 +393,56 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
     }
   },
 
-  // Expenses - Would need API endpoints
+  // Expenses - Direct API calls (GET /api/expenses, POST/DELETE managerAuth)
+  loadExpenses: async () => {
+    const { data, error } = await api.listExpenses({ limit: 100 });
+    if (error || !data) {
+      set({ error: error || 'Failed to load expenses' });
+      return;
+    }
+    set({ expenses: data.expenses });
+  },
+
   addExpense: async (expenseData) => {
-    // TODO: Add API endpoint for expenses
-    const id = crypto.randomUUID();
-    const expense: Expense = {
-      ...expenseData,
-      id,
-      createdAt: new Date()
-    };
-    set((state) => ({ expenses: [...state.expenses, expense] }));
-    return id;
+    const { data, error } = await api.createExpense({
+      category: expenseData.category,
+      amount: expenseData.amount,
+      description: expenseData.description,
+      date: expenseData.date ? new Date(expenseData.date).toISOString() : undefined,
+    });
+    if (error || !data) {
+      set({ error: error || 'Failed to record expense' });
+      throw new Error(error || 'Failed to record expense');
+    }
+    // Refresh from the API so totals/order stay authoritative
+    await get().loadExpenses();
+    return data.id;
   },
 
   deleteExpense: async (id) => {
-    set((state) => ({
-      expenses: state.expenses.filter((e) => e.id !== id)
-    }));
+    const { error } = await api.deleteExpense(id);
+    if (error) {
+      set({ error: error || 'Failed to delete expense' });
+      throw new Error(error || 'Failed to delete expense');
+    }
+    await get().loadExpenses();
   },
 
   // Dashboard metrics from API
   getDashboardMetrics: async (_shopId: string) => {
     try {
       const { data } = await api.getDailyReport();
-      if (data) {
+      // The daily-report API nests figures under `summary` and already
+      // returns netProfit = grossProfit - totalExpenses.
+      const summary = (data as any)?.summary;
+      if (summary) {
         return {
-          todaySales: data.totalSales || 0,
-          todayTransactions: data.transactionCount || 0,
-          todayProfit: data.profit || 0,
+          todaySales: summary.totalSales || 0,
+          todayTransactions: summary.totalTransactions || 0,
+          todayProfit: summary.netProfit || 0,
           weekSales: 0,
           monthSales: 0,
-          topProducts: data.topProducts || [],
+          topProducts: (data as any).topProducts || [],
           lowStockCount: get().alerts.filter(a => a.severity === 'low').length,
           criticalStockCount: get().alerts.filter(a => a.severity === 'critical' || a.severity === 'out').length,
           recentSales: get().sales.slice(0, 10)
@@ -424,16 +451,16 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
     } catch (e) {
       console.error('Failed to get dashboard metrics:', e);
     }
-    
+
     // Fallback: calculate from local state
     const products = get().products;
     const sales = get().sales;
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    
+
     const todaySales = sales.filter(s => new Date(s.createdAt) >= todayStart);
     const todayTotal = todaySales.reduce((sum, s) => sum + s.totalAmount, 0);
-    
+
     let todayProfit = 0;
     for (const sale of todaySales) {
       for (const item of sale.items) {
@@ -443,6 +470,12 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
         }
       }
     }
+
+    // Net of today's expenses, mirroring the API's netProfit
+    const todayExpenses = get().expenses
+      .filter(e => new Date(e.date) >= todayStart)
+      .reduce((sum, e) => sum + e.amount, 0);
+    todayProfit -= todayExpenses;
 
     const productSales: Record<string, { name: string; quantity: number; revenue: number }> = {};
     for (const sale of todaySales) {
