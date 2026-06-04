@@ -4,7 +4,17 @@ export type UserRole = 'owner' | 'manager' | 'cashier';
 export type ShopRole = 'owner' | 'admin' | 'staff';
 export type PaymentMethod = 'cash' | 'momo' | 'emali' | 'card';
 export type StockLogType = 'restock' | 'sale' | 'adjustment' | 'damaged';
-export type ExpenseCategory = 'rent' | 'utilities' | 'supplies' | 'wages' | 'other';
+// Mirrors the API's ExpenseCategory Prisma enum (api/prisma/schema.prisma).
+// Stored lowercase in the app domain; the API client maps to/from UPPERCASE.
+export type ExpenseCategory =
+  | 'rent'
+  | 'utilities'
+  | 'supplies'
+  | 'wages'
+  | 'transport'
+  | 'marketing'
+  | 'repairs'
+  | 'other';
 
 // Shop - Now supports multi-country
 export interface Shop {
@@ -264,6 +274,9 @@ export const EXPENSE_CATEGORIES: { value: ExpenseCategory; label: string }[] = [
   { value: 'utilities', label: 'Utilities (Electricity, Water)' },
   { value: 'supplies', label: 'Supplies' },
   { value: 'wages', label: 'Wages' },
+  { value: 'transport', label: 'Transport' },
+  { value: 'marketing', label: 'Marketing' },
+  { value: 'repairs', label: 'Repairs' },
   { value: 'other', label: 'Other' }
 ];
 
