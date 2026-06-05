@@ -18,6 +18,16 @@ const API_URL = import.meta.env.VITE_API_URL || 'https://api.yebomart.com';
 
 const STAFF_TOKEN_KEY = 'yebomart_staff_token';
 
+/**
+ * Sentinel returned by `request()` when the fetch itself fails (offline / DNS /
+ * connection reset) rather than the server returning an error response. The
+ * offline outbox keys off this to decide "queue + retry" vs "surface to user":
+ * a transport failure is retryable; a 4xx is a real rejection that must not be
+ * silently retried. Exported so callers compare against the constant, not a
+ * brittle string literal.
+ */
+export const NETWORK_ERROR = 'Network error. Please try again.';
+
 interface ApiResponse<T> {
   data?: T;
   error?: string;
@@ -172,7 +182,7 @@ class ApiClient {
     try {
       response = await fetch(url, { ...options, headers });
     } catch {
-      return { error: 'Network error. Please try again.' };
+      return { error: NETWORK_ERROR };
     }
 
     if (
@@ -346,6 +356,11 @@ class ApiClient {
     discountReason?: string;
     discountApprovedBy?: string;
     customerId?: string | null;
+    // Offline outbox idempotency: a client-generated id (sent on both the live
+    // attempt and any queued replay) lets the API dedup, plus when the sale was
+    // actually rung up. See SaleService.create + the syncQueue drain.
+    localId?: string;
+    offlineAt?: string;
   }) {
     return this.request<any>('/api/sales', {
       method: 'POST',

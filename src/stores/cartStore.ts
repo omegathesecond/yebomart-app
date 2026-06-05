@@ -1,7 +1,9 @@
 import { create } from 'zustand';
 import type { CartItem, Product, PaymentMethod, Sale, SaleItem } from '@/types';
 import type { Customer } from '@/api/client';
-import api from '@/api/client';
+import api, { NETWORK_ERROR } from '@/api/client';
+import { addToSyncQueue } from '@/lib/db';
+import { useSyncStore } from '@/stores/syncStore';
 
 interface DiscountInfo {
   amount: number;
@@ -179,100 +181,146 @@ export const useCartStore = create<CartState>((set, get) => ({
     set({ items: [], paymentMethod: 'cash', discount: null, customer: null, error: null });
   },
 
-  // Checkout via API
+  // Checkout via API — with an offline outbox fallback.
+  //
+  // Online: POST the sale, clear the cart, return the server sale.
+  // Offline (or transport failure mid-request): enqueue the SAME payload in the
+  // Dexie syncQueue and optimistically complete the sale locally. The drain in
+  // syncStore replays it on reconnect; the server dedups on `localId` so an
+  // online attempt whose response was lost is never double-applied.
   checkout: async (_userId: string, _shopId: string) => {
     const { items, paymentMethod, discount, customer } = get();
-    
+
     // Calculate subtotal with custom/pack pricing
     const subtotal = items.reduce((sum, item) => {
       return sum + (getItemPrice(item) * item.quantity);
     }, 0);
-    
+
     const discountAmount = discount?.amount || 0;
     const totalAmount = Math.max(0, subtotal - discountAmount);
-    
+
     if (items.length === 0) return null;
-    
+
     set({ isProcessing: true, error: null });
-    
-    try {
-      // Format items for API
-      const saleItems = items.map(item => {
-        const price = getItemPrice(item);
-        const originalPrice = item.isPack && item.product.packPrice 
-          ? item.product.packPrice 
-          : item.product.sellPrice;
-        
-        if (item.isPack && item.product.packSize && item.product.packPrice) {
-          return {
-            productId: item.productId,
-            quantity: item.quantity * item.product.packSize, // Actual units sold
-            unitPrice: price / item.product.packSize, // Per-unit price
-            originalPrice: originalPrice / item.product.packSize,
-            isPack: true,
-            packQty: item.quantity,
-            itemNote: item.itemNote
-          };
-        }
+
+    // Stable idempotency key for this checkout. Sent on the live attempt AND any
+    // queued replay so the server commits the sale exactly once.
+    const localId = crypto.randomUUID();
+
+    // Format items for API
+    const saleItems = items.map(item => {
+      const price = getItemPrice(item);
+      const originalPrice = item.isPack && item.product.packPrice
+        ? item.product.packPrice
+        : item.product.sellPrice;
+
+      if (item.isPack && item.product.packSize && item.product.packPrice) {
         return {
           productId: item.productId,
-          quantity: item.quantity,
-          unitPrice: price,
-          originalPrice,
+          quantity: item.quantity * item.product.packSize, // Actual units sold
+          unitPrice: price / item.product.packSize, // Per-unit price
+          originalPrice: originalPrice / item.product.packSize,
+          isPack: true,
+          packQty: item.quantity,
           itemNote: item.itemNote
         };
-      });
-
-      // Create sale via API
-      const { data, error } = await api.createSale({
-        items: saleItems,
-        paymentMethod: paymentMethod.toUpperCase(),
-        amountPaid: totalAmount,
-        subtotal,
-        discount: discountAmount,
-        discountPercent: discount?.percent,
-        discountReason: discount?.reason,
-        discountApprovedBy: discount?.approvedBy,
-        customerId: customer?.id
-      });
-
-      if (error || !data) {
-        set({ isProcessing: false, error: error || 'Failed to process sale' });
-        return null;
       }
+      return {
+        productId: item.productId,
+        quantity: item.quantity,
+        unitPrice: price,
+        originalPrice,
+        itemNote: item.itemNote
+      };
+    });
 
-      // Build receipt items BEFORE clearing cart
-      const receiptItems: SaleItem[] = items.map(item => {
+    const payload = {
+      items: saleItems,
+      paymentMethod: paymentMethod.toUpperCase(),
+      amountPaid: totalAmount,
+      subtotal,
+      discount: discountAmount,
+      discountPercent: discount?.percent,
+      discountReason: discount?.reason,
+      discountApprovedBy: discount?.approvedBy,
+      customerId: customer?.id,
+      localId,
+    };
+
+    // Build receipt items BEFORE clearing cart. `saleId` is filled per-branch:
+    // the server id when online, the localId when queued offline.
+    const buildReceiptItems = (saleId: string): SaleItem[] =>
+      items.map(item => {
         const price = getItemPrice(item);
-        const originalPrice = item.isPack && item.product.packPrice 
-          ? item.product.packPrice 
+        const originalPrice = item.isPack && item.product.packPrice
+          ? item.product.packPrice
           : item.product.sellPrice;
-        
-        if (item.isPack && item.product.packSize && item.product.packPrice) {
-          return {
-            id: crypto.randomUUID(),
-            saleId: data.id,
-            productId: item.productId,
-            productName: `${item.product.name} (${item.product.packSize}-Pack)`,
-            quantity: item.quantity,
-            originalPrice,
-            unitPrice: price,
-            totalPrice: price * item.quantity,
-            itemDiscount: item.customPrice !== undefined ? (originalPrice - price) * item.quantity : undefined
-          };
-        }
+
+        const productName = item.isPack && item.product.packSize && item.product.packPrice
+          ? `${item.product.name} (${item.product.packSize}-Pack)`
+          : item.product.name;
+
         return {
           id: crypto.randomUUID(),
-          saleId: data.id,
+          saleId,
           productId: item.productId,
-          productName: item.product.name,
+          productName,
           quantity: item.quantity,
           originalPrice,
           unitPrice: price,
           totalPrice: price * item.quantity,
-          itemDiscount: item.customPrice !== undefined ? (originalPrice - price) * item.quantity : undefined
+          itemDiscount: item.customPrice !== undefined ? (originalPrice - price) * item.quantity : undefined,
         };
       });
+
+    // Optimistically complete the sale locally without hitting the network.
+    // Used for the offline path: the cashier gets a receipt now; the sale is
+    // POSTed on reconnect.
+    const completeOffline = async (): Promise<Sale> => {
+      await addToSyncQueue('sales', 'create', {
+        ...payload,
+        offlineAt: new Date().toISOString(),
+      });
+      void useSyncStore.getState().refreshPending();
+
+      const receiptItems = buildReceiptItems(localId);
+      set({ items: [], paymentMethod: 'cash', discount: null, customer: null, isProcessing: false });
+
+      return {
+        id: localId,
+        localId,
+        pendingSync: true,
+        items: receiptItems,
+        subtotal,
+        discount: discountAmount,
+        discountPercent: discount?.percent,
+        discountReason: discount?.reason,
+        totalAmount,
+        paymentMethod,
+        createdAt: new Date(),
+      } as Sale;
+    };
+
+    // Already offline — don't bother attempting the request.
+    if (!navigator.onLine) {
+      return completeOffline();
+    }
+
+    try {
+      // Create sale via API
+      const { data, error } = await api.createSale(payload);
+
+      if (!data) {
+        // Transport failure → queue + complete offline (retryable).
+        if (error === NETWORK_ERROR) {
+          return completeOffline();
+        }
+        // Genuine server rejection (insufficient stock, etc.) → surface it.
+        set({ isProcessing: false, error: error || 'Failed to process sale' });
+        return null;
+      }
+
+      const receiptItems = buildReceiptItems(data.id);
 
       // Clear cart on success
       set({ items: [], paymentMethod: 'cash', discount: null, customer: null, isProcessing: false });
@@ -286,11 +334,18 @@ export const useCartStore = create<CartState>((set, get) => ({
         discountPercent: discount?.percent,
         discountReason: discount?.reason,
         totalAmount,
-        createdAt: new Date()
+        createdAt: new Date(),
       } as Sale;
-      
+
     } catch (error) {
+      // fetch() failures are already caught inside the api client and returned
+      // as NETWORK_ERROR, so reaching here means an unexpected client error.
+      // If we lost the connection, still complete offline rather than dropping
+      // the sale; otherwise surface it.
       console.error('Checkout failed:', error);
+      if (!navigator.onLine) {
+        return completeOffline();
+      }
       set({ isProcessing: false, error: 'Failed to process sale. Please try again.' });
       return null;
     }
