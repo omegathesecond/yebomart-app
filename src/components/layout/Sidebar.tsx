@@ -15,7 +15,8 @@ import {
   ExclamationTriangleIcon,
   ArrowUturnLeftIcon,
   BuildingStorefrontIcon,
-  ChatBubbleLeftRightIcon
+  ChatBubbleLeftRightIcon,
+  CreditCardIcon
 } from '@heroicons/react/24/outline';
 import { SparklesIcon as SparklesSolid } from '@heroicons/react/24/solid';
 import { useAuthStore } from '@/stores/authStore';
@@ -33,6 +34,7 @@ const navigation = [
   { name: 'Expenses', href: '/expenses', icon: ReceiptPercentIcon },
   { name: 'Reports', href: '/reports', icon: ChartBarIcon },
   { name: 'Staff', href: '/staff', icon: UsersIcon },
+  { name: 'Billing', href: '/billing', icon: CreditCardIcon },
   { name: 'Settings', href: '/settings', icon: Cog6ToothIcon }
 ];
 

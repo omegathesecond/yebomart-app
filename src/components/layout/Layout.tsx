@@ -3,6 +3,7 @@ import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
 import { BottomNav } from './BottomNav';
 import { OfflineIndicator } from './OfflineIndicator';
+import { LowBalanceBanner } from './LowBalanceBanner';
 import { AIFloatingButton } from '../ai/AIFloatingButton';
 
 export function Layout() {
@@ -15,7 +16,8 @@ export function Layout() {
       <div className="md:ml-64">
         <TopBar />
         <OfflineIndicator />
-        
+        <LowBalanceBanner />
+
         <main className="p-4 pb-24 md:pb-6">
           <Outlet />
         </main>
