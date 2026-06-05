@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
 import { useCartStore } from '@/stores/cartStore';
 import { useSyncStore } from '@/stores/syncStore';
+import { useBillingStore } from '@/stores/billingStore';
 import { Layout } from '@/components/layout/Layout';
 import { InitialSync } from '@/components/InitialSync';
 import './index.css';
@@ -29,6 +30,9 @@ const Suppliers = lazy(() => import('@/pages/Suppliers').then(m => ({ default: m
 const Customers = lazy(() => import('@/pages/Customers').then(m => ({ default: m.Customers })));
 const Expenses = lazy(() => import('@/pages/Expenses').then(m => ({ default: m.Expenses })));
 const MobilePOS = lazy(() => import('@/pages/MobilePOS').then(m => ({ default: m.MobilePOS })));
+const Billing = lazy(() => import('@/pages/Billing').then(m => ({ default: m.Billing })));
+const BillingSuccess = lazy(() => import('@/pages/BillingSuccess').then(m => ({ default: m.BillingSuccess })));
+const BillingCancel = lazy(() => import('@/pages/BillingCancel').then(m => ({ default: m.BillingCancel })));
 
 // Create queryClient outside component to avoid re-creation
 const queryClient = new QueryClient({
@@ -113,6 +117,7 @@ function AppRoutes() {
       // User just logged out - clear all cached data
       clearInventory();
       clearCart();
+      useBillingStore.getState().reset(); // Drop cached balance — never leak across shops
       queryClient.clear(); // Clear React Query cache too
       console.log('[App] Cleared all stores and cache on logout');
     }
@@ -178,6 +183,13 @@ function AppRoutes() {
           <Route path="suppliers" element={<Suspense fallback={<PageLoader />}><Suppliers /></Suspense>} />
           <Route path="customers" element={<Suspense fallback={<PageLoader />}><Customers /></Suspense>} />
           <Route path="expenses" element={<Suspense fallback={<PageLoader />}><Expenses /></Suspense>} />
+          <Route path="billing" element={<Suspense fallback={<PageLoader />}><Billing /></Suspense>} />
+          {/* YeboPay redirects back here after a hosted checkout. These live
+              under the protected Layout so the owner is still authenticated to
+              confirm the top-up — without explicit routes they'd fall through
+              to the catch-all and dump a paid user on /onboarding. */}
+          <Route path="billing/success" element={<Suspense fallback={<PageLoader />}><BillingSuccess /></Suspense>} />
+          <Route path="billing/cancel" element={<Suspense fallback={<PageLoader />}><BillingCancel /></Suspense>} />
           <Route path="assistant" element={<Suspense fallback={<PageLoader />}><AIChat /></Suspense>} />
           <Route path="settings" element={<Suspense fallback={<PageLoader />}><Settings /></Suspense>} />
         </Route>

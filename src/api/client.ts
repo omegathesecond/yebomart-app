@@ -28,11 +28,23 @@ const STAFF_TOKEN_KEY = 'yebomart_staff_token';
  */
 export const NETWORK_ERROR = 'Network error. Please try again.';
 
+/**
+ * Machine-readable `code` returned alongside a 402 from credit-gated endpoints
+ * (AI routes). Callers compare against this constant — not a string literal —
+ * to tell "out of credits" apart from a generic failure and route the user to
+ * the billing/top-up page. Mirrors api/src/middleware/billing.middleware.ts.
+ */
+export const INSUFFICIENT_CREDITS = 'INSUFFICIENT_CREDITS';
+
 interface ApiResponse<T> {
   data?: T;
   error?: string;
   message?: string;
   details?: any;
+  /** Machine-readable error code from the API body (e.g. INSUFFICIENT_CREDITS). */
+  code?: string;
+  /** HTTP status of the response — lets callers branch on 402 etc. */
+  status?: number;
 }
 
 // ── Customer shapes (mirror api/src/controllers/customer.controller.ts) ──
@@ -82,6 +94,43 @@ export interface CustomerSale {
 export interface CustomerDetail extends Customer {
   credits: CustomerCredit[];
   sales: CustomerSale[];
+}
+
+// ── Billing / credits (mirror api/src/config/creditPacks.ts + billing.routes.ts) ──
+
+/** A purchasable credit pack. 1 credit = E1 (SZL); discounts are bonus credits. */
+export interface CreditPack {
+  id: 'STARTER' | 'STANDARD' | 'BULK';
+  name: string;
+  description: string;
+  priceSzl: number;
+  credits: number;
+  discountPercent: number;
+}
+
+/** The shop's current wallet balance, from YeboPay. */
+export interface CreditBalance {
+  available: number;
+  currency: string;
+}
+
+/** Result of POST /api/billing/checkout — the YeboPay-hosted checkout to redirect to. */
+export interface TopUpCheckout {
+  checkoutId: string;
+  url: string | null;
+  expiresAt?: string | null;
+  status: string;
+  pack: string;
+  priceSzl: number;
+  credits: number;
+}
+
+/** Result of POST /api/billing/checkout/confirm — latest balance after a top-up. */
+export interface TopUpConfirmResult {
+  completed: boolean;
+  status: string;
+  chargeId: string | null;
+  balance: CreditBalance;
 }
 
 // ── Expense shapes (mirror api/src/controllers/expense.controller.ts) ──
@@ -211,10 +260,10 @@ class ApiClient {
     if (!response.ok || json.success === false) {
       const errorMessage = json.message || json.error || 'Request failed';
       const details = json.details || json.errors;
-      return { error: errorMessage, details };
+      return { error: errorMessage, details, code: json.code, status: response.status };
     }
 
-    return { data: json.data ?? json, message: json.message };
+    return { data: json.data ?? json, message: json.message, status: response.status };
   }
 
   // ── Auth ──────────────────────────────────────────────────────────────
@@ -686,6 +735,47 @@ class ApiClient {
   /** DELETE /api/expenses/:id — manager-only on the API (managerAuth). */
   async deleteExpense(id: string) {
     return this.request<null>(`/api/expenses/${id}`, { method: 'DELETE' });
+  }
+
+  // ── Billing / credits ─────────────────────────────────────────────────
+
+  /** GET /api/billing/credit-packs — public catalog for the top-up UI. */
+  async getCreditPacks() {
+    return this.request<{ packs: CreditPack[] }>('/api/billing/credit-packs');
+  }
+
+  /** GET /api/billing/balance — the shop's current credit balance (YeboPay wallet). */
+  async getBalance() {
+    return this.request<CreditBalance>('/api/billing/balance');
+  }
+
+  /**
+   * POST /api/billing/checkout — start a credit top-up. Pass either `packId`
+   * OR `amount` (custom SZL, >=10). Returns a YeboPay-hosted checkout URL to
+   * redirect to. The `idempotency-key` guards against double-charging on a
+   * double-tap/retry.
+   */
+  async createTopUpCheckout(
+    body: { packId?: string; amount?: number; successUrl?: string; cancelUrl?: string },
+    idempotencyKey: string,
+  ) {
+    return this.request<TopUpCheckout>('/api/billing/checkout', {
+      method: 'POST',
+      headers: { 'idempotency-key': idempotencyKey },
+      body: JSON.stringify(body),
+    });
+  }
+
+  /**
+   * POST /api/billing/checkout/confirm — called from the success page with the
+   * checkoutId. Returns the latest balance so the UI can render
+   * "+N credits, new balance X".
+   */
+  async confirmTopUp(checkoutId: string) {
+    return this.request<TopUpConfirmResult>('/api/billing/checkout/confirm', {
+      method: 'POST',
+      body: JSON.stringify({ checkoutId }),
+    });
   }
 
   // ── Email receipt ─────────────────────────────────────────────────────

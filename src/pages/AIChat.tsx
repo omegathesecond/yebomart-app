@@ -1,15 +1,18 @@
 import { useState, useRef, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import {
   PaperAirplaneIcon,
   MicrophoneIcon,
   SparklesIcon,
   StopIcon,
-  LightBulbIcon
+  LightBulbIcon,
+  BoltIcon,
 } from '@heroicons/react/24/outline';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { useAuthStore } from '@/stores/authStore';
-import api from '@/api/client';
+import { useBillingStore } from '@/stores/billingStore';
+import api, { INSUFFICIENT_CREDITS } from '@/api/client';
 import { getSmartErrorResponse } from '@/utils/errorMessages';
 
 interface Message {
@@ -32,6 +35,9 @@ export function AIChat() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  // Set when an AI call returns 402 INSUFFICIENT_CREDITS — surfaces an
+  // actionable top-up CTA instead of a vague "something went wrong".
+  const [outOfCredits, setOutOfCredits] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -71,16 +77,26 @@ export function AIChat() {
     setIsLoading(true);
 
     try {
-      const { data, error } = await api.chat(messageText);
-      
+      const { data, error, code, status } = await api.chat(messageText);
+
       let responseContent: string;
       if (error) {
-        // Use smart error processor for helpful responses
-        responseContent = getSmartErrorResponse(error, {
-          shopName: shop?.name,
-          assistantName: shop?.assistantName
-        });
+        if (code === INSUFFICIENT_CREDITS || status === 402) {
+          // Out of credits — flip the CTA on and refresh the shared balance so
+          // the low-balance banner reflects reality too. Never silently fail.
+          setOutOfCredits(true);
+          useBillingStore.getState().fetchBalance();
+          responseContent =
+            "You're out of credits, so I can't answer that just now. Top up your credits to keep chatting — tap “Top up credits” below.";
+        } else {
+          // Use smart error processor for helpful responses
+          responseContent = getSmartErrorResponse(error, {
+            shopName: shop?.name,
+            assistantName: shop?.assistantName
+          });
+        }
       } else {
+        setOutOfCredits(false);
         responseContent = data?.response || data?.message || 'I understand. Is there anything else you need help with?';
       }
       
@@ -218,6 +234,22 @@ export function AIChat() {
                 </button>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Out-of-credits CTA — actionable deep link to billing, not a dead end */}
+        {outOfCredits && (
+          <div className="mx-4 mb-2 flex items-center gap-3 p-3 rounded-xl bg-red-500/10 border border-red-500/30">
+            <BoltIcon className="w-5 h-5 text-red-400 shrink-0" />
+            <p className="text-sm text-red-200 flex-1">
+              You’re out of credits. Top up to keep using your AI assistant.
+            </p>
+            <Link
+              to="/billing"
+              className="shrink-0 px-3 py-1.5 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-medium transition-colors"
+            >
+              Top up credits
+            </Link>
           </div>
         )}
 

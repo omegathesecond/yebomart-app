@@ -25,6 +25,9 @@ const pageNames: Record<string, string> = {
   '/staff': 'Staff Management',
   '/staff/new': 'Add Staff',
   '/assistant': 'AI Assistant',
+  '/billing': 'Billing & Credits',
+  '/billing/success': 'Top-up Complete',
+  '/billing/cancel': 'Top-up Cancelled',
   '/settings': 'Settings',
   '/settings/subscription': 'Subscription'
 };
