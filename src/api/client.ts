@@ -609,6 +609,49 @@ class ApiClient {
     });
   }
 
+  // ── Purchase Orders ───────────────────────────────────────────────────
+
+  async getPurchaseOrders(params?: { supplierId?: string; status?: string }) {
+    const qs = new URLSearchParams();
+    if (params?.supplierId) qs.set('supplierId', params.supplierId);
+    if (params?.status) qs.set('status', params.status);
+    const query = qs.toString() ? `?${qs.toString()}` : '';
+    return this.request<any[]>(`/api/purchase-orders${query}`);
+  }
+
+  async getPurchaseOrder(id: string) {
+    return this.request<any>(`/api/purchase-orders/${id}`);
+  }
+
+  async createPurchaseOrder(data: {
+    supplierId: string;
+    status?: 'DRAFT' | 'SENT';
+    tax?: number;
+    expectedDate?: string;
+    notes?: string;
+    items: { productId: string; qtyOrdered: number; unitCost: number }[];
+  }) {
+    return this.request<any>('/api/purchase-orders', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  /**
+   * Receive a PO. Omit `items` to receive every line in full; pass line-level
+   * quantities for a partial receipt. `updateCost` rewrites product costPrice
+   * from the PO unit cost.
+   */
+  async receivePurchaseOrder(
+    id: string,
+    data?: { items?: { poItemId: string; quantity: number }[]; updateCost?: boolean; notes?: string },
+  ) {
+    return this.request<any>(`/api/purchase-orders/${id}/receive`, {
+      method: 'POST',
+      body: JSON.stringify(data ?? {}),
+    });
+  }
+
   // ── Customers ─────────────────────────────────────────────────────────
 
   /** GET /api/customers — list/search. `search` matches name or phone. */
