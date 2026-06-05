@@ -104,6 +104,8 @@ export interface Sale {
   items: SaleItem[];
   createdAt: Date;
   syncedAt?: Date;
+  localId?: string;       // Client-generated id used for offline-sync dedup
+  pendingSync?: boolean;  // True while the sale is queued offline, not yet on the server
 }
 
 // Sale Item

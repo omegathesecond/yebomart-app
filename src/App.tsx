@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
 import { useCartStore } from '@/stores/cartStore';
+import { useSyncStore } from '@/stores/syncStore';
 import { Layout } from '@/components/layout/Layout';
 import { InitialSync } from '@/components/InitialSync';
 import './index.css';
@@ -90,6 +91,21 @@ function AppRoutes() {
   useEffect(() => {
     loadUser();
   }, [loadUser]);
+
+  // Offline outbox drain. Any sale rung up while offline is queued in Dexie;
+  // replay it on app start and whenever the connection returns. The drain is
+  // single-flight and no-ops when offline, so calling it eagerly is safe.
+  useEffect(() => {
+    const { refreshPending, replay } = useSyncStore.getState();
+    refreshPending();
+    replay();
+
+    const handleOnline = () => {
+      useSyncStore.getState().replay();
+    };
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, []);
 
   // Clear all stores when user logs out
   useEffect(() => {

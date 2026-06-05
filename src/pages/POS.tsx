@@ -61,11 +61,12 @@ export function POS() {
     discount: number; 
     items: any[]; 
     id: string; 
-    receiptNumber?: string; 
+    receiptNumber?: string;
     date: Date;
     paymentMethod?: string;
     cashReceived?: number;
     changeGiven?: number;
+    pendingSync?: boolean;
   } | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   
@@ -199,7 +200,8 @@ export function POS() {
           date: new Date(),
           paymentMethod: method,
           cashReceived: cashReceived,
-          changeGiven: changeGiven
+          changeGiven: changeGiven,
+          pendingSync: sale.pendingSync
         });
         setShowReceipt(true);
         setEmailSent(false); // Reset email sent status
@@ -648,6 +650,12 @@ export function POS() {
                 <p>Date: {lastSale.date.toLocaleDateString()} {lastSale.date.toLocaleTimeString()}</p>
                 <p className="font-bold text-black">Receipt #: {lastSale.receiptNumber || lastSale.id.slice(-8).toUpperCase()}</p>
               </div>
+
+              {lastSale.pendingSync && (
+                <div className="mb-3 rounded bg-amber-100 border border-amber-300 px-2 py-1.5 text-xs text-amber-800">
+                  Saved offline — this sale will sync automatically when you're back online.
+                </div>
+              )}
 
               <div className="border-b border-dashed border-gray-300 pb-3 mb-3">
                 {lastSale.items.map((item, idx) => (
