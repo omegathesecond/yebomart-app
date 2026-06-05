@@ -27,6 +27,7 @@ const Staff = lazy(() => import('@/pages/Staff').then(m => ({ default: m.Staff }
 const StaffDetail = lazy(() => import('@/pages/StaffDetail').then(m => ({ default: m.StaffDetail })));
 const Returns = lazy(() => import('@/pages/Returns').then(m => ({ default: m.Returns })));
 const Suppliers = lazy(() => import('@/pages/Suppliers').then(m => ({ default: m.Suppliers })));
+const PurchaseOrders = lazy(() => import('@/pages/PurchaseOrders').then(m => ({ default: m.PurchaseOrders })));
 const Customers = lazy(() => import('@/pages/Customers').then(m => ({ default: m.Customers })));
 const Expenses = lazy(() => import('@/pages/Expenses').then(m => ({ default: m.Expenses })));
 const MobilePOS = lazy(() => import('@/pages/MobilePOS').then(m => ({ default: m.MobilePOS })));
@@ -181,6 +182,7 @@ function AppRoutes() {
           <Route path="staff/:id" element={<Suspense fallback={<PageLoader />}><StaffDetail /></Suspense>} />
           <Route path="returns" element={<Suspense fallback={<PageLoader />}><Returns /></Suspense>} />
           <Route path="suppliers" element={<Suspense fallback={<PageLoader />}><Suppliers /></Suspense>} />
+          <Route path="purchase-orders" element={<Suspense fallback={<PageLoader />}><PurchaseOrders /></Suspense>} />
           <Route path="customers" element={<Suspense fallback={<PageLoader />}><Customers /></Suspense>} />
           <Route path="expenses" element={<Suspense fallback={<PageLoader />}><Expenses /></Suspense>} />
           <Route path="billing" element={<Suspense fallback={<PageLoader />}><Billing /></Suspense>} />

@@ -15,6 +15,7 @@ import {
   ExclamationTriangleIcon,
   ArrowUturnLeftIcon,
   BuildingStorefrontIcon,
+  ClipboardDocumentListIcon,
   ChatBubbleLeftRightIcon,
   CreditCardIcon
 } from '@heroicons/react/24/outline';
@@ -30,6 +31,7 @@ const navigation = [
   { name: 'Sales', href: '/sales', icon: BanknotesIcon },
   { name: 'Returns', href: '/returns', icon: ArrowUturnLeftIcon },
   { name: 'Suppliers', href: '/suppliers', icon: BuildingStorefrontIcon },
+  { name: 'Purchase Orders', href: '/purchase-orders', icon: ClipboardDocumentListIcon },
   { name: 'Customers', href: '/customers', icon: UserGroupIcon },
   { name: 'Expenses', href: '/expenses', icon: ReceiptPercentIcon },
   { name: 'Reports', href: '/reports', icon: ChartBarIcon },
