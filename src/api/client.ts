@@ -162,6 +162,15 @@ export interface ExpenseListResult {
   pagination: { page: number; limit: number; total: number; pages: number };
 }
 
+export interface NotificationSettings {
+  notifyWhatsAppReports: boolean;
+  notifyLowStock: boolean;
+  notifyPhone: string | null;
+  ownerPhone: string;
+  /** Where the daily report actually goes: notifyPhone ?? ownerPhone. */
+  recipientPhone: string;
+}
+
 /** Map the API's expense shape into the app's domain `Expense` (lowercase category, Date objects). */
 function mapApiExpense(e: ApiExpense): Expense {
   return {
@@ -325,6 +334,21 @@ class ApiClient {
     return this.request<{ user: any; shop: any; subscription: any }>(
       '/api/auth/me',
     );
+  }
+
+  // ── Notification settings ─────────────────────────────────────────────
+
+  /** GET /api/shops/notifications — current shop's WhatsApp report / low-stock prefs. */
+  async getNotificationSettings() {
+    return this.request<NotificationSettings>('/api/shops/notifications');
+  }
+
+  /** PATCH /api/shops/notifications — owner-only. Send only the fields you change. */
+  async updateNotificationSettings(data: Partial<Pick<NotificationSettings, 'notifyWhatsAppReports' | 'notifyLowStock' | 'notifyPhone'>>) {
+    return this.request<NotificationSettings>('/api/shops/notifications', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
   }
 
   // ── Products ──────────────────────────────────────────────────────────

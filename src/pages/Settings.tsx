@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   UserIcon,
@@ -15,6 +15,8 @@ import { Card, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
+import { Toast, useToast } from '@/components/ui/Toast';
+import { api, type NotificationSettings } from '@/api/client';
 import { useAuthStore } from '@/stores/authStore';
 import { useShopStore } from '@/stores/shopStore';
 import { getShopType } from '@/data/shopTypes';
@@ -42,6 +44,46 @@ export function Settings() {
 
   const clearError = (field: string) => {
     if (errors[field]) setErrors({ ...errors, [field]: '' });
+  };
+
+  // ── Notification settings (real, persisted via /api/shops/notifications) ──
+  const { toast, showToast, dismissToast } = useToast();
+  const [notif, setNotif] = useState<NotificationSettings | null>(null);
+  const [notifLoading, setNotifLoading] = useState(false);
+  const [savingKey, setSavingKey] = useState<null | 'notifyWhatsAppReports' | 'notifyLowStock'>(null);
+
+  // Load lazily the first time the Notifications tab is opened.
+  useEffect(() => {
+    if (activeTab !== 'notifications' || notif || notifLoading) return;
+    let cancelled = false;
+    setNotifLoading(true);
+    api.getNotificationSettings().then((res) => {
+      if (cancelled) return;
+      if (res.data) {
+        setNotif(res.data);
+      } else {
+        showToast(res.error || 'Failed to load notification settings', 'error');
+      }
+      setNotifLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [activeTab, notif, notifLoading, showToast]);
+
+  const toggleNotif = async (key: 'notifyWhatsAppReports' | 'notifyLowStock') => {
+    if (!notif || savingKey) return;
+    const next = !notif[key];
+    const prev = notif;
+    // Optimistic: flip immediately, revert on failure (no fake success).
+    setNotif({ ...notif, [key]: next });
+    setSavingKey(key);
+    const res = await api.updateNotificationSettings({ [key]: next });
+    setSavingKey(null);
+    if (res.data) {
+      setNotif(res.data);
+    } else {
+      setNotif(prev); // revert
+      showToast(res.error || 'Failed to update notification settings', 'error');
+    }
   };
 
   const tabs = [
@@ -292,29 +334,54 @@ export function Settings() {
 
           {activeTab === 'notifications' && (
             <Card>
-              <CardHeader title="Notifications" subtitle="Configure alerts and reports" />
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-slate-700/30 rounded-xl">
-                  <div className="flex items-center gap-3">
-                    <DevicePhoneMobileIcon className="w-6 h-6 text-amber-400" />
-                    <div>
-                      <h3 className="font-medium text-white">WhatsApp Reports</h3>
-                      <p className="text-sm text-slate-400">Daily summary to your WhatsApp</p>
+              <CardHeader title={t('settings.notifications')} subtitle="Configure alerts and reports" />
+              {notifLoading && !notif ? (
+                <p className="text-slate-400 text-sm">Loading…</p>
+              ) : !notif ? (
+                <p className="text-red-400 text-sm">Couldn't load notification settings.</p>
+              ) : (
+                <div className="space-y-4">
+                  {/* WhatsApp daily reports */}
+                  <div className="flex items-center justify-between p-4 bg-slate-700/30 rounded-xl">
+                    <div className="flex items-center gap-3">
+                      <DevicePhoneMobileIcon className="w-6 h-6 text-amber-400" />
+                      <div>
+                        <h3 className="font-medium text-white">{t('settings.whatsappReports')}</h3>
+                        <p className="text-sm text-slate-400">Daily sales summary to your WhatsApp</p>
+                      </div>
                     </div>
+                    <Toggle
+                      on={notif.notifyWhatsAppReports}
+                      busy={savingKey === 'notifyWhatsAppReports'}
+                      onClick={() => toggleNotif('notifyWhatsAppReports')}
+                      label={t('settings.whatsappReports')}
+                    />
                   </div>
-                  <Badge variant="success">Enabled</Badge>
-                </div>
-                <div className="flex items-center justify-between p-4 bg-slate-700/30 rounded-xl">
-                  <div className="flex items-center gap-3">
-                    <BellIcon className="w-6 h-6 text-amber-400" />
-                    <div>
-                      <h3 className="font-medium text-white">Low Stock Alerts</h3>
-                      <p className="text-sm text-slate-400">Get notified when products run low</p>
+
+                  {/* Low stock alerts */}
+                  <div className="flex items-center justify-between p-4 bg-slate-700/30 rounded-xl">
+                    <div className="flex items-center gap-3">
+                      <BellIcon className="w-6 h-6 text-amber-400" />
+                      <div>
+                        <h3 className="font-medium text-white">{t('settings.lowStockAlerts')}</h3>
+                        <p className="text-sm text-slate-400">Get notified when products run low</p>
+                      </div>
                     </div>
+                    <Toggle
+                      on={notif.notifyLowStock}
+                      busy={savingKey === 'notifyLowStock'}
+                      onClick={() => toggleNotif('notifyLowStock')}
+                      label={t('settings.lowStockAlerts')}
+                    />
                   </div>
-                  <Badge variant="success">Enabled</Badge>
+
+                  {/* Recipient phone — where the messages actually go. */}
+                  <p className="text-sm text-slate-400 px-1">
+                    Sent to <span className="font-medium text-slate-200">{notif.recipientPhone}</span>
+                    {notif.notifyPhone ? '' : ' (your account phone)'}
+                  </p>
                 </div>
-              </div>
+              )}
             </Card>
           )}
 
@@ -328,6 +395,44 @@ export function Settings() {
           )}
         </div>
       </div>
+
+      <Toast toast={toast} onDismiss={dismissToast} />
     </div>
+  );
+}
+
+/**
+ * Small accessible on/off switch. Optimistic toggling lives in the parent;
+ * `busy` disables interaction while the PATCH is in flight.
+ */
+function Toggle({
+  on,
+  busy,
+  onClick,
+  label,
+}: {
+  on: boolean;
+  busy: boolean;
+  onClick: () => void;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      aria-label={label}
+      disabled={busy}
+      onClick={onClick}
+      className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${
+        on ? 'bg-green-500' : 'bg-slate-600'
+      }`}
+    >
+      <span
+        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+          on ? 'translate-x-6' : 'translate-x-1'
+        }`}
+      />
+    </button>
   );
 }
