@@ -3,28 +3,114 @@ import { Link } from 'react-router-dom';
 import {
   BanknotesIcon,
   CalendarIcon,
-  FunnelIcon,
   ChevronRightIcon,
-  ReceiptPercentIcon
+  ReceiptPercentIcon,
+  PrinterIcon,
+  EnvelopeIcon,
+  ChatBubbleLeftRightIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
+import api from '@/api/client';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
+import { Modal } from '@/components/ui/Modal';
+import { Toast, useToast } from '@/components/ui/Toast';
 import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
-import { formatCurrency, formatDate, formatTime, formatRelativeTime, type Sale, PAYMENT_METHODS } from '@/types';
+import { formatCurrency, formatDate, formatTime, type Sale, PAYMENT_METHODS } from '@/types';
 
 export function Sales() {
   const { shop } = useAuthStore();
   const { sales, loadAll } = useInventoryStore();
-  
+  const { toast, showToast, dismissToast } = useToast();
+
   const [dateFilter, setDateFilter] = useState<'today' | 'week' | 'month' | 'all'>('today');
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
+
+  // Email-receipt modal state
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [customerEmail, setCustomerEmail] = useState('');
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
 
   useEffect(() => {
     if (shop) {
       loadAll(shop.id);
     }
   }, [shop, loadAll]);
+
+  const shopName = shop?.name || 'YeboMart';
+  const receiptNumberOf = (sale: Sale) =>
+    sale.receiptNumber || sale.id.slice(-8).toUpperCase();
+
+  const openEmailModal = () => {
+    // Prefill the linked customer's email if the sale carries one.
+    setCustomerEmail(selectedSale?.customer?.email || '');
+    setShowEmailModal(true);
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleSendEmail = async () => {
+    if (!selectedSale || !customerEmail) return;
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(customerEmail)) {
+      showToast('Please enter a valid email address', 'error');
+      return;
+    }
+
+    setIsSendingEmail(true);
+    try {
+      await api.sendReceiptEmail({
+        saleId: selectedSale.id,
+        email: customerEmail,
+        shopName,
+        receiptNumber: receiptNumberOf(selectedSale),
+        items: selectedSale.items,
+        subtotal: selectedSale.subtotal,
+        discount: selectedSale.discount,
+        total: selectedSale.totalAmount,
+        date: new Date(selectedSale.createdAt).toISOString(),
+      });
+      showToast('Receipt emailed successfully', 'success');
+      setShowEmailModal(false);
+      setCustomerEmail('');
+    } catch (err: any) {
+      // Fail loudly — never report a silent success.
+      showToast(err?.message || 'Failed to send receipt. Please try again.', 'error');
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
+
+  // Build a plain-text receipt for WhatsApp sharing (client-only, no backend).
+  const buildReceiptText = (sale: Sale) => {
+    const lines = [
+      shopName,
+      `Receipt #${receiptNumberOf(sale)}`,
+      `${formatDate(sale.createdAt)} ${formatTime(sale.createdAt)}`,
+      '',
+      ...sale.items.map(
+        (item) => `${item.quantity} x ${item.productName} — ${formatCurrency(item.totalPrice)}`
+      ),
+      '',
+      `Subtotal: ${formatCurrency(sale.subtotal)}`,
+    ];
+    if (sale.discount > 0) {
+      lines.push(`Discount: -${formatCurrency(sale.discount)}`);
+    }
+    lines.push(`TOTAL: ${formatCurrency(sale.totalAmount)}`, '', 'Thank you for shopping with us!');
+    return lines.join('\n');
+  };
+
+  const handleShareWhatsApp = () => {
+    if (!selectedSale) return;
+    const text = encodeURIComponent(buildReceiptText(selectedSale));
+    window.open(`https://wa.me/?text=${text}`, '_blank', 'noopener,noreferrer');
+  };
 
   // Filter sales by date
   const now = new Date();
@@ -240,42 +326,143 @@ export function Sales() {
             </div>
 
             <div className="p-4 space-y-4">
-              {/* Items */}
-              <div className="space-y-2">
-                {selectedSale.items.map((item) => (
-                  <div key={item.id} className="flex justify-between">
-                    <div>
-                      <p className="text-white">{item.productName}</p>
-                      <p className="text-sm text-slate-400">
-                        {item.quantity} × {formatCurrency(item.unitPrice)}
-                      </p>
+              {/* Printable receipt — white card matching the POS receipt so
+                  the printed output is identical regardless of entry point. */}
+              <div className="bg-white text-black p-4 rounded-lg font-mono text-sm print:shadow-none" id="receipt">
+                <div className="text-center border-b border-dashed border-gray-300 pb-3 mb-3">
+                  <h3 className="font-bold text-lg">{shopName}</h3>
+                  <p className="text-xs text-gray-500">{shop?.address || ''}</p>
+                  <p className="text-xs text-gray-500">Tel: {shop?.ownerPhone || ''}</p>
+                </div>
+
+                <div className="text-xs text-gray-500 mb-3">
+                  <p>Date: {formatDate(selectedSale.createdAt)} {formatTime(selectedSale.createdAt)}</p>
+                  <p className="font-bold text-black">Receipt #: {receiptNumberOf(selectedSale)}</p>
+                </div>
+
+                <div className="border-b border-dashed border-gray-300 pb-3 mb-3">
+                  {selectedSale.items.map((item) => (
+                    <div key={item.id} className="flex justify-between py-1">
+                      <span className="flex-1">{item.productName}</span>
+                      <span className="w-8 text-center">x{item.quantity}</span>
+                      <span className="w-20 text-right">{formatCurrency(item.totalPrice)}</span>
                     </div>
-                    <p className="font-medium text-white">
-                      {formatCurrency(item.totalPrice)}
-                    </p>
+                  ))}
+                </div>
+
+                <div className="space-y-1 mb-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Subtotal</span>
+                    <span>{formatCurrency(selectedSale.subtotal)}</span>
                   </div>
-                ))}
+                  {selectedSale.discount > 0 && (
+                    <div className="flex justify-between text-sm text-green-600">
+                      <span>Discount</span>
+                      <span>-{formatCurrency(selectedSale.discount)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-sm">
+                    <span>Payment</span>
+                    <span>{PAYMENT_METHODS.find(p => p.value === selectedSale.paymentMethod)?.label || selectedSale.paymentMethod}</span>
+                  </div>
+                </div>
+
+                <div className="flex justify-between font-bold text-lg border-t border-gray-300 pt-2">
+                  <span>TOTAL</span>
+                  <span>{formatCurrency(selectedSale.totalAmount)}</span>
+                </div>
+
+                <div className="text-center mt-4 pt-3 border-t border-dashed border-gray-300">
+                  <p className="text-xs text-gray-500">Thank you for shopping with us!</p>
+                  <p className="text-xs text-gray-400">Powered by YeboMart</p>
+                </div>
               </div>
 
-              <div className="border-t border-slate-700 pt-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400">Payment</span>
-                  <Badge variant="success">
-                    {getPaymentIcon(selectedSale.paymentMethod)}{' '}
-                    {PAYMENT_METHODS.find(p => p.value === selectedSale.paymentMethod)?.label}
-                  </Badge>
-                </div>
-                <div className="flex justify-between items-center mt-3">
-                  <span className="text-lg font-semibold text-white">Total</span>
-                  <span className="text-2xl font-bold text-amber-400">
-                    {formatCurrency(selectedSale.totalAmount)}
-                  </span>
-                </div>
+              {/* Payment badge (on-screen chrome — hidden when printing) */}
+              <div className="flex justify-between items-center print:hidden">
+                <span className="text-slate-400">Payment</span>
+                <Badge variant="success">
+                  {getPaymentIcon(selectedSale.paymentMethod)}{' '}
+                  {PAYMENT_METHODS.find(p => p.value === selectedSale.paymentMethod)?.label}
+                </Badge>
+              </div>
+
+              {/* Receipt actions */}
+              <div className="grid grid-cols-3 gap-2 print:hidden">
+                <Button variant="primary" className="w-full" onClick={handlePrint}>
+                  <PrinterIcon className="w-5 h-5" />
+                  Print
+                </Button>
+                <Button variant="secondary" className="w-full" onClick={openEmailModal}>
+                  <EnvelopeIcon className="w-5 h-5" />
+                  Email
+                </Button>
+                <Button variant="secondary" className="w-full" onClick={handleShareWhatsApp}>
+                  <ChatBubbleLeftRightIcon className="w-5 h-5" />
+                  WhatsApp
+                </Button>
               </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* Email Receipt Modal */}
+      <Modal
+        isOpen={showEmailModal}
+        onClose={() => {
+          setShowEmailModal(false);
+          setCustomerEmail('');
+        }}
+        title="Email Receipt"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-slate-400 text-sm">
+            Send a copy of this receipt to the customer's email address.
+          </p>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              Customer Email
+            </label>
+            <input
+              type="email"
+              value={customerEmail}
+              onChange={(e) => setCustomerEmail(e.target.value)}
+              placeholder="customer@example.com"
+              autoFocus
+              className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
+            />
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <Button
+              variant="secondary"
+              className="flex-1"
+              onClick={() => {
+                setShowEmailModal(false);
+                setCustomerEmail('');
+              }}
+            >
+              <XMarkIcon className="w-5 h-5" />
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              className="flex-1"
+              onClick={handleSendEmail}
+              disabled={!customerEmail || isSendingEmail}
+              isLoading={isSendingEmail}
+            >
+              <EnvelopeIcon className="w-5 h-5" />
+              Send Receipt
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Toast toast={toast} onDismiss={dismissToast} />
     </div>
   );
 }

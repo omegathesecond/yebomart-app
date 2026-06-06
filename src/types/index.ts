@@ -106,6 +106,9 @@ export interface Sale {
   syncedAt?: Date;
   localId?: string;       // Client-generated id used for offline-sync dedup
   pendingSync?: boolean;  // True while the sale is queued offline, not yet on the server
+  // Linked buyer, only present when the API includes the customer relation.
+  // Used to prefill the receipt email field for a past sale.
+  customer?: { id?: string; name?: string; email?: string | null } | null;
 }
 
 // Sale Item
