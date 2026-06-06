@@ -458,3 +458,28 @@ input[type="number"] {
 .border-3 {
   border-width: 3px;
 }
+
+/*
+ * Receipt printing — shared by the POS sale-complete modal and the Sales
+ * history receipt modal. Both render a white receipt card with id="receipt".
+ * When printing, hide everything else so only the receipt lands on paper,
+ * giving consistent output regardless of which screen triggered the print.
+ */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #receipt,
+  #receipt * {
+    visibility: visible;
+  }
+  #receipt {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    box-shadow: none;
+  }
+}
