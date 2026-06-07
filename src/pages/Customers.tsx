@@ -12,6 +12,8 @@ import {
   BanknotesIcon,
   ReceiptPercentIcon,
   ShoppingBagIcon,
+  PaperAirplaneIcon,
+  BellAlertIcon,
 } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -55,6 +57,9 @@ export function Customers() {
   // Record payment
   const [paymentAmount, setPaymentAmount] = useState('');
   const [recordingPayment, setRecordingPayment] = useState(false);
+
+  // Send statement / reminder via YeboLink (WhatsApp → SMS)
+  const [sending, setSending] = useState<'statement' | 'reminder' | null>(null);
 
   const fetchCustomers = useCallback(
     async (term: string) => {
@@ -153,6 +158,19 @@ export function Customers() {
     // Refresh detail + list balances
     openDetail(detail.id);
     fetchCustomers(searchQuery);
+  };
+
+  const handleSendStatement = async (reminder: boolean) => {
+    if (!detail || !detail.phone) return;
+    setSending(reminder ? 'reminder' : 'statement');
+    const { data, error } = await api.sendCustomerStatement(detail.id, { reminder });
+    setSending(null);
+    if (error || !data) {
+      showToast(error || `Failed to send ${reminder ? 'reminder' : 'statement'}`, 'error');
+      return;
+    }
+    const channel = data.channel === 'whatsapp' ? 'WhatsApp' : 'SMS';
+    showToast(`${reminder ? 'Reminder' : 'Statement'} sent via ${channel}`);
   };
 
   // Total spent = sum of returned (recent) sales. The API caps sales at the
@@ -507,10 +525,12 @@ export function Customers() {
               </div>
             )}
 
-            <div className="flex gap-3 pt-2">
+            {/* Send statement / reminder via WhatsApp (SMS fallback). Manager-gated
+                server-side; disabled here when the customer has no phone. */}
+            <div className="flex flex-wrap gap-3 pt-2">
               <Button
                 variant="secondary"
-                className="flex-1"
+                className="flex-1 min-w-[7rem]"
                 leftIcon={<PencilIcon className="w-5 h-5" />}
                 onClick={() => {
                   const c = detail;
@@ -520,6 +540,38 @@ export function Customers() {
               >
                 Edit
               </Button>
+              <div
+                className="flex-1 min-w-[8rem]"
+                title={detail.phone ? undefined : 'Add a phone number to send a statement'}
+              >
+                <Button
+                  variant="primary"
+                  className="w-full"
+                  leftIcon={<PaperAirplaneIcon className="w-5 h-5" />}
+                  onClick={() => handleSendStatement(false)}
+                  disabled={!detail.phone || sending !== null}
+                  isLoading={sending === 'statement'}
+                >
+                  Send statement
+                </Button>
+              </div>
+              {detail.balance > 0 && (
+                <div
+                  className="flex-1 min-w-[8rem]"
+                  title={detail.phone ? undefined : 'Add a phone number to send a reminder'}
+                >
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    leftIcon={<BellAlertIcon className="w-5 h-5" />}
+                    onClick={() => handleSendStatement(true)}
+                    disabled={!detail.phone || sending !== null}
+                    isLoading={sending === 'reminder'}
+                  >
+                    Send reminder
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         ) : null}

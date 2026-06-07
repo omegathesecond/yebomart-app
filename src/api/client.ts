@@ -720,6 +720,20 @@ class ApiClient {
     );
   }
 
+  /**
+   * POST /api/customers/:id/send-statement — WhatsApp (SMS fallback) the customer
+   * their balance + recent ledger, or a short payment reminder. Manager-gated.
+   */
+  async sendCustomerStatement(id: string, data?: { reminder?: boolean }) {
+    return this.request<{ channel: string; messageId: string; balance: number }>(
+      `/api/customers/${id}/send-statement`,
+      {
+        method: 'POST',
+        body: JSON.stringify(data ?? {}),
+      },
+    );
+  }
+
   // ── Expenses ──────────────────────────────────────────────────────────
 
   /** GET /api/expenses — list (newest first), scoped to the caller's shop. */
