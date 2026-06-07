@@ -31,6 +31,11 @@ export interface Shop {
   timezone: string;
   address?: string;
   logoUrl?: string;
+  // VAT / Tax (off by default). vatRate is a percentage (e.g. 15 = 15%).
+  vatRegistered?: boolean;
+  vatRate?: number;
+  vatNumber?: string | null;
+  pricesIncludeVat?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -96,6 +101,7 @@ export interface Sale {
   receiptNumber?: string;     // Human-readable receipt number (e.g., RCP-260212-0001)
   subtotal: number;           // Before discount
   discount: number;           // Discount amount
+  tax?: number;               // VAT amount (0 when shop isn't VAT-registered)
   discountPercent?: number;   // Discount as percentage (for display)
   discountReason?: string;    // Why discount was applied (audit)
   discountApprovedBy?: string; // Manager ID if override was needed

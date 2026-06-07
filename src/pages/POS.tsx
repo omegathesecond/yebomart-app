@@ -24,6 +24,7 @@ import { CustomerPicker } from '@/components/CustomerPicker';
 import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
 import { useCartStore, useCartTotal, useCartSubtotal, useCartDiscount } from '@/stores/cartStore';
+import { computeVat } from '@/lib/vat';
 import { formatCurrency, type Product, PAYMENT_METHODS } from '@/types';
 import { BarcodeScanner } from '@/components/scanner/BarcodeScanner';
 
@@ -49,18 +50,21 @@ export function POS() {
   const cartTotal = useCartTotal();
   const cartSubtotal = useCartSubtotal();
   const discount = useCartDiscount();
+  // Live VAT breakdown for the cart footer (mirrors what the sale persists).
+  const cartVat = computeVat(cartSubtotal, discount?.amount || 0, shop);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [showScanner, setShowScanner] = useState(false);
   const [showCustomerPicker, setShowCustomerPicker] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [lastSale, setLastSale] = useState<{ 
-    total: number; 
-    subtotal: number; 
-    discount: number; 
-    items: any[]; 
-    id: string; 
+  const [lastSale, setLastSale] = useState<{
+    total: number;
+    subtotal: number;
+    discount: number;
+    tax: number;
+    items: any[];
+    id: string;
     receiptNumber?: string;
     date: Date;
     paymentMethod?: string;
@@ -190,10 +194,11 @@ export function POS() {
       setIsProcessing(false);
       
       if (sale) {
-        setLastSale({ 
+        setLastSale({
           total: sale.totalAmount,
           subtotal: sale.subtotal || sale.totalAmount,
           discount: sale.discount || 0,
+          tax: sale.tax || 0,
           items: sale.items,
           id: sale.id,
           receiptNumber: sale.receiptNumber,
@@ -552,7 +557,17 @@ export function POS() {
                 <span className="text-slate-500 text-sm">-</span>
               )}
             </div>
-            
+
+            {/* VAT — only when the shop is VAT-registered */}
+            {shop?.vatRegistered && cartVat.tax > 0 && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-slate-400">
+                  {shop.pricesIncludeVat ? `Incl. VAT (${shop.vatRate}%)` : `VAT (${shop.vatRate}%)`}
+                </span>
+                <span className="text-slate-300">{formatCurrency(cartVat.tax)}</span>
+              </div>
+            )}
+
             {/* Total */}
             <div className="flex items-center justify-between pt-2 border-t border-slate-600">
               <span className="text-white font-medium">Total</span>
@@ -644,8 +659,11 @@ export function POS() {
                 <h3 className="font-bold text-lg">{shop?.name || 'YeboMart'}</h3>
                 <p className="text-xs text-gray-500">{shop?.address || ''}</p>
                 <p className="text-xs text-gray-500">Tel: {shop?.ownerPhone || ''}</p>
+                {shop?.vatRegistered && shop.vatNumber && (
+                  <p className="text-xs text-gray-500">VAT No: {shop.vatNumber}</p>
+                )}
               </div>
-              
+
               <div className="text-xs text-gray-500 mb-3">
                 <p>Date: {lastSale.date.toLocaleDateString()} {lastSale.date.toLocaleTimeString()}</p>
                 <p className="font-bold text-black">Receipt #: {lastSale.receiptNumber || lastSale.id.slice(-8).toUpperCase()}</p>
@@ -676,6 +694,12 @@ export function POS() {
                   <div className="flex justify-between text-sm text-green-600">
                     <span>Discount</span>
                     <span>-{formatCurrency(lastSale.discount)}</span>
+                  </div>
+                )}
+                {shop?.vatRegistered && lastSale.tax > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span>{shop.pricesIncludeVat ? `Incl. VAT (${shop.vatRate}%)` : `VAT (${shop.vatRate}%)`}</span>
+                    <span>{formatCurrency(lastSale.tax)}</span>
                   </div>
                 )}
               </div>

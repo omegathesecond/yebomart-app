@@ -102,6 +102,10 @@ export function Sales() {
     if (sale.discount > 0) {
       lines.push(`Discount: -${formatCurrency(sale.discount)}`);
     }
+    if (shop?.vatRegistered && (sale.tax ?? 0) > 0) {
+      const label = shop.pricesIncludeVat ? `Incl. VAT (${shop.vatRate}%)` : `VAT (${shop.vatRate}%)`;
+      lines.push(`${label}: ${formatCurrency(sale.tax ?? 0)}`);
+    }
     lines.push(`TOTAL: ${formatCurrency(sale.totalAmount)}`, '', 'Thank you for shopping with us!');
     return lines.join('\n');
   };
@@ -333,6 +337,9 @@ export function Sales() {
                   <h3 className="font-bold text-lg">{shopName}</h3>
                   <p className="text-xs text-gray-500">{shop?.address || ''}</p>
                   <p className="text-xs text-gray-500">Tel: {shop?.ownerPhone || ''}</p>
+                  {shop?.vatRegistered && shop.vatNumber && (
+                    <p className="text-xs text-gray-500">VAT No: {shop.vatNumber}</p>
+                  )}
                 </div>
 
                 <div className="text-xs text-gray-500 mb-3">
@@ -359,6 +366,12 @@ export function Sales() {
                     <div className="flex justify-between text-sm text-green-600">
                       <span>Discount</span>
                       <span>-{formatCurrency(selectedSale.discount)}</span>
+                    </div>
+                  )}
+                  {shop?.vatRegistered && (selectedSale.tax ?? 0) > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span>{shop.pricesIncludeVat ? `Incl. VAT (${shop.vatRate}%)` : `VAT (${shop.vatRate}%)`}</span>
+                      <span>{formatCurrency(selectedSale.tax ?? 0)}</span>
                     </div>
                   )}
                   <div className="flex justify-between text-sm">

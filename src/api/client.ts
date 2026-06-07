@@ -171,6 +171,15 @@ export interface NotificationSettings {
   recipientPhone: string;
 }
 
+export interface VatSettings {
+  vatRegistered: boolean;
+  /** Percentage, e.g. 15 for the Eswatini standard rate. */
+  vatRate: number;
+  vatNumber: string | null;
+  /** When true product prices already include VAT (tax extracted, not added). */
+  pricesIncludeVat: boolean;
+}
+
 /** Map the API's expense shape into the app's domain `Expense` (lowercase category, Date objects). */
 function mapApiExpense(e: ApiExpense): Expense {
   return {
@@ -346,6 +355,21 @@ class ApiClient {
   /** PATCH /api/shops/notifications — owner-only. Send only the fields you change. */
   async updateNotificationSettings(data: Partial<Pick<NotificationSettings, 'notifyWhatsAppReports' | 'notifyLowStock' | 'notifyPhone'>>) {
     return this.request<NotificationSettings>('/api/shops/notifications', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // ── VAT / tax settings ────────────────────────────────────────────────
+
+  /** GET /api/shops/vat — current shop's VAT / tax settings. */
+  async getVatSettings() {
+    return this.request<VatSettings>('/api/shops/vat');
+  }
+
+  /** PATCH /api/shops/vat — owner-only. Send only the fields you change. */
+  async updateVatSettings(data: Partial<VatSettings>) {
+    return this.request<VatSettings>('/api/shops/vat', {
       method: 'PATCH',
       body: JSON.stringify(data),
     });

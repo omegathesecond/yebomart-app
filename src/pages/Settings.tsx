@@ -10,13 +10,14 @@ import {
   PaintBrushIcon,
   TagIcon,
   GlobeAltIcon,
+  ReceiptPercentIcon,
 } from '@heroicons/react/24/outline';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { Toast, useToast } from '@/components/ui/Toast';
-import { api, type NotificationSettings } from '@/api/client';
+import { api, type NotificationSettings, type VatSettings } from '@/api/client';
 import { useAuthStore } from '@/stores/authStore';
 import { useShopStore } from '@/stores/shopStore';
 import { getShopType } from '@/data/shopTypes';
@@ -86,12 +87,75 @@ export function Settings() {
     }
   };
 
+  // ── VAT / tax settings (real, persisted via /api/shops/vat) ──────────────
+  const [vat, setVat] = useState<VatSettings | null>(null);
+  const [vatLoading, setVatLoading] = useState(false);
+  const [vatSaving, setVatSaving] = useState(false);
+  // Editable form mirror of the loaded settings (rate/number are free-text).
+  const [vatRegistered, setVatRegistered] = useState(false);
+  const [vatRate, setVatRate] = useState('15');
+  const [vatNumber, setVatNumber] = useState('');
+  const [pricesIncludeVat, setPricesIncludeVat] = useState(false);
+
+  // Load lazily the first time the Tax/VAT tab is opened.
+  useEffect(() => {
+    if (activeTab !== 'vat' || vat || vatLoading) return;
+    let cancelled = false;
+    setVatLoading(true);
+    api.getVatSettings().then((res) => {
+      if (cancelled) return;
+      if (res.data) {
+        setVat(res.data);
+        setVatRegistered(res.data.vatRegistered);
+        // Show a sensible default rate (Eswatini 15%) when none is set yet.
+        setVatRate(String(res.data.vatRate || 15));
+        setVatNumber(res.data.vatNumber || '');
+        setPricesIncludeVat(res.data.pricesIncludeVat);
+      } else {
+        showToast(res.error || 'Failed to load VAT settings', 'error');
+      }
+      setVatLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [activeTab, vat, vatLoading, showToast]);
+
+  const handleSaveVat = async () => {
+    const rate = parseFloat(vatRate);
+    if (vatRegistered && (isNaN(rate) || rate < 0 || rate > 100)) {
+      showToast('Enter a valid VAT rate between 0 and 100', 'error');
+      return;
+    }
+    setVatSaving(true);
+    const payload: Partial<VatSettings> = {
+      vatRegistered,
+      vatRate: isNaN(rate) ? 0 : rate,
+      vatNumber: vatNumber.trim(),
+      pricesIncludeVat,
+    };
+    const res = await api.updateVatSettings(payload);
+    setVatSaving(false);
+    if (res.data) {
+      setVat(res.data);
+      // Reflect immediately on receipts / POS by updating the cached shop.
+      updateShop({
+        vatRegistered: res.data.vatRegistered,
+        vatRate: res.data.vatRate,
+        vatNumber: res.data.vatNumber,
+        pricesIncludeVat: res.data.pricesIncludeVat,
+      });
+      showToast('VAT settings saved', 'success');
+    } else {
+      showToast(res.error || 'Failed to save VAT settings', 'error');
+    }
+  };
+
   const tabs = [
     { id: 'shop', label: t('settings.shop'), icon: BuildingOfficeIcon },
     { id: 'shops', label: t('settings.yourShops') || 'Your Shops', icon: BuildingStorefrontIcon, badge: hasMultipleShops ? shops.length : undefined },
     { id: 'profile', label: t('settings.profile'), icon: UserIcon },
     { id: 'language', label: t('settings.language') || 'Language', icon: GlobeAltIcon },
     { id: 'notifications', label: t('settings.notifications'), icon: BellIcon },
+    { id: 'vat', label: 'Tax / VAT', icon: ReceiptPercentIcon },
     { id: 'ai', label: t('settings.aiAssistant'), icon: SparklesIcon },
     { id: 'appearance', label: t('settings.appearance'), icon: PaintBrushIcon },
   ];
@@ -380,6 +444,74 @@ export function Settings() {
                     Sent to <span className="font-medium text-slate-200">{notif.recipientPhone}</span>
                     {notif.notifyPhone ? '' : ' (your account phone)'}
                   </p>
+                </div>
+              )}
+            </Card>
+          )}
+
+          {activeTab === 'vat' && (
+            <Card>
+              <CardHeader title="Tax / VAT" subtitle="Charge VAT and print VAT-compliant receipts" />
+              {vatLoading && !vat ? (
+                <p className="text-slate-400 text-sm">Loading…</p>
+              ) : (
+                <div className="space-y-4">
+                  {/* VAT registered toggle */}
+                  <div className="flex items-center justify-between p-4 bg-slate-700/30 rounded-xl">
+                    <div className="flex items-center gap-3">
+                      <ReceiptPercentIcon className="w-6 h-6 text-amber-400" />
+                      <div>
+                        <h3 className="font-medium text-white">VAT registered</h3>
+                        <p className="text-sm text-slate-400">Apply VAT to sales and show it on receipts</p>
+                      </div>
+                    </div>
+                    <Toggle
+                      on={vatRegistered}
+                      busy={vatSaving}
+                      onClick={() => setVatRegistered((v) => !v)}
+                      label="VAT registered"
+                    />
+                  </div>
+
+                  {vatRegistered && (
+                    <>
+                      <Input
+                        label="VAT rate (%)"
+                        type="number"
+                        value={vatRate}
+                        onChange={(e) => setVatRate(e.target.value)}
+                        placeholder="15"
+                        hint="Eswatini standard rate is 15%"
+                      />
+                      <Input
+                        label="VAT number"
+                        value={vatNumber}
+                        onChange={(e) => setVatNumber(e.target.value)}
+                        placeholder="Your TIN / VAT registration number"
+                        hint="Printed on receipts"
+                      />
+                      <div className="flex items-center justify-between p-4 bg-slate-700/30 rounded-xl">
+                        <div>
+                          <h3 className="font-medium text-white">Prices include VAT</h3>
+                          <p className="text-sm text-slate-400">
+                            {pricesIncludeVat
+                              ? 'Product prices already include VAT (extracted from the total).'
+                              : 'VAT is added on top of product prices at checkout.'}
+                          </p>
+                        </div>
+                        <Toggle
+                          on={pricesIncludeVat}
+                          busy={vatSaving}
+                          onClick={() => setPricesIncludeVat((v) => !v)}
+                          label="Prices include VAT"
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  <Button onClick={handleSaveVat} isLoading={vatSaving}>
+                    Save VAT settings
+                  </Button>
                 </div>
               )}
             </Card>

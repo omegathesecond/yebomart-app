@@ -4,6 +4,8 @@ import type { Customer } from '@/api/client';
 import api, { NETWORK_ERROR } from '@/api/client';
 import { addToSyncQueue } from '@/lib/db';
 import { useSyncStore } from '@/stores/syncStore';
+import { useAuthStore } from '@/stores/authStore';
+import { computeVat } from '@/lib/vat';
 
 interface DiscountInfo {
   amount: number;
@@ -197,7 +199,15 @@ export const useCartStore = create<CartState>((set, get) => ({
     }, 0);
 
     const discountAmount = discount?.amount || 0;
-    const totalAmount = Math.max(0, subtotal - discountAmount);
+
+    // VAT: the cart charges the tax-inclusive total so the server's
+    // insufficient-payment guard (amountPaid vs server total) holds. The server
+    // recomputes `tax` authoritatively from the shop config; this mirrors that
+    // formula for the optimistic / offline receipt. Non-registered shops →
+    // tax 0, total = subtotal - discount (unchanged).
+    const vat = computeVat(subtotal, discountAmount, useAuthStore.getState().shop);
+    const tax = vat.tax;
+    const totalAmount = vat.total;
 
     if (items.length === 0) return null;
 
@@ -295,6 +305,7 @@ export const useCartStore = create<CartState>((set, get) => ({
         discount: discountAmount,
         discountPercent: discount?.percent,
         discountReason: discount?.reason,
+        tax,
         totalAmount,
         paymentMethod,
         createdAt: new Date(),
@@ -325,7 +336,9 @@ export const useCartStore = create<CartState>((set, get) => ({
       // Clear cart on success
       set({ items: [], paymentMethod: 'cash', discount: null, customer: null, isProcessing: false });
 
-      // Return the sale with formatted items for UI
+      // Return the sale with formatted items for UI. Prefer the server's
+      // authoritative tax / total (it recomputes VAT from the shop config),
+      // falling back to the client computation if the field is absent.
       return {
         ...data,
         items: receiptItems,
@@ -333,7 +346,8 @@ export const useCartStore = create<CartState>((set, get) => ({
         discount: discountAmount,
         discountPercent: discount?.percent,
         discountReason: discount?.reason,
-        totalAmount,
+        tax: (data as { tax?: number }).tax ?? tax,
+        totalAmount: (data as { totalAmount?: number }).totalAmount ?? totalAmount,
         createdAt: new Date(),
       } as Sale;
 
@@ -357,10 +371,14 @@ export const useCartSubtotal = () => useCartStore((state) =>
   state.items.reduce((sum, item) => sum + (getItemPrice(item) * item.quantity), 0)
 );
 
+// VAT-aware payable total. For exclusive-VAT shops this is net + VAT, so the
+// cart footer / cash modal collect the same amount the server will charge.
+// Reads shop config non-reactively (it's set once in Settings, not toggled
+// mid-checkout); the cart re-renders on item/discount changes anyway.
 export const useCartTotal = () => useCartStore((state) => {
   const subtotal = state.items.reduce((sum, item) => sum + (getItemPrice(item) * item.quantity), 0);
   const discount = state.discount?.amount || 0;
-  return Math.max(0, subtotal - discount);
+  return computeVat(subtotal, discount, useAuthStore.getState().shop).total;
 });
 
 export const useCartDiscount = () => useCartStore((state) => state.discount);
