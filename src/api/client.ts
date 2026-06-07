@@ -133,6 +133,64 @@ export interface TopUpConfirmResult {
   balance: CreditBalance;
 }
 
+// ── Report shapes (mirror api/src/services/report.service.ts) ──
+
+/** Per-product performance row from GET /api/reports/products. */
+export interface ProductReportRow {
+  id: string;
+  name: string;
+  category: string;
+  quantitySold: number;
+  revenue: number;
+  cost: number;
+  profit: number;
+  /** Profit ÷ revenue × 100. */
+  margin: number;
+  averagePrice: number;
+}
+
+export interface ProductReport {
+  range: { startDate: string; endDate: string };
+  products: ProductReportRow[];
+  categories: Array<{ name: string; revenue: number; quantity: number }>;
+}
+
+/** Per-cashier performance row from GET /api/reports/staff. */
+export interface StaffReportRow {
+  id: string;
+  name: string;
+  role: string;
+  totalSales: number;
+  transactionCount: number;
+  averageTransaction: number;
+  voidCount: number;
+}
+
+export interface StaffReport {
+  range: { startDate: string; endDate: string };
+  staff: StaffReportRow[];
+}
+
+export interface WeeklyReport {
+  weekStart: string;
+  weekEnd: string;
+  summary: {
+    totalSales: number;
+    totalTransactions: number;
+    averageDaily: number;
+    totalCost: number;
+    grossProfit: number;
+    totalExpenses: number;
+    netProfit: number;
+  };
+  dailyBreakdown: Array<{
+    date: string;
+    sales: number;
+    transactions: number;
+    profit: number;
+  }>;
+}
+
 // ── Expense shapes (mirror api/src/controllers/expense.controller.ts) ──
 
 /** Raw expense as returned by yebomart-api (UPPERCASE category, ISO dates). */
@@ -477,10 +535,34 @@ class ApiClient {
     return this.request<any>(`/api/reports/daily${query}`);
   }
 
-  async getSalesReport(startDate: string, endDate: string) {
-    return this.request<any>(
-      `/api/reports/sales?startDate=${startDate}&endDate=${endDate}`,
-    );
+  /** GET /api/reports/weekly — server-aggregated week (current week if omitted). */
+  async getWeeklyReport(weekStart?: string) {
+    const query = weekStart ? `?weekStart=${weekStart}` : '';
+    return this.request<WeeklyReport>(`/api/reports/weekly${query}`);
+  }
+
+  /**
+   * GET /api/reports/products — per-product qty/revenue/cost/profit/margin over
+   * a date range (defaults to the last 30 days server-side if omitted).
+   */
+  async getProductReport(range?: { startDate?: string; endDate?: string }) {
+    const qs = new URLSearchParams();
+    if (range?.startDate) qs.set('startDate', range.startDate);
+    if (range?.endDate) qs.set('endDate', range.endDate);
+    const query = qs.toString() ? `?${qs.toString()}` : '';
+    return this.request<ProductReport>(`/api/reports/products${query}`);
+  }
+
+  /**
+   * GET /api/reports/staff — per-cashier performance over a date range
+   * (defaults to the current month server-side if omitted).
+   */
+  async getStaffReport(range?: { startDate?: string; endDate?: string }) {
+    const qs = new URLSearchParams();
+    if (range?.startDate) qs.set('startDate', range.startDate);
+    if (range?.endDate) qs.set('endDate', range.endDate);
+    const query = qs.toString() ? `?${qs.toString()}` : '';
+    return this.request<StaffReport>(`/api/reports/staff${query}`);
   }
 
   // ── AI Assistant ──────────────────────────────────────────────────────

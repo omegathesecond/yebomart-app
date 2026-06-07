@@ -482,4 +482,25 @@ input[type="number"] {
     padding: 0;
     box-shadow: none;
   }
+
+  /*
+   * Report printing — the Reports page renders a hidden white `#report-print`
+   * card (Tailwind `hidden print:block`) mirroring the currently displayed
+   * report + period. "Download PDF" calls window.print(); the browser's
+   * "Save as PDF" turns it into a file. Same visibility-isolation trick as the
+   * receipt so only the report lands on paper.
+   */
+  #report-print,
+  #report-print * {
+    visibility: visible;
+  }
+  #report-print {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    box-shadow: none;
+  }
 }
