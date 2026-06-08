@@ -12,7 +12,7 @@
 // on 401 for staff mode we surface it (no refresh — staff re-signs-in).
 
 import * as yeboid from '@/lib/yeboid';
-import type { Expense, ExpenseCategory } from '@/types';
+import type { Expense, ExpenseCategory, Shift, CurrentShift } from '@/types';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.yebomart.com';
 
@@ -462,11 +462,20 @@ class ApiClient {
     );
   }
 
-  async exportProducts() {
+  async exportProducts(): Promise<string> {
     const token = await this.getActiveToken();
-    const response = await fetch(`${API_URL}/api/products/export`, {
-      headers: { ...(token && { Authorization: `Bearer ${token}` }) },
-    });
+    let response: Response;
+    try {
+      response = await fetch(`${API_URL}/api/products/export`, {
+        headers: { ...(token && { Authorization: `Bearer ${token}` }) },
+      });
+    } catch {
+      throw new Error(NETWORK_ERROR);
+    }
+    // Fail loudly: never hand back an error body to be saved as a "CSV".
+    if (!response.ok) {
+      throw new Error(`Export failed (HTTP ${response.status}). Please try again.`);
+    }
     return response.text();
   }
 
@@ -756,6 +765,42 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify(data ?? {}),
     });
+  }
+
+  // ── Cash-up / Shifts ──────────────────────────────────────────────────
+
+  /** POST /api/shifts/open — start a drawer session with an opening float. */
+  async openShift(openingFloat: number) {
+    return this.request<Shift>('/api/shifts/open', {
+      method: 'POST',
+      body: JSON.stringify({ openingFloat }),
+    });
+  }
+
+  /**
+   * GET /api/shifts/current — the caller's open shift with a LIVE expected-cash
+   * breakdown, or `data: null` when no shift is open.
+   */
+  async getCurrentShift() {
+    return this.request<CurrentShift | null>('/api/shifts/current');
+  }
+
+  /** POST /api/shifts/:id/close — count the drawer; server reconciles + returns the variance. */
+  async closeShift(id: string, data: { countedCash: number; note?: string }) {
+    return this.request<CurrentShift>(`/api/shifts/${id}/close`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  /** GET /api/shifts — past shifts for the shop with variances (managers/owner only). */
+  async getShifts(params?: { startDate?: string; endDate?: string; status?: 'OPEN' | 'CLOSED' }) {
+    const qs = new URLSearchParams();
+    if (params?.startDate) qs.set('startDate', params.startDate);
+    if (params?.endDate) qs.set('endDate', params.endDate);
+    if (params?.status) qs.set('status', params.status);
+    const query = qs.toString() ? `?${qs.toString()}` : '';
+    return this.request<Shift[]>(`/api/shifts${query}`);
   }
 
   // ── Customers ─────────────────────────────────────────────────────────

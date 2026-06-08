@@ -26,6 +26,17 @@ export function downloadCsv(filename: string, header: string[], rows: Array<Arra
   triggerDownload(blob, filename.endsWith('.csv') ? filename : `${filename}.csv`);
 }
 
+/**
+ * Download an already-built CSV string (e.g. one returned verbatim by the API's
+ * `GET /api/products/export`) as a file. Use `downloadCsv` instead when you have
+ * header + row arrays and want this module to assemble the CSV for you.
+ */
+export function downloadCsvText(filename: string, csv: string): void {
+  // Prepend a UTF-8 BOM so Excel opens accented characters correctly.
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  triggerDownload(blob, filename.endsWith('.csv') ? filename : `${filename}.csv`);
+}
+
 function triggerDownload(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
