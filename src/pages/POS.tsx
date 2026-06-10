@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { CustomerPicker } from '@/components/CustomerPicker';
+import { TillBanner } from '@/components/TillBanner';
 import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
 import { useCartStore, useCartTotal, useCartSubtotal, useCartDiscount } from '@/stores/cartStore';
@@ -272,6 +273,8 @@ export function POS() {
     <div className="h-[calc(100vh-140px)] md:h-[calc(100vh-100px)] flex flex-col lg:flex-row gap-4">
       {/* Products Section */}
       <div className="flex-1 flex flex-col min-h-0">
+        {/* Cash-drawer status — open till / cash up */}
+        <TillBanner />
         {/* Search Bar */}
         <div className="flex gap-2 mb-4">
           <div className="flex-1">

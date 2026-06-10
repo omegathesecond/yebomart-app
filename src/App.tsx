@@ -16,6 +16,7 @@ const Login = lazy(() => import('@/pages/Login').then(m => ({ default: m.Login }
 const AuthCallback = lazy(() => import('@/pages/AuthCallback').then(m => ({ default: m.AuthCallback })));
 const Dashboard = lazy(() => import('@/pages/Dashboard').then(m => ({ default: m.Dashboard })));
 const POS = lazy(() => import('@/pages/POS').then(m => ({ default: m.POS })));
+const CashUp = lazy(() => import('@/pages/CashUp').then(m => ({ default: m.CashUp })));
 const Products = lazy(() => import('@/pages/Products').then(m => ({ default: m.Products })));
 const ProductForm = lazy(() => import('@/pages/ProductForm').then(m => ({ default: m.ProductForm })));
 const Stock = lazy(() => import('@/pages/Stock').then(m => ({ default: m.Stock })));
@@ -172,6 +173,7 @@ function AppRoutes() {
         >
           <Route index element={<Suspense fallback={<PageLoader />}><Dashboard /></Suspense>} />
           <Route path="pos" element={<Suspense fallback={<PageLoader />}><POS /></Suspense>} />
+          <Route path="cash-up" element={<Suspense fallback={<PageLoader />}><CashUp /></Suspense>} />
           <Route path="products" element={<Suspense fallback={<PageLoader />}><Products /></Suspense>} />
           <Route path="products/new" element={<Suspense fallback={<PageLoader />}><ProductForm /></Suspense>} />
           <Route path="products/:id" element={<Suspense fallback={<PageLoader />}><ProductForm /></Suspense>} />

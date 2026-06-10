@@ -17,7 +17,8 @@ import {
   BuildingStorefrontIcon,
   ClipboardDocumentListIcon,
   ChatBubbleLeftRightIcon,
-  CreditCardIcon
+  CreditCardIcon,
+  CalculatorIcon
 } from '@heroicons/react/24/outline';
 import { SparklesIcon as SparklesSolid } from '@heroicons/react/24/solid';
 import { useAuthStore } from '@/stores/authStore';
@@ -26,6 +27,7 @@ import { useInventoryStore } from '@/stores/inventoryStore';
 const navigation = [
   { name: 'Dashboard', href: '/', icon: HomeIcon },
   { name: 'POS', href: '/pos', icon: ShoppingCartIcon },
+  { name: 'Cash Up', href: '/cash-up', icon: CalculatorIcon },
   { name: 'Products', href: '/products', icon: CubeIcon },
   { name: 'Stock', href: '/stock', icon: ArchiveBoxIcon },
   { name: 'Sales', href: '/sales', icon: BanknotesIcon },
