@@ -20,6 +20,7 @@ import api from '@/api/client';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
+import { Toast, useToast } from '@/components/ui/Toast';
 import { CustomerPicker } from '@/components/CustomerPicker';
 import { TillBanner } from '@/components/TillBanner';
 import { useAuthStore } from '@/stores/authStore';
@@ -50,6 +51,9 @@ export function POS() {
   const cartTotal = useCartTotal();
   const cartSubtotal = useCartSubtotal();
   const discount = useCartDiscount();
+  // Non-blocking feedback channel for a touchscreen POS — replaces native
+  // alert() which freezes the till. Failures stay loud (error toasts).
+  const { toast, showToast, dismissToast } = useToast();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [showScanner, setShowScanner] = useState(false);
@@ -121,14 +125,14 @@ export function POS() {
       addItem(product);
       setShowScanner(false);
     } else {
-      alert(`Product not found: ${barcode}`);
+      showToast(`Product not found: ${barcode}`, 'error');
     }
   };
 
   // Handle cash payment - show modal for change calculation
   const handleCashPayment = () => {
     if (!user || !shop || items.length === 0) {
-      alert('Cart is empty or not logged in');
+      showToast('Cart is empty or not logged in', 'error');
       return;
     }
     setCashReceived('');
@@ -148,7 +152,7 @@ export function POS() {
   const processCashPayment = async () => {
     const received = parseFloat(cashReceived) || 0;
     if (received < cartTotal) {
-      alert('Insufficient cash received');
+      showToast('Insufficient cash received', 'error');
       return;
     }
     
@@ -160,15 +164,15 @@ export function POS() {
   const handlePayment = async (method: 'cash' | 'card' | 'momo' | 'emali') => {
     // Debug: check why payment might not work
     if (!user) {
-      alert('Please log in first');
+      showToast('Please log in first', 'error');
       return;
     }
     if (!shop) {
-      alert('Shop not loaded');
+      showToast('Shop not loaded', 'error');
       return;
     }
     if (items.length === 0) {
-      alert('Cart is empty');
+      showToast('Cart is empty', 'error');
       return;
     }
     
@@ -209,11 +213,11 @@ export function POS() {
       } else {
         // Show error from cart store
         const error = useCartStore.getState().error;
-        alert(error || 'Sale failed. Please try again.');
+        showToast(error || 'Sale failed. Please try again.', 'error');
       }
     } catch (err: any) {
       setIsProcessing(false);
-      alert(err.message || 'An error occurred');
+      showToast(err.message || 'An error occurred', 'error');
     }
   };
 
@@ -224,7 +228,7 @@ export function POS() {
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(customerEmail)) {
-      alert('Please enter a valid email address');
+      showToast('Please enter a valid email address', 'error');
       return;
     }
     
@@ -244,8 +248,9 @@ export function POS() {
       setEmailSent(true);
       setShowEmailModal(false);
       setCustomerEmail('');
+      showToast('Receipt emailed successfully', 'success');
     } catch (err: any) {
-      alert('Failed to send email. Please try again.');
+      showToast('Failed to send email. Please try again.', 'error');
     }
     setIsSendingEmail(false);
   };
@@ -903,14 +908,14 @@ export function POS() {
                   if (discountType === 'percent') {
                     // Check if within allowed limit
                     if (value > maxDiscountPercent) {
-                      alert(`Maximum discount is ${maxDiscountPercent}%`);
+                      showToast(`Maximum discount is ${maxDiscountPercent}%`, 'error');
                       return;
                     }
                     setDiscountPercent(value, discountReason);
                   } else {
                     // Check if amount exceeds subtotal
                     if (value > cartSubtotal) {
-                      alert('Discount cannot exceed subtotal');
+                      showToast('Discount cannot exceed subtotal', 'error');
                       return;
                     }
                     setDiscountAmount(value, discountReason);
@@ -1084,6 +1089,9 @@ export function POS() {
           </div>
         </div>
       </Modal>
+
+      {/* Non-blocking feedback — rendered last so it paints above any open modal */}
+      <Toast toast={toast} onDismiss={dismissToast} />
     </div>
   );
 }
