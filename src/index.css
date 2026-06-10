@@ -394,6 +394,23 @@ input[type="number"] {
   border-width: 0 !important;
 }
 
+/* Shared BarcodeScanner modal (POS + ProductForm) */
+#barcode-scanner-region {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+#barcode-scanner-region video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+
+#barcode-scanner-region #qr-shaded-region {
+  border-width: 0 !important;
+}
+
 /* Hide html5-qrcode default UI elements */
 #mobile-scanner-region img[alt="Info icon"],
 #mobile-scanner-region button[id*="camera"],
