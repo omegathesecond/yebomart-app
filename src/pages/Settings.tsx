@@ -10,13 +10,14 @@ import {
   PaintBrushIcon,
   TagIcon,
   GlobeAltIcon,
+  ReceiptPercentIcon,
 } from '@heroicons/react/24/outline';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { Toast, useToast } from '@/components/ui/Toast';
-import { api, type NotificationSettings } from '@/api/client';
+import { api, type NotificationSettings, type TaxSettings } from '@/api/client';
 import { useAuthStore } from '@/stores/authStore';
 import { useShopStore } from '@/stores/shopStore';
 import { getShopType } from '@/data/shopTypes';
@@ -69,6 +70,64 @@ export function Settings() {
     return () => { cancelled = true; };
   }, [activeTab, notif, notifLoading, showToast]);
 
+  // ── Tax / VAT settings (real, persisted via /api/shops/tax) ──────────────
+  const [tax, setTax] = useState<TaxSettings | null>(null);
+  const [taxLoading, setTaxLoading] = useState(false);
+  const [taxRateInput, setTaxRateInput] = useState('');
+  const [taxInclusive, setTaxInclusive] = useState(false);
+  const [taxNumber, setTaxNumber] = useState('');
+  const [savingTax, setSavingTax] = useState(false);
+
+  // Load lazily the first time the Tax tab is opened, then mirror into form state.
+  useEffect(() => {
+    if (activeTab !== 'tax' || tax || taxLoading) return;
+    let cancelled = false;
+    setTaxLoading(true);
+    api.getTaxSettings().then((res) => {
+      if (cancelled) return;
+      if (res.data) {
+        setTax(res.data);
+        setTaxRateInput(String(res.data.taxRate ?? 0));
+        setTaxInclusive(res.data.taxInclusive ?? false);
+        setTaxNumber(res.data.taxNumber ?? '');
+      } else {
+        showToast(res.error || 'Failed to load tax settings', 'error');
+      }
+      setTaxLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [activeTab, tax, taxLoading, showToast]);
+
+  const handleSaveTax = async () => {
+    const rate = parseFloat(taxRateInput);
+    if (Number.isNaN(rate) || rate < 0 || rate > 100) {
+      showToast('VAT rate must be a number between 0 and 100', 'error');
+      return;
+    }
+    setSavingTax(true);
+    const res = await api.updateTaxSettings({
+      taxRate: rate,
+      taxInclusive,
+      taxNumber: taxNumber.trim(),
+    });
+    setSavingTax(false);
+    if (res.data) {
+      setTax(res.data);
+      setTaxRateInput(String(res.data.taxRate ?? 0));
+      setTaxInclusive(res.data.taxInclusive ?? false);
+      setTaxNumber(res.data.taxNumber ?? '');
+      // Reflect immediately in the POS (cart/receipt read shop.* from authStore).
+      updateShop({
+        taxRate: res.data.taxRate,
+        taxInclusive: res.data.taxInclusive,
+        taxNumber: res.data.taxNumber,
+      });
+      showToast('Tax settings saved', 'success');
+    } else {
+      showToast(res.error || 'Failed to save tax settings', 'error');
+    }
+  };
+
   const toggleNotif = async (key: 'notifyWhatsAppReports' | 'notifyLowStock') => {
     if (!notif || savingKey) return;
     const next = !notif[key];
@@ -92,6 +151,7 @@ export function Settings() {
     { id: 'profile', label: t('settings.profile'), icon: UserIcon },
     { id: 'language', label: t('settings.language') || 'Language', icon: GlobeAltIcon },
     { id: 'notifications', label: t('settings.notifications'), icon: BellIcon },
+    { id: 'tax', label: 'Tax / VAT', icon: ReceiptPercentIcon },
     { id: 'ai', label: t('settings.aiAssistant'), icon: SparklesIcon },
     { id: 'appearance', label: t('settings.appearance'), icon: PaintBrushIcon },
   ];
@@ -380,6 +440,61 @@ export function Settings() {
                     Sent to <span className="font-medium text-slate-200">{notif.recipientPhone}</span>
                     {notif.notifyPhone ? '' : ' (your account phone)'}
                   </p>
+                </div>
+              )}
+            </Card>
+          )}
+
+          {activeTab === 'tax' && (
+            <Card>
+              <CardHeader title="Tax / VAT" subtitle="Charge VAT on sales and print it on receipts" />
+              {taxLoading && !tax ? (
+                <p className="text-slate-400 text-sm">Loading…</p>
+              ) : (
+                <div className="space-y-4">
+                  <Input
+                    label="VAT Rate (%)"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    value={taxRateInput}
+                    onChange={(e) => setTaxRateInput(e.target.value)}
+                    placeholder="e.g. 15"
+                    hint="Eswatini standard VAT is 15%. Set 0 to disable tax."
+                  />
+
+                  {/* Inclusive vs exclusive */}
+                  <div className="flex items-center justify-between p-4 bg-slate-700/30 rounded-xl">
+                    <div className="flex items-center gap-3">
+                      <ReceiptPercentIcon className="w-6 h-6 text-amber-400" />
+                      <div>
+                        <h3 className="font-medium text-white">Prices include VAT</h3>
+                        <p className="text-sm text-slate-400">
+                          {taxInclusive
+                            ? 'Sell prices already include VAT — the tax is extracted from the price.'
+                            : 'VAT is added on top of the sell price at checkout.'}
+                        </p>
+                      </div>
+                    </div>
+                    <Toggle
+                      on={taxInclusive}
+                      busy={savingTax}
+                      onClick={() => setTaxInclusive((v) => !v)}
+                      label="Prices include VAT"
+                    />
+                  </div>
+
+                  <Input
+                    label="VAT Registration Number"
+                    value={taxNumber}
+                    onChange={(e) => setTaxNumber(e.target.value)}
+                    placeholder="Prints on the receipt (optional)"
+                  />
+
+                  <Button onClick={handleSaveTax} isLoading={savingTax}>
+                    Save Tax Settings
+                  </Button>
                 </div>
               )}
             </Card>

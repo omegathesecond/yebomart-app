@@ -291,6 +291,12 @@ export interface ReorderSuggestionsResponse {
   items: ReorderSuggestion[];
 }
 
+export interface TaxSettings {
+  taxRate: number;          // percent, e.g. 15 for 15% VAT
+  taxInclusive: boolean;    // true = sell prices already include VAT
+  taxNumber: string | null; // VAT registration number (prints on receipt)
+}
+
 /** Map the API's expense shape into the app's domain `Expense` (lowercase category, Date objects). */
 function mapApiExpense(e: ApiExpense): Expense {
   return {
@@ -466,6 +472,21 @@ class ApiClient {
   /** PATCH /api/shops/notifications — owner-only. Send only the fields you change. */
   async updateNotificationSettings(data: Partial<Pick<NotificationSettings, 'notifyWhatsAppReports' | 'notifyLowStock' | 'notifyPhone'>>) {
     return this.request<NotificationSettings>('/api/shops/notifications', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // ── Tax / VAT settings ────────────────────────────────────────────────
+
+  /** GET /api/shops/tax — current shop's VAT rate / inclusive flag / VAT number. */
+  async getTaxSettings() {
+    return this.request<TaxSettings>('/api/shops/tax');
+  }
+
+  /** PATCH /api/shops/tax — owner-only. Send only the fields you change. */
+  async updateTaxSettings(data: Partial<TaxSettings>) {
+    return this.request<TaxSettings>('/api/shops/tax', {
       method: 'PATCH',
       body: JSON.stringify(data),
     });

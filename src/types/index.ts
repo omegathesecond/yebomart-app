@@ -31,6 +31,10 @@ export interface Shop {
   timezone: string;
   address?: string;
   logoUrl?: string;
+  // Tax / VAT config (optional — absent on minimal shop objects, defaults to 0%).
+  taxRate?: number;          // percent, e.g. 15 for 15% VAT
+  taxInclusive?: boolean;    // true = sell prices already include VAT
+  taxNumber?: string | null; // VAT registration number (prints on receipt)
   createdAt: Date;
   updatedAt: Date;
 }
@@ -99,7 +103,8 @@ export interface Sale {
   discountPercent?: number;   // Discount as percentage (for display)
   discountReason?: string;    // Why discount was applied (audit)
   discountApprovedBy?: string; // Manager ID if override was needed
-  totalAmount: number;        // Final amount after discount
+  tax?: number;               // VAT charged on this sale (0 for non-VAT shops)
+  totalAmount: number;        // Final amount after discount (+ tax if exclusive)
   paymentMethod: PaymentMethod;
   items: SaleItem[];
   createdAt: Date;
