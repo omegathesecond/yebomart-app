@@ -26,6 +26,7 @@ import { TillBanner } from '@/components/TillBanner';
 import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
 import { useCartStore, useCartTotal, useCartSubtotal, useCartDiscount } from '@/stores/cartStore';
+import { computeChange } from '@/lib/money';
 import { formatCurrency, type Product, PAYMENT_METHODS } from '@/types';
 import { BarcodeScanner } from '@/components/scanner/BarcodeScanner';
 
@@ -144,8 +145,7 @@ export function POS() {
   const handleCashReceivedChange = (value: string) => {
     setCashReceived(value);
     const received = parseFloat(value) || 0;
-    const change = received - cartTotal;
-    setChangeAmount(change >= 0 ? change : 0);
+    setChangeAmount(computeChange(cartTotal, received));
   };
 
   // Process cash payment after receiving cash
