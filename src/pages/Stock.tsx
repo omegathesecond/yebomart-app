@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   ArrowDownTrayIcon,
   AdjustmentsHorizontalIcon,
@@ -8,17 +9,20 @@ import {
   ArrowDownIcon,
   ClockIcon,
   CheckCircleIcon,
-  PencilSquareIcon
+  PencilSquareIcon,
+  BoltIcon,
+  ShoppingCartIcon,
 } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
+import { Toast, useToast } from '@/components/ui/Toast';
 import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
 import { formatCurrency, formatRelativeTime, type Product, type StockLog } from '@/types';
-import api from '@/api/client';
+import api, { type ReorderSuggestion } from '@/api/client';
 
 // Adjustment types supported by API
 type AdjustmentType = 'ADJUSTMENT' | 'DAMAGED' | 'EXPIRED' | 'TRANSFER' | 'RETURN';
@@ -34,9 +38,15 @@ const ADJUSTMENT_TYPES: { value: AdjustmentType; label: string; icon: string }[]
 export function Stock() {
   const { shop } = useAuthStore();
   const { products, stockLogs, alerts, loadAll, adjustStock } = useInventoryStore();
-  
+  const { toast, showToast, dismissToast } = useToast();
+  const navigate = useNavigate();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<'all' | 'low' | 'out'>('all');
+
+  // Sales-velocity reorder suggestions
+  const [suggestions, setSuggestions] = useState<ReorderSuggestion[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   
   // Product history modal
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -67,6 +77,37 @@ export function Stock() {
       loadAll(shop.id);
     }
   }, [shop, loadAll]);
+
+  // Load sales-velocity reorder suggestions
+  const loadSuggestions = useCallback(async () => {
+    setLoadingSuggestions(true);
+    const { data, error } = await api.getReorderSuggestions();
+    setLoadingSuggestions(false);
+    if (error) {
+      showToast(error, 'error');
+      setSuggestions([]);
+      return;
+    }
+    setSuggestions(data?.items || []);
+  }, [showToast]);
+
+  useEffect(() => {
+    if (shop) loadSuggestions();
+  }, [shop, loadSuggestions]);
+
+  // Push a suggestion into a new Purchase Order with the qty prefilled.
+  const reorderViaPO = (s: ReorderSuggestion) => {
+    navigate('/purchase-orders', {
+      state: {
+        prefillLine: {
+          productId: s.productId,
+          productName: s.name,
+          qtyOrdered: s.suggestedReorderQty,
+          unitCost: s.costPrice,
+        },
+      },
+    });
+  };
 
   // Load product history when selected
   const handleProductClick = async (product: Product) => {
@@ -301,6 +342,106 @@ export function Stock() {
           </div>
         </Card>
       )}
+
+      {/* Reorder Suggestions (sales-velocity driven) */}
+      <Card>
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+            <BoltIcon className="w-5 h-5 text-amber-400" />
+            Reorder Suggestions
+          </h3>
+          <p className="text-sm text-slate-400 mt-0.5">
+            Predicted stock-outs from your sales velocity (last 30 days)
+          </p>
+        </div>
+
+        {loadingSuggestions ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"></div>
+          </div>
+        ) : suggestions.length === 0 ? (
+          <div className="py-8 text-center">
+            <CheckCircleIcon className="w-10 h-10 mx-auto mb-2 text-emerald-400/70" />
+            <p className="text-slate-400">No reorders needed right now</p>
+            <p className="text-sm text-slate-500">
+              Nothing is predicted to run out soon or below its reorder point.
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-slate-700">
+                  <th className="text-left py-3 px-4 text-sm font-medium text-slate-400">Product</th>
+                  <th className="text-center py-3 px-4 text-sm font-medium text-slate-400">In Stock</th>
+                  <th className="text-center py-3 px-4 text-sm font-medium text-slate-400">Sales/Day</th>
+                  <th className="text-center py-3 px-4 text-sm font-medium text-slate-400">Runs Out In</th>
+                  <th className="text-center py-3 px-4 text-sm font-medium text-slate-400">Suggested Qty</th>
+                  <th className="text-right py-3 px-4 text-sm font-medium text-slate-400">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {suggestions.map((s) => {
+                  const urgent = s.daysOfCover !== null && s.daysOfCover <= 3;
+                  return (
+                    <tr key={s.productId} className="border-b border-slate-700/50">
+                      <td className="py-3 px-4">
+                        <p className="font-medium text-white">{s.name}</p>
+                        {s.category && <p className="text-xs text-slate-500">{s.category}</p>}
+                      </td>
+                      <td className="py-3 px-4 text-center text-slate-300">
+                        {s.quantity} {s.unit}
+                      </td>
+                      <td className="py-3 px-4 text-center text-slate-300">
+                        {s.velocityPerDay > 0 ? s.velocityPerDay.toFixed(2) : '—'}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        {s.daysOfCover === null ? (
+                          <Badge variant="warning">Below reorder</Badge>
+                        ) : (
+                          <span className={`font-semibold ${urgent ? 'text-red-400' : 'text-amber-400'}`}>
+                            {s.daysOfCover === 0
+                              ? 'Out now'
+                              : `~${s.daysOfCover} day${s.daysOfCover === 1 ? '' : 's'}`}
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <span className="font-bold text-white">{s.suggestedReorderQty}</span>
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => {
+                              setReceiveProduct(s.productId);
+                              if (s.suggestedReorderQty > 0) setReceiveQty(String(s.suggestedReorderQty));
+                              setShowReceive(true);
+                            }}
+                          >
+                            Receive
+                          </Button>
+                          {s.suggestedReorderQty > 0 && (
+                            <Button
+                              size="sm"
+                              variant="primary"
+                              leftIcon={<ShoppingCartIcon className="w-4 h-4" />}
+                              onClick={() => reorderViaPO(s)}
+                            >
+                              Create PO
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
 
       {/* Search and Filter */}
       <div className="flex flex-col sm:flex-row gap-3">
@@ -828,6 +969,9 @@ export function Stock() {
           <span className="font-medium">Stock received successfully!</span>
         </div>
       )}
+
+      {/* Error toast (loud failures — no silent fallback) */}
+      <Toast toast={toast} onDismiss={dismissToast} />
     </div>
   );
 }
