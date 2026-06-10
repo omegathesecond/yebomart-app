@@ -10,6 +10,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { Toast, useToast } from '@/components/ui/Toast';
 import { useAuthStore } from '@/stores/authStore';
 import { useBillingStore } from '@/stores/billingStore';
 import api, { INSUFFICIENT_CREDITS } from '@/api/client';
@@ -31,6 +32,9 @@ const QUICK_ACTIONS = [
 
 export function AIChat() {
   const { shop } = useAuthStore();
+  // Non-blocking feedback channel — replaces native alert() so the chat UI
+  // never freezes. Failures stay loud (error toasts).
+  const { toast, showToast, dismissToast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -127,7 +131,7 @@ export function AIChat() {
 
   const startVoiceInput = () => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      alert('Voice input is not supported in your browser');
+      showToast('Voice input is not supported in your browser', 'error');
       return;
     }
 
@@ -291,6 +295,9 @@ export function AIChat() {
           </div>
         </div>
       </Card>
+
+      {/* Non-blocking feedback channel */}
+      <Toast toast={toast} onDismiss={dismissToast} />
     </div>
   );
 }
