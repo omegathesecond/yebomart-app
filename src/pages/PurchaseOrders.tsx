@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   PlusIcon,
   ClipboardDocumentListIcon,
@@ -71,6 +72,8 @@ const STATUS_FILTERS = ['ALL', 'DRAFT', 'SENT', 'PARTIAL', 'RECEIVED', 'CANCELLE
 export function PurchaseOrders() {
   const { products, loadAll } = useInventoryStore();
   const { toast, showToast, dismissToast } = useToast();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -126,6 +129,32 @@ export function PurchaseOrders() {
     if (products.length === 0) loadAll('');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // A reorder suggestion (from the Stock page) can deep-link here with a line to
+  // prefill. Open the create modal seeded with that line, then clear the history
+  // state so a refresh / back-nav doesn't re-trigger it.
+  useEffect(() => {
+    const prefill = (location.state as { prefillLine?: DraftLine } | null)?.prefillLine;
+    if (!prefill) return;
+
+    setSupplierId('');
+    setPlaceOrder(true);
+    setTax('');
+    setNotes('');
+    setExpectedDate('');
+    setProductSearch('');
+    setLines([
+      {
+        productId: prefill.productId,
+        productName: prefill.productName,
+        qtyOrdered: Math.max(1, prefill.qtyOrdered || 1),
+        unitCost: prefill.unitCost || 0,
+      },
+    ]);
+    setShowCreate(true);
+    navigate(location.pathname, { replace: true, state: null });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state]);
 
   // ── Create flow ──────────────────────────────────────────────────────
 

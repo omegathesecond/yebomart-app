@@ -229,6 +229,28 @@ export interface NotificationSettings {
   recipientPhone: string;
 }
 
+export interface ReorderSuggestion {
+  productId: string;
+  name: string;
+  barcode: string | null;
+  category: string | null;
+  unit: string;
+  quantity: number;
+  reorderAt: number;
+  costPrice: number;
+  velocityPerDay: number;
+  /** Predicted days until stock-out; null when the product had no sales in the window. */
+  daysOfCover: number | null;
+  suggestedReorderQty: number;
+  reason: 'predicted_stockout' | 'below_reorder';
+}
+
+export interface ReorderSuggestionsResponse {
+  window: { days: number; within: number; targetCoverDays: number };
+  total: number;
+  items: ReorderSuggestion[];
+}
+
 /** Map the API's expense shape into the app's domain `Expense` (lowercase category, Date objects). */
 function mapApiExpense(e: ApiExpense): Expense {
   return {
@@ -526,6 +548,25 @@ class ApiClient {
       ? `/api/stock/movements?productId=${productId}`
       : '/api/stock/movements';
     return this.request<any[]>(endpoint);
+  }
+
+  /**
+   * GET /api/stock/reorder-suggestions — sales-velocity reorder suggestions.
+   * Returns products predicted to run out within `within` days (or already
+   * below their reorder threshold), each with a daily sales velocity, days of
+   * cover, and a suggested reorder quantity.
+   */
+  async getReorderSuggestions(params?: {
+    days?: number;
+    within?: number;
+    targetCoverDays?: number;
+  }) {
+    const qs = new URLSearchParams();
+    if (params?.days) qs.set('days', String(params.days));
+    if (params?.within) qs.set('within', String(params.within));
+    if (params?.targetCoverDays) qs.set('targetCoverDays', String(params.targetCoverDays));
+    const query = qs.toString() ? `?${qs.toString()}` : '';
+    return this.request<ReorderSuggestionsResponse>(`/api/stock/reorder-suggestions${query}`);
   }
 
   // ── Reports ───────────────────────────────────────────────────────────
