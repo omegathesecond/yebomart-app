@@ -3,6 +3,7 @@ import type { CartItem, Product, PaymentMethod, Sale, SaleItem } from '@/types';
 import type { Customer } from '@/api/client';
 import api, { NETWORK_ERROR } from '@/api/client';
 import { addToSyncQueue } from '@/lib/db';
+import { computeCartTotal } from '@/lib/money';
 import { useSyncStore } from '@/stores/syncStore';
 
 interface DiscountInfo {
@@ -197,7 +198,7 @@ export const useCartStore = create<CartState>((set, get) => ({
     }, 0);
 
     const discountAmount = discount?.amount || 0;
-    const totalAmount = Math.max(0, subtotal - discountAmount);
+    const totalAmount = computeCartTotal(subtotal, discountAmount);
 
     if (items.length === 0) return null;
 
@@ -360,7 +361,7 @@ export const useCartSubtotal = () => useCartStore((state) =>
 export const useCartTotal = () => useCartStore((state) => {
   const subtotal = state.items.reduce((sum, item) => sum + (getItemPrice(item) * item.quantity), 0);
   const discount = state.discount?.amount || 0;
-  return Math.max(0, subtotal - discount);
+  return computeCartTotal(subtotal, discount);
 });
 
 export const useCartDiscount = () => useCartStore((state) => state.discount);
