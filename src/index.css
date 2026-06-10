@@ -503,4 +503,23 @@ input[type="number"] {
     padding: 0;
     box-shadow: none;
   }
+
+  /*
+   * Z-report printing — the Cash Up page renders a white `#zreport-print` card
+   * after cash-up. "Print Z-report" calls window.print(); same visibility trick
+   * so only the end-of-shift report lands on paper.
+   */
+  #zreport-print,
+  #zreport-print * {
+    visibility: visible;
+  }
+  #zreport-print {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    box-shadow: none;
+  }
 }

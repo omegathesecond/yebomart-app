@@ -47,6 +47,46 @@ interface ApiResponse<T> {
   status?: number;
 }
 
+// ── Cash session shapes (mirror api/src/services/cashSession.service.ts) ──
+export interface CashSession {
+  id: string;
+  shopId: string;
+  userId: string | null;
+  openingFloat: number;
+  openedAt: string;
+  closedAt: string | null;
+  countedCash: number | null;
+  expectedCash: number | null;
+  variance: number | null;
+  status: 'OPEN' | 'CLOSED';
+  notes: string | null;
+  user?: { id: string; name: string } | null;
+  // Present on GET /current (live tally since openedAt):
+  cashSalesTotal?: number;
+  cashSalesCount?: number;
+}
+
+export interface CashSessionZReport {
+  session: {
+    id: string;
+    status: 'OPEN' | 'CLOSED';
+    openingFloat: number;
+    openedAt: string;
+    closedAt: string | null;
+    countedCash: number | null;
+    expectedCash: number | null;
+    variance: number | null;
+    notes: string | null;
+    cashier?: { id: string; name: string } | null;
+  };
+  shop?: { name: string; currency: string; currencySymbol: string } | null;
+  transactionCount: number;
+  gross: number;
+  totalDiscount: number;
+  net: number;
+  byPaymentMethod: { method: string; total: number; discount: number; count: number }[];
+}
+
 // ── Customer shapes (mirror api/src/controllers/customer.controller.ts) ──
 
 export interface Customer {
@@ -958,6 +998,34 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify(data),
     });
+  }
+
+  // ── Cash drawer / shifts ──────────────────────────────────────────────
+
+  /** GET /api/cash-sessions/current — the open till (or null) + live cash tally. */
+  async getCurrentCashSession() {
+    return this.request<CashSession | null>('/api/cash-sessions/current');
+  }
+
+  /** POST /api/cash-sessions/open — open a till with a starting float. 409 if one is open. */
+  async openCashSession(openingFloat: number) {
+    return this.request<CashSession>('/api/cash-sessions/open', {
+      method: 'POST',
+      body: JSON.stringify({ openingFloat }),
+    });
+  }
+
+  /** POST /api/cash-sessions/:id/close — cash up: counted cash + optional notes. */
+  async closeCashSession(id: string, countedCash: number, notes?: string) {
+    return this.request<CashSession>(`/api/cash-sessions/${id}/close`, {
+      method: 'POST',
+      body: JSON.stringify({ countedCash, notes }),
+    });
+  }
+
+  /** GET /api/cash-sessions/:id/zreport — end-of-shift Z-report. */
+  async getCashSessionZReport(id: string) {
+    return this.request<CashSessionZReport>(`/api/cash-sessions/${id}/zreport`);
   }
 }
 
