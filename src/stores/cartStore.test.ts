@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import type { Product } from '@/types';
+import type { Customer } from '@/api/client';
 
 // Mirrors api/src/.../client.ts NETWORK_ERROR — the sentinel the outbox keys off
 // to tell a retryable transport failure apart from a real server rejection.
@@ -40,6 +41,23 @@ function makeProduct(overrides: Partial<Product> = {}): Product {
     isActive: true,
     createdAt: new Date(),
     updatedAt: new Date(),
+    ...overrides,
+  };
+}
+
+function makeCustomer(overrides: Partial<Customer> = {}): Customer {
+  return {
+    id: overrides.id ?? 'cust-1',
+    shopId: 'shop-1',
+    name: 'Sipho Dlamini',
+    phone: '+26878000000',
+    email: null,
+    address: null,
+    creditLimit: 0,
+    balance: 0,
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     ...overrides,
   };
 }
@@ -190,6 +208,62 @@ describe('cartStore — checkout (online)', () => {
     const sale = await useCartStore.getState().checkout('user-1', 'shop-1');
     expect(sale).toBeNull();
     expect(createSale).not.toHaveBeenCalled();
+  });
+});
+
+describe('cartStore — checkout (credit / on the book)', () => {
+  it('books the sale to the customer with amountPaid 0 and surfaces the server balance', async () => {
+    createSale.mockResolvedValue({ data: { id: 'srv-c', customerBalance: 65 } });
+
+    const store = useCartStore.getState();
+    store.setCustomer(makeCustomer({ id: 'cust-9', balance: 50 }));
+    store.setPaymentMethod('credit');
+    store.addItem(makeProduct({ id: 'a', sellPrice: 15 }), false, 1); // total 15
+
+    const sale = await useCartStore.getState().checkout('user-1', 'shop-1');
+
+    expect(createSale).toHaveBeenCalledTimes(1);
+    const payload = createSale.mock.calls[0][0];
+    expect(payload.paymentMethod).toBe('CREDIT');
+    expect(payload.amountPaid).toBe(0); // nothing tendered now
+    expect(payload.customerId).toBe('cust-9');
+
+    expect(sale).not.toBeNull();
+    expect(sale!.customerBalance).toBe(65); // server figure preferred
+    expect(useCartStore.getState().items).toHaveLength(0);
+  });
+
+  it('refuses a credit sale with no customer attached — no API call, no queue', async () => {
+    const store = useCartStore.getState();
+    store.setPaymentMethod('credit');
+    store.addItem(makeProduct({ id: 'a', sellPrice: 15 }), false, 1);
+
+    const sale = await useCartStore.getState().checkout('user-1', 'shop-1');
+
+    expect(sale).toBeNull();
+    expect(createSale).not.toHaveBeenCalled();
+    expect(addToSyncQueue).not.toHaveBeenCalled();
+    expect(useCartStore.getState().error).toMatch(/customer/i);
+    expect(useCartStore.getState().items).toHaveLength(1); // cart intact
+  });
+
+  it('offline, projects the new balance locally (current balance + sale total)', async () => {
+    setOnline(false);
+
+    const store = useCartStore.getState();
+    store.setCustomer(makeCustomer({ id: 'cust-2', balance: 100 }));
+    store.setPaymentMethod('credit');
+    store.addItem(makeProduct({ id: 'a', sellPrice: 20 }), false, 2); // total 40
+
+    const sale = await useCartStore.getState().checkout('user-1', 'shop-1');
+
+    expect(createSale).not.toHaveBeenCalled();
+    const queued = (addToSyncQueue as unknown as Mock).mock.calls[0][2];
+    expect(queued.paymentMethod).toBe('CREDIT');
+    expect(queued.amountPaid).toBe(0);
+    expect(queued.customerId).toBe('cust-2');
+    expect(sale!.pendingSync).toBe(true);
+    expect(sale!.customerBalance).toBe(140); // 100 + 40 projected
   });
 });
 

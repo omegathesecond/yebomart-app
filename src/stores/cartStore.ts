@@ -202,6 +202,22 @@ export const useCartStore = create<CartState>((set, get) => ({
 
     if (items.length === 0) return null;
 
+    // CREDIT ("on the book" / pay-later): the sale is booked against a customer's
+    // ledger instead of being tendered now. A customer is mandatory — guard here
+    // so we never queue an un-attachable credit sale (the server enforces this
+    // too, but failing fast keeps the cashier from handing over goods first).
+    const isCredit = paymentMethod === 'credit';
+    if (isCredit && !customer) {
+      set({ isProcessing: false, error: 'Attach a customer before selling on credit' });
+      return null;
+    }
+    // Nothing is paid up front on a credit sale.
+    const amountPaid = isCredit ? 0 : totalAmount;
+    // Customer's projected new outstanding balance after this credit sale.
+    // Online we prefer the authoritative figure the API returns; offline we show
+    // this locally-computed projection so the receipt is still meaningful.
+    const projectedBalance = isCredit && customer ? customer.balance + totalAmount : undefined;
+
     set({ isProcessing: true, error: null });
 
     // Stable idempotency key for this checkout. Sent on the live attempt AND any
@@ -238,7 +254,7 @@ export const useCartStore = create<CartState>((set, get) => ({
     const payload = {
       items: saleItems,
       paymentMethod: paymentMethod.toUpperCase(),
-      amountPaid: totalAmount,
+      amountPaid,
       subtotal,
       discount: discountAmount,
       discountPercent: discount?.percent,
@@ -298,6 +314,7 @@ export const useCartStore = create<CartState>((set, get) => ({
         discountReason: discount?.reason,
         totalAmount,
         paymentMethod,
+        customerBalance: projectedBalance,
         createdAt: new Date(),
       } as Sale;
     };
@@ -326,7 +343,9 @@ export const useCartStore = create<CartState>((set, get) => ({
       // Clear cart on success
       set({ items: [], paymentMethod: 'cash', discount: null, customer: null, isProcessing: false });
 
-      // Return the sale with formatted items for UI
+      // Return the sale with formatted items for UI. Prefer the server's
+      // authoritative post-sale balance for credit; fall back to the local
+      // projection if the API didn't include it.
       return {
         ...data,
         items: receiptItems,
@@ -335,6 +354,7 @@ export const useCartStore = create<CartState>((set, get) => ({
         discountPercent: discount?.percent,
         discountReason: discount?.reason,
         totalAmount,
+        customerBalance: data.customerBalance ?? projectedBalance,
         createdAt: new Date(),
       } as Sale;
 
