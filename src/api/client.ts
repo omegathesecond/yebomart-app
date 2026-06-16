@@ -36,6 +36,15 @@ export const NETWORK_ERROR = 'Network error. Please try again.';
  */
 export const INSUFFICIENT_CREDITS = 'INSUFFICIENT_CREDITS';
 
+/**
+ * Machine-readable `code` returned with a 422 from the customer-credit endpoint
+ * when a ledger entry would push the customer over their credit limit. Callers
+ * compare against this constant (and read `meta.requiresOverride`) — not the
+ * human `message` — to decide whether to prompt for an owner override. Mirrors
+ * api/src/controllers/customer.controller.ts (addCredit).
+ */
+export const CREDIT_LIMIT_EXCEEDED = 'CREDIT_LIMIT_EXCEEDED';
+
 interface ApiResponse<T> {
   data?: T;
   error?: string;
@@ -43,6 +52,18 @@ interface ApiResponse<T> {
   details?: any;
   /** Machine-readable error code from the API body (e.g. INSUFFICIENT_CREDITS). */
   code?: string;
+  /**
+   * Public structured details that accompany a `code` (never gated on the
+   * server's NODE_ENV). For CREDIT_LIMIT_EXCEEDED this carries
+   * `requiresOverride` plus the limit/balance figures.
+   */
+  meta?: {
+    requiresOverride?: boolean;
+    creditLimit?: number;
+    currentBalance?: number;
+    attemptedBalance?: number;
+    [key: string]: any;
+  };
   /** HTTP status of the response — lets callers branch on 402 etc. */
   status?: number;
 }
@@ -349,7 +370,7 @@ class ApiClient {
     if (!response.ok || json.success === false) {
       const errorMessage = json.message || json.error || 'Request failed';
       const details = json.details || json.errors;
-      return { error: errorMessage, details, code: json.code, status: response.status };
+      return { error: errorMessage, details, code: json.code, meta: json.meta, status: response.status };
     }
 
     return { data: json.data ?? json, message: json.message, status: response.status };
