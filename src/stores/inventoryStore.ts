@@ -39,7 +39,7 @@ interface InventoryState {
   
   // Stock
   adjustStock: (productId: string, quantity: number, type: StockLog['type'], note?: string, userId?: string) => Promise<void>;
-  receiveStock: (productId: string, quantity: number, note?: string, userId?: string) => Promise<void>;
+  receiveStock: (productId: string, quantity: number, note?: string, costPrice?: number) => Promise<void>;
   
   // Alerts
   acknowledgeAlert: (alertId: string) => Promise<void>;
@@ -291,8 +291,38 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
     }
   },
 
-  receiveStock: async (productId, quantity, note, userId) => {
-    await get().adjustStock(productId, quantity, 'restock', note, userId);
+  // Receive stock through the purpose-built /api/stock/receive endpoint (NOT
+  // adjustStock, which is for shrinkage/counts only). When costPrice is given,
+  // the API persists it so margins computed from cost stay correct.
+  receiveStock: async (productId, quantity, note, costPrice) => {
+    set({ isLoading: true, error: null });
+    try {
+      const { data, error } = await api.receiveStock(productId, { quantity, note, costPrice });
+
+      if (error || !data) {
+        set({ error: error || 'Failed to receive stock', isLoading: false });
+        throw new Error(error || 'Failed to receive stock');
+      }
+
+      // The endpoint returns a single-item batch: [{ product, stockLog }].
+      const updated = Array.isArray(data) ? data[0]?.product : (data as any)?.product;
+
+      set((state) => ({
+        products: state.products.map((p) =>
+          p.id === productId
+            ? {
+                ...p,
+                quantity: updated?.quantity ?? p.quantity,
+                costPrice: updated?.costPrice ?? p.costPrice,
+              }
+            : p
+        ),
+        isLoading: false,
+      }));
+    } catch (err) {
+      set({ isLoading: false });
+      throw err;
+    }
   },
 
   // Alerts - Local only (calculated from products)
