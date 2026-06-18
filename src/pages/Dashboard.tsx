@@ -133,7 +133,7 @@ export function Dashboard() {
             <span className="font-medium text-white">Add Product</span>
           </div>
         </Link>
-        <Link to="/stock/receive" className="card hover:border-emerald-500/50 transition-colors">
+        <Link to="/stock" state={{ openReceive: true }} className="card hover:border-emerald-500/50 transition-colors">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-emerald-500/20">
               <CubeIcon className="w-5 h-5 text-emerald-400" />
