@@ -637,6 +637,17 @@ class ApiClient {
     return this.request<any>(`/api/reports/daily${query}`);
   }
 
+  /**
+   * GET /api/reports/sales — server-aggregated summary (revenue, cost, profit,
+   * expenses, transactions, top products, stock snapshot) over a date range.
+   * This is the authoritative source for the Reports Summary tab.
+   */
+  async getSalesReport(startDate: string, endDate: string) {
+    return this.request<any>(
+      `/api/reports/sales?startDate=${startDate}&endDate=${endDate}`,
+    );
+  }
+
   /** GET /api/reports/weekly — server-aggregated week (current week if omitted). */
   async getWeeklyReport(weekStart?: string) {
     const query = weekStart ? `?weekStart=${weekStart}` : '';
