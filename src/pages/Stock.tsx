@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   ArrowDownTrayIcon,
   AdjustmentsHorizontalIcon,
@@ -40,6 +40,7 @@ export function Stock() {
   const { products, stockLogs, alerts, loadAll, adjustStock } = useInventoryStore();
   const { toast, showToast, dismissToast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<'all' | 'low' | 'out'>('all');
@@ -77,6 +78,18 @@ export function Stock() {
       loadAll(shop.id);
     }
   }, [shop, loadAll]);
+
+  // The Dashboard "Receive Stock" quick action deep-links here with
+  // { openReceive: true } so it reuses this page's receive modal instead of a
+  // dead /stock/receive route. Open the modal, then clear the history state so
+  // a refresh / back-nav doesn't re-trigger it (same idiom as PurchaseOrders).
+  useEffect(() => {
+    if ((location.state as { openReceive?: boolean } | null)?.openReceive) {
+      setShowReceive(true);
+      navigate(location.pathname, { replace: true, state: null });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state]);
 
   // Load sales-velocity reorder suggestions
   const loadSuggestions = useCallback(async () => {

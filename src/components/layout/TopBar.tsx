@@ -17,7 +17,6 @@ const pageNames: Record<string, string> = {
   '/products': 'Products',
   '/products/new': 'Add Product',
   '/stock': 'Stock Management',
-  '/stock/receive': 'Receive Stock',
   '/stock/adjust': 'Adjust Stock',
   '/stock/alerts': 'Stock Alerts',
   '/sales': 'Sales History',
