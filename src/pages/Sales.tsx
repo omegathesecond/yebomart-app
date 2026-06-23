@@ -9,6 +9,7 @@ import {
   EnvelopeIcon,
   ChatBubbleLeftRightIcon,
   XMarkIcon,
+  NoSymbolIcon,
 } from '@heroicons/react/24/outline';
 import api from '@/api/client';
 import { Card, CardHeader } from '@/components/ui/Card';
@@ -21,7 +22,7 @@ import { useInventoryStore } from '@/stores/inventoryStore';
 import { formatCurrency, formatDate, formatTime, type Sale, PAYMENT_METHODS } from '@/types';
 
 export function Sales() {
-  const { shop } = useAuthStore();
+  const { shop, user } = useAuthStore();
   const { sales, loadAll } = useInventoryStore();
   const { toast, showToast, dismissToast } = useToast();
 
@@ -32,6 +33,16 @@ export function Sales() {
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [customerEmail, setCustomerEmail] = useState('');
   const [isSendingEmail, setIsSendingEmail] = useState(false);
+
+  // Void-sale modal state
+  const [showVoidModal, setShowVoidModal] = useState(false);
+  const [voidReason, setVoidReason] = useState('');
+  const [isVoiding, setIsVoiding] = useState(false);
+
+  // Voiding is manager-gated to match the API (POST /api/sales/:id/void uses
+  // managerAuth = OWNER/MANAGER). Cashiers never see the action.
+  const canVoidSale = user?.role === 'owner' || user?.role === 'manager';
+  const isVoided = (sale: Sale) => sale.status === 'VOIDED';
 
   useEffect(() => {
     if (shop) {
@@ -112,6 +123,39 @@ export function Sales() {
     window.open(`https://wa.me/?text=${text}`, '_blank', 'noopener,noreferrer');
   };
 
+  const handleVoidSale = async () => {
+    if (!selectedSale) return;
+
+    // Mirror the API's Joi rule (reason 5–500 chars) so the cashier gets the
+    // feedback before the round-trip instead of a 400.
+    const reason = voidReason.trim();
+    if (reason.length < 5) {
+      showToast('Please enter a reason of at least 5 characters', 'error');
+      return;
+    }
+
+    setIsVoiding(true);
+    try {
+      const { data, error } = await api.voidSale(selectedSale.id, reason);
+      if (!data) {
+        // Fail loudly — surface the real server message (no silent success).
+        showToast(error || 'Failed to void sale. Please try again.', 'error');
+        return;
+      }
+      showToast('Sale voided. Stock restored.', 'success');
+      setShowVoidModal(false);
+      setVoidReason('');
+      setSelectedSale(null);
+      // Reload so the list/badges/totals reflect the new VOIDED status and the
+      // server-aggregated void reporting (Reports, StaffDetail) stays in sync.
+      if (shop) await loadAll(shop.id);
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to void sale. Please try again.', 'error');
+    } finally {
+      setIsVoiding(false);
+    }
+  };
+
   // Filter sales by date
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -134,13 +178,15 @@ export function Sales() {
     return acc;
   }, {} as Record<string, Sale[]>);
 
-  // Calculate totals
-  const totalSales = filteredSales.reduce((sum, s) => sum + s.totalAmount, 0);
-  const totalTransactions = filteredSales.length;
+  // Calculate totals — voided sales are not revenue, so exclude them from every
+  // monetary figure (they still appear in the list below, badged as VOIDED).
+  const countedSales = filteredSales.filter(s => !isVoided(s));
+  const totalSales = countedSales.reduce((sum, s) => sum + s.totalAmount, 0);
+  const totalTransactions = countedSales.length;
   const avgTransaction = totalTransactions > 0 ? totalSales / totalTransactions : 0;
 
   // Payment method breakdown
-  const paymentBreakdown = filteredSales.reduce((acc, sale) => {
+  const paymentBreakdown = countedSales.reduce((acc, sale) => {
     acc[sale.paymentMethod] = (acc[sale.paymentMethod] || 0) + sale.totalAmount;
     return acc;
   }, {} as Record<string, number>);
@@ -243,7 +289,7 @@ export function Sales() {
       {/* Sales List */}
       <div className="space-y-6">
         {Object.entries(salesByDate).map(([date, dateSales]) => {
-          const dayTotal = dateSales.reduce((sum, s) => sum + s.totalAmount, 0);
+          const dayTotal = dateSales.reduce((sum, s) => sum + (isVoided(s) ? 0 : s.totalAmount), 0);
           
           return (
             <div key={date}>
@@ -263,13 +309,22 @@ export function Sales() {
                     className="w-full p-4 flex items-center justify-between hover:bg-slate-700/30 transition-colors text-left"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                        <BanknotesIcon className="w-5 h-5 text-emerald-400" />
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                        isVoided(sale) ? 'bg-red-500/20' : 'bg-emerald-500/20'
+                      }`}>
+                        {isVoided(sale) ? (
+                          <NoSymbolIcon className="w-5 h-5 text-red-400" />
+                        ) : (
+                          <BanknotesIcon className="w-5 h-5 text-emerald-400" />
+                        )}
                       </div>
                       <div>
-                        <p className="font-medium text-white">
-                          {sale.items.length} item{sale.items.length > 1 ? 's' : ''}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-white">
+                            {sale.items.length} item{sale.items.length > 1 ? 's' : ''}
+                          </p>
+                          {isVoided(sale) && <Badge variant="danger">Voided</Badge>}
+                        </div>
                         <div className="flex items-center gap-2">
                           <span className="text-xs">{getPaymentIcon(sale.paymentMethod)}</span>
                           <span className="text-xs text-slate-400">
@@ -279,7 +334,9 @@ export function Sales() {
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <p className="text-lg font-semibold text-emerald-400">
+                      <p className={`text-lg font-semibold ${
+                        isVoided(sale) ? 'text-slate-500 line-through' : 'text-emerald-400'
+                      }`}>
                         {formatCurrency(sale.totalAmount)}
                       </p>
                       <ChevronRightIcon className="w-5 h-5 text-slate-500" />
@@ -387,6 +444,19 @@ export function Sales() {
                 </Badge>
               </div>
 
+              {/* Voided banner (on-screen chrome — hidden when printing) */}
+              {isVoided(selectedSale) && (
+                <div className="flex items-start gap-3 p-3 rounded-xl bg-red-500/10 border border-red-500/30 print:hidden">
+                  <NoSymbolIcon className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold text-red-400">This sale was voided</p>
+                    {selectedSale.voidReason && (
+                      <p className="text-xs text-slate-400 mt-0.5">{selectedSale.voidReason}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Receipt actions */}
               <div className="grid grid-cols-3 gap-2 print:hidden">
                 <Button variant="primary" className="w-full" onClick={handlePrint}>
@@ -402,6 +472,24 @@ export function Sales() {
                   WhatsApp
                 </Button>
               </div>
+
+              {/* Void action — manager-gated, hidden once voided or while a sale
+                  is still queued offline (it has no server id to void yet). */}
+              {canVoidSale && !isVoided(selectedSale) && !selectedSale.pendingSync && (
+                <div className="print:hidden">
+                  <Button
+                    variant="danger"
+                    className="w-full"
+                    onClick={() => {
+                      setVoidReason('');
+                      setShowVoidModal(true);
+                    }}
+                  >
+                    <NoSymbolIcon className="w-5 h-5" />
+                    Void Sale
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -457,6 +545,67 @@ export function Sales() {
             >
               <EnvelopeIcon className="w-5 h-5" />
               Send Receipt
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Void Sale Modal */}
+      <Modal
+        isOpen={showVoidModal}
+        onClose={() => {
+          setShowVoidModal(false);
+          setVoidReason('');
+        }}
+        title="Void Sale"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <div className="flex items-start gap-3 p-3 rounded-xl bg-red-500/10 border border-red-500/30">
+            <NoSymbolIcon className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+            <p className="text-sm text-slate-300">
+              Voiding restores the sold stock and reverses any customer debt for
+              this sale. This cannot be undone.
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              Reason for voiding
+            </label>
+            <textarea
+              value={voidReason}
+              onChange={(e) => setVoidReason(e.target.value)}
+              placeholder="e.g. Customer changed their mind"
+              rows={3}
+              autoFocus
+              maxLength={500}
+              className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
+            />
+            <p className="text-xs text-slate-500 mt-1">At least 5 characters.</p>
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <Button
+              variant="secondary"
+              className="flex-1"
+              onClick={() => {
+                setShowVoidModal(false);
+                setVoidReason('');
+              }}
+            >
+              <XMarkIcon className="w-5 h-5" />
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              className="flex-1"
+              onClick={handleVoidSale}
+              disabled={voidReason.trim().length < 5 || isVoiding}
+              isLoading={isVoiding}
+            >
+              <NoSymbolIcon className="w-5 h-5" />
+              Void Sale
             </Button>
           </div>
         </div>

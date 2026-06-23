@@ -101,6 +101,10 @@ export interface Sale {
   discountApprovedBy?: string; // Manager ID if override was needed
   totalAmount: number;        // Final amount after discount
   paymentMethod: PaymentMethod;
+  // Lifecycle status, raw from the API (Prisma SaleStatus enum, UPPERCASE).
+  // Absent on optimistic offline sales — treat undefined as COMPLETED.
+  status?: 'PENDING' | 'COMPLETED' | 'VOIDED' | 'REFUNDED';
+  voidReason?: string;        // Set when status === 'VOIDED'
   items: SaleItem[];
   createdAt: Date;
   syncedAt?: Date;

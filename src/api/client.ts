@@ -597,6 +597,19 @@ class ApiClient {
     });
   }
 
+  /**
+   * POST /api/sales/:id/void — manager-gated (OWNER/MANAGER) on the API.
+   * Flips the sale to VOIDED, restores stock, and — for a CREDIT (pay-later)
+   * sale — reverses the customer's outstanding debt. `reason` must be 5–500
+   * chars (validated server-side); the returned sale carries the new status.
+   */
+  async voidSale(id: string, reason: string) {
+    return this.request<any>(`/api/sales/${id}/void`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    });
+  }
+
   // ── Stock ─────────────────────────────────────────────────────────────
 
   async adjustStock(
