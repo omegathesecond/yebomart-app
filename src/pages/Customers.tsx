@@ -16,7 +16,7 @@ import {
   BellAlertIcon,
 } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
+import { Input, Select, Textarea } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
@@ -54,8 +54,11 @@ export function Customers() {
   const [detail, setDetail] = useState<CustomerDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
-  // Record payment
+  // Record payment / manual ledger adjustment
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentType, setPaymentType] = useState<'PAYMENT' | 'ADJUSTMENT' | 'REFUND'>('PAYMENT');
   const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentNote, setPaymentNote] = useState('');
   const [recordingPayment, setRecordingPayment] = useState(false);
 
   // Send statement / reminder via YeboLink (WhatsApp → SMS)
@@ -138,24 +141,41 @@ export function Customers() {
     setDetail(data);
   };
 
-  const handleRecordPayment = async () => {
-    if (!detail) return;
+  const openPaymentModal = () => {
+    setPaymentType('PAYMENT');
+    setPaymentAmount('');
+    setPaymentNote('');
+    setShowPaymentModal(true);
+  };
+
+  // Mirror the server's addCreditSchema: an ADJUSTMENT carries its own sign (a
+  // negative amount reduces the balance) but must be non-zero; PAYMENT/REFUND
+  // are positive magnitudes that pay the balance down.
+  const isPaymentAmountValid = () => {
     const amount = parseFloat(paymentAmount);
-    if (!amount || amount <= 0) return;
+    if (Number.isNaN(amount)) return false;
+    return paymentType === 'ADJUSTMENT' ? amount !== 0 : amount > 0;
+  };
+
+  const handleRecordPayment = async () => {
+    if (!detail || !isPaymentAmountValid()) return;
+    const amount = parseFloat(paymentAmount);
     setRecordingPayment(true);
     const { data, error } = await api.addCustomerCredit(detail.id, {
-      type: 'PAYMENT',
+      type: paymentType,
       amount,
-      note: 'Payment recorded',
+      note: paymentNote.trim() || undefined,
     });
     setRecordingPayment(false);
     if (error || !data) {
-      showToast(error || 'Failed to record payment', 'error');
+      // No silent fallback — surface the API failure loudly, including the
+      // 422 a positive over-limit ADJUSTMENT returns (owner override required).
+      showToast(error || 'Failed to record entry', 'error');
       return;
     }
-    showToast('Payment recorded');
-    setPaymentAmount('');
-    // Refresh detail + list balances
+    showToast(`${CREDIT_TYPE_LABEL[paymentType]} of ${formatCurrency(Math.abs(amount))} recorded`);
+    setShowPaymentModal(false);
+    // Refresh the detail (new balance + ledger) and the list balance badges.
     openDetail(detail.id);
     fetchCustomers(searchQuery);
   };
@@ -424,36 +444,20 @@ export function Customers() {
               </div>
             </div>
 
-            {/* Record payment (only if they owe) */}
-            {detail.balance > 0 && (
-              <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-4">
-                <p className="text-sm font-medium text-white mb-2 flex items-center gap-2">
-                  <BanknotesIcon className="w-5 h-5 text-emerald-400" />
-                  Record a Payment
-                </p>
-                <div className="flex gap-2">
-                  <Input
-                    type="number"
-                    value={paymentAmount}
-                    onChange={(e) => setPaymentAmount(e.target.value)}
-                    placeholder="Amount"
-                    inputSize="sm"
-                  />
-                  <Button
-                    variant="success"
-                    onClick={handleRecordPayment}
-                    disabled={
-                      !paymentAmount ||
-                      parseFloat(paymentAmount) <= 0 ||
-                      recordingPayment
-                    }
-                    isLoading={recordingPayment}
-                  >
-                    Record
-                  </Button>
-                </div>
-              </div>
-            )}
+            {/* Record a payment or post a manual ledger adjustment. Available to
+                any signed-in staff: the API's POST /:id/credit is NOT
+                manager-gated (only PATCH / send-statement are), so gating this
+                would re-break the gap it fills — cashiers selling "on the book"
+                must be able to clear debt. Over-limit positive adjustments still
+                fail loudly with a 422. */}
+            <Button
+              variant="success"
+              className="w-full"
+              leftIcon={<BanknotesIcon className="w-5 h-5" />}
+              onClick={openPaymentModal}
+            >
+              Record Payment
+            </Button>
 
             {/* Purchase history */}
             <div>
@@ -575,6 +579,107 @@ export function Customers() {
             </div>
           </div>
         ) : null}
+      </Modal>
+
+      {/* Record payment / ledger adjustment */}
+      <Modal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        title="Record Payment"
+        size="sm"
+      >
+        {detail && (
+          <div className="space-y-4">
+            <div className="bg-slate-800 rounded-xl p-3 flex items-center justify-between">
+              <span className="text-sm text-slate-400">{detail.name}'s balance</span>
+              <span
+                className={`font-bold ${
+                  detail.balance > 0
+                    ? 'text-red-400'
+                    : detail.balance < 0
+                      ? 'text-emerald-400'
+                      : 'text-white'
+                }`}
+              >
+                {formatCurrency(detail.balance)}
+              </span>
+            </div>
+
+            <Select
+              label="Type"
+              value={paymentType}
+              onChange={(e) =>
+                setPaymentType(e.target.value as 'PAYMENT' | 'ADJUSTMENT' | 'REFUND')
+              }
+              options={[
+                { value: 'PAYMENT', label: 'Payment — customer pays down their balance' },
+                { value: 'REFUND', label: 'Refund — money returned to the customer' },
+                { value: 'ADJUSTMENT', label: 'Adjustment — manual correction (±)' },
+              ]}
+            />
+
+            <Input
+              label="Amount *"
+              type="number"
+              value={paymentAmount}
+              onChange={(e) => setPaymentAmount(e.target.value)}
+              placeholder="0.00"
+              leftIcon={<BanknotesIcon className="w-5 h-5" />}
+              hint={
+                paymentType === 'ADJUSTMENT'
+                  ? 'Use a negative amount to reduce the balance, positive to increase it.'
+                  : undefined
+              }
+            />
+
+            {isPaymentAmountValid() && (
+              <p className="text-xs text-slate-400">
+                New balance:{' '}
+                <span className="font-semibold text-slate-200">
+                  {formatCurrency(
+                    detail.balance +
+                      (paymentType === 'ADJUSTMENT'
+                        ? parseFloat(paymentAmount)
+                        : -parseFloat(paymentAmount)),
+                  )}
+                </span>
+              </p>
+            )}
+
+            <Textarea
+              label="Note"
+              value={paymentNote}
+              onChange={(e) => setPaymentNote(e.target.value)}
+              placeholder="Optional — e.g. cash, mobile money reference, reason for adjustment"
+              maxLength={500}
+              className="min-h-[72px]"
+            />
+
+            <div className="flex gap-3 pt-2">
+              <Button
+                variant="secondary"
+                className="flex-1"
+                onClick={() => setShowPaymentModal(false)}
+                disabled={recordingPayment}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="success"
+                className="flex-1"
+                onClick={handleRecordPayment}
+                disabled={!isPaymentAmountValid() || recordingPayment}
+                isLoading={recordingPayment}
+              >
+                {paymentType === 'PAYMENT'
+                  ? 'Record Payment'
+                  : paymentType === 'REFUND'
+                    ? 'Record Refund'
+                    : 'Record Adjustment'}
+              </Button>
+            </div>
+          </div>
+        )}
       </Modal>
 
       <Toast toast={toast} onDismiss={dismissToast} />
