@@ -13,13 +13,17 @@ import {
 import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
 import { useCartStore, useCartTotal } from '@/stores/cartStore';
-import { formatCurrency, type Product } from '@/types';
+import { computeChange } from '@/lib/money';
+import { formatCurrency, type Product, type PaymentMethod, PAYMENT_METHODS } from '@/types';
+import { Modal } from '@/components/ui/Modal';
+import { Button } from '@/components/ui/Button';
+import { ReceiptModal, type ReceiptSale } from '@/components/pos/ReceiptModal';
 
 export function MobilePOS() {
   const navigate = useNavigate();
   const { user, shop } = useAuthStore();
   const { products, loadAll, getProductByBarcode, searchProducts } = useInventoryStore();
-  const { items, addItem, updateQuantity, removeItem, checkout, clear } = useCartStore();
+  const { items, addItem, updateQuantity, removeItem, checkout, clear, setPaymentMethod } = useCartStore();
   const cartTotal = useCartTotal();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -31,6 +35,15 @@ export function MobilePOS() {
   const [scannerError, setScannerError] = useState<string | null>(null);
   const [lastScannedCode, setLastScannedCode] = useState<string | null>(null);
   const [scanFeedback, setScanFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  // Cash payment modal — capture cash tendered + show change for cash sales
+  const [showCashModal, setShowCashModal] = useState(false);
+  const [cashReceived, setCashReceived] = useState('');
+  const [changeAmount, setChangeAmount] = useState(0);
+
+  // Receipt modal shown after a successful sale (shared with the desktop POS)
+  const [showReceipt, setShowReceipt] = useState(false);
+  const [lastSale, setLastSale] = useState<ReceiptSale | null>(null);
 
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const scannerContainerRef = useRef<HTMLDivElement>(null);
@@ -190,28 +203,91 @@ export function MobilePOS() {
     }, 2000);
   };
 
-  // Checkout
-  const handleCheckout = async () => {
-    if (!user || !shop || items.length === 0) return;
-    
+  // Show a transient error toast on the scanner overlay.
+  const showError = (message: string) => {
+    setScanFeedback({ type: 'error', message });
+    if (feedbackTimerRef.current) {
+      clearTimeout(feedbackTimerRef.current);
+    }
+    feedbackTimerRef.current = setTimeout(() => setScanFeedback(null), 3000);
+  };
+
+  // Pick a payment method. Cash opens the tender/change modal first; the other
+  // methods (card/MoMo/eMali) settle immediately. Mirrors POS.tsx.
+  const handlePayment = (method: PaymentMethod) => {
+    if (!user || !shop || items.length === 0) {
+      showError('Cart is empty or not logged in');
+      return;
+    }
+    if (method === 'cash') {
+      setCashReceived('');
+      setChangeAmount(0);
+      setShowCashModal(true);
+      return;
+    }
+    void processPayment(method);
+  };
+
+  // Recompute change as the cashier types the cash tendered.
+  const handleCashReceivedChange = (value: string) => {
+    setCashReceived(value);
+    const received = parseFloat(value) || 0;
+    setChangeAmount(computeChange(cartTotal, received));
+  };
+
+  // Settle a cash sale once enough cash has been tendered.
+  const processCashPayment = async () => {
+    const received = parseFloat(cashReceived) || 0;
+    if (received < cartTotal) {
+      showError('Insufficient cash received');
+      return;
+    }
+    setShowCashModal(false);
+    await processPayment('cash', received, changeAmount);
+  };
+
+  // Run the actual checkout and surface the receipt on success.
+  const processPayment = async (
+    method: PaymentMethod,
+    cashReceivedAmount?: number,
+    changeGiven?: number
+  ) => {
+    if (!user || !shop) return;
+
+    setPaymentMethod(method);
     setIsProcessing(true);
     try {
       const sale = await checkout(user.id, shop.id);
       if (sale) {
-        // Show success feedback
-        setScanFeedback({ type: 'success', message: 'Order created successfully!' });
-        if (feedbackTimerRef.current) {
-          clearTimeout(feedbackTimerRef.current);
-        }
-        feedbackTimerRef.current = setTimeout(() => {
-          setScanFeedback(null);
-        }, 3000);
+        setLastSale({
+          total: sale.totalAmount,
+          subtotal: sale.subtotal ?? sale.totalAmount,
+          discount: sale.discount ?? 0,
+          items: sale.items,
+          id: sale.id,
+          receiptNumber: sale.receiptNumber,
+          date: new Date(),
+          paymentMethod: method,
+          cashReceived: cashReceivedAmount,
+          changeGiven,
+          pendingSync: sale.pendingSync,
+        });
+        setShowReceipt(true);
+      } else {
+        // Surface the store's error loudly — never silently swallow a failed sale.
+        const error = useCartStore.getState().error;
+        showError(error || 'Sale failed. Please try again.');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Checkout failed:', err);
-      setScanFeedback({ type: 'error', message: 'Checkout failed. Try again.' });
+      showError(err?.message || 'Checkout failed. Try again.');
     }
     setIsProcessing(false);
+  };
+
+  const handleCloseReceipt = () => {
+    setShowReceipt(false);
+    setLastSale(null);
   };
 
   // Get total items count
@@ -446,26 +522,146 @@ export function MobilePOS() {
           </span>
         </div>
 
-        {/* Create Order Button */}
-        <button
-          onClick={handleCheckout}
-          disabled={items.length === 0 || isProcessing}
-          className={`w-full py-4 rounded-2xl font-semibold text-lg transition-all ${
-            items.length === 0 || isProcessing
-              ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
-              : 'bg-teal-500 text-white hover:bg-teal-400 active:scale-[0.98]'
-          }`}
-        >
-          {isProcessing ? (
-            <span className="flex items-center justify-center gap-2">
-              <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              Processing...
-            </span>
-          ) : (
-            'Create order'
-          )}
-        </button>
+        {/* Payment Method Selector — pick how the customer pays */}
+        <div className="grid grid-cols-2 gap-2">
+          {PAYMENT_METHODS.map((method) => (
+            <button
+              key={method.value}
+              onClick={() => handlePayment(method.value)}
+              disabled={items.length === 0 || isProcessing}
+              className={`py-4 rounded-2xl font-semibold text-base flex items-center justify-center gap-2 transition-all ${
+                items.length === 0 || isProcessing
+                  ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                  : method.value === 'cash'
+                    ? 'bg-emerald-500 text-white hover:bg-emerald-400 active:scale-[0.98]'
+                    : 'bg-teal-500 text-white hover:bg-teal-400 active:scale-[0.98]'
+              }`}
+            >
+              {isProcessing ? (
+                <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <>
+                  <span>{method.icon}</span>
+                  <span>{method.label}</span>
+                </>
+              )}
+            </button>
+          ))}
+        </div>
       </div>
+
+      {/* Cash Payment Modal — capture cash tendered + show change */}
+      <Modal
+        isOpen={showCashModal}
+        onClose={() => setShowCashModal(false)}
+        title="Cash Payment"
+        size="sm"
+      >
+        <div className="space-y-6">
+          {/* Total Due */}
+          <div className="bg-slate-700/50 rounded-xl p-4 text-center">
+            <p className="text-sm text-slate-400 mb-1">Total Due</p>
+            <p className="text-3xl font-bold text-white">{formatCurrency(cartTotal)}</p>
+          </div>
+
+          {/* Cash Received Input */}
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              Cash Received
+            </label>
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">E</span>
+              <input
+                type="number"
+                inputMode="decimal"
+                min={cartTotal}
+                step="0.01"
+                value={cashReceived}
+                onChange={(e) => handleCashReceivedChange(e.target.value)}
+                placeholder="0.00"
+                autoFocus
+                className="w-full pl-8 pr-4 py-4 text-2xl font-bold bg-slate-700 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 text-center"
+              />
+            </div>
+          </div>
+
+          {/* Quick Amount Buttons */}
+          <div className="grid grid-cols-4 gap-2">
+            {[50, 100, 200, 500].map((amount) => (
+              <button
+                key={amount}
+                onClick={() => handleCashReceivedChange(amount.toString())}
+                className={`py-2 px-3 rounded-lg text-sm font-medium border transition-colors ${
+                  parseFloat(cashReceived) === amount
+                    ? 'bg-amber-500/20 border-amber-500 text-amber-400'
+                    : 'border-slate-600 text-slate-300 hover:border-slate-500'
+                }`}
+              >
+                E{amount}
+              </button>
+            ))}
+          </div>
+
+          {/* Exact Amount Button */}
+          <button
+            onClick={() => handleCashReceivedChange(cartTotal.toFixed(2))}
+            className={`w-full py-2 rounded-lg text-sm font-medium border transition-colors ${
+              parseFloat(cashReceived) === cartTotal
+                ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400'
+                : 'border-slate-600 text-slate-300 hover:border-slate-500'
+            }`}
+          >
+            Exact Amount ({formatCurrency(cartTotal)})
+          </button>
+
+          {/* Change Display */}
+          {parseFloat(cashReceived) >= cartTotal && (
+            <div className="bg-emerald-500/20 border border-emerald-500/30 rounded-xl p-4 text-center">
+              <p className="text-sm text-emerald-400 mb-1">Change Due</p>
+              <p className="text-3xl font-bold text-emerald-400">{formatCurrency(changeAmount)}</p>
+            </div>
+          )}
+
+          {/* Insufficient Warning */}
+          {cashReceived && parseFloat(cashReceived) < cartTotal && (
+            <div className="bg-red-500/20 border border-red-500/30 rounded-xl p-3 text-center">
+              <p className="text-red-400 text-sm">
+                Insufficient amount. Need {formatCurrency(cartTotal - (parseFloat(cashReceived) || 0))} more.
+              </p>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex gap-3">
+            <Button
+              variant="secondary"
+              size="lg"
+              className="flex-1"
+              onClick={() => setShowCashModal(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="success"
+              size="lg"
+              className="flex-1"
+              onClick={processCashPayment}
+              disabled={!cashReceived || parseFloat(cashReceived) < cartTotal}
+              isLoading={isProcessing}
+            >
+              💵 Complete Sale
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Receipt Modal — print + email share, shared with the desktop POS */}
+      <ReceiptModal
+        isOpen={showReceipt}
+        onClose={handleCloseReceipt}
+        sale={lastSale}
+        shop={shop}
+      />
     </div>
   );
 }
