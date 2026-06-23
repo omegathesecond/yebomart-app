@@ -94,60 +94,18 @@ export const useShopStore = create<ShopState>()(
         }
       },
 
-      createShop: async (data: CreateShopData) => {
-        set({ isLoading: true, error: null });
-        try {
-          const country = getCountryByCode(data.countryCode);
-          if (!country) {
-            set({ isLoading: false, error: 'Invalid country' });
-            return { success: false, error: 'Invalid country selected' };
-          }
-
-          // Build full phone number
-          const phoneCountry = getCountryByCode(data.phoneCountryCode);
-          const fullPhone = phoneCountry 
-            ? `${phoneCountry.phonePrefix}${data.ownerPhone.replace(/^0+/, '')}`
-            : data.ownerPhone;
-
-          // Call API to create shop
-          // For now, we'll use the register endpoint which creates shop
-          // In full implementation, this would be a separate createShop API
-          const shopData = {
-            name: data.name,
-            ownerName: data.ownerName,
-            ownerPhone: fullPhone,
-            phoneCountryCode: data.phoneCountryCode,
-            countryCode: data.countryCode,
-            businessType: data.businessType,
-            assistantName: data.assistantName || 'Yebo',
-            currency: country.currency,
-            currencySymbol: country.currencySymbol,
-            timezone: 'Africa/Johannesburg' // Default, could derive from country
-          };
-
-          // Note: In production, you'd have a dedicated createShop endpoint
-          // For now, return success with mock data
-          const newShop: ShopWithRole = {
-            id: crypto.randomUUID(),
-            ...shopData,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            userRole: 'owner'
-          };
-
-          set(state => ({
-            shops: [...state.shops, newShop],
-            currentShopId: newShop.id,
-            currentShop: newShop,
-            isLoading: false
-          }));
-
-          return { success: true, shop: newShop };
-        } catch (err) {
-          console.error('Failed to create shop:', err);
-          set({ isLoading: false, error: 'Failed to create shop' });
-          return { success: false, error: 'Failed to create shop' };
-        }
+      createShop: async () => {
+        // Multi-shop ownership is NOT supported yet. The backend keys each shop
+        // to a single YeboID owner (Shop.ownerYeboidSub is @unique) and exposes
+        // no createShop endpoint — adding a second shop needs a backend redesign
+        // (owner↔shops relation + shop-switching on every authed request),
+        // tracked as a future feature in the YeboID plan.
+        //
+        // Per the "fail loudly, never fake success" rule we surface this plainly
+        // instead of returning a phantom in-memory shop that vanishes on reload.
+        const error = 'Adding additional shops isn\'t available yet.';
+        set({ isLoading: false, error });
+        return { success: false, error };
       },
 
       updateShop: async (shopId: string, updates: Partial<Shop>) => {
