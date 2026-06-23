@@ -265,6 +265,58 @@ describe('cartStore — checkout (credit / on the book)', () => {
     expect(sale!.pendingSync).toBe(true);
     expect(sale!.customerBalance).toBe(140); // 100 + 40 projected
   });
+
+  it('offline, rejects an over-limit credit sale — no queue, surfaces error', async () => {
+    setOnline(false);
+
+    const store = useCartStore.getState();
+    // balance 90 + 40 sale = 130 > limit 100 → must be refused locally.
+    store.setCustomer(makeCustomer({ id: 'cust-3', balance: 90, creditLimit: 100 }));
+    store.setPaymentMethod('credit');
+    store.addItem(makeProduct({ id: 'a', sellPrice: 20 }), false, 2); // total 40
+
+    const sale = await useCartStore.getState().checkout('user-1', 'shop-1');
+
+    expect(sale).toBeNull();
+    expect(createSale).not.toHaveBeenCalled();
+    expect(addToSyncQueue).not.toHaveBeenCalled();
+    expect(useCartStore.getState().error).toMatch(/credit limit/i);
+    expect(useCartStore.getState().items).toHaveLength(1); // cart intact
+  });
+
+  it('online, rejects an over-limit credit sale before hitting the API', async () => {
+    const store = useCartStore.getState();
+    store.setCustomer(makeCustomer({ id: 'cust-4', balance: 90, creditLimit: 100 }));
+    store.setPaymentMethod('credit');
+    store.addItem(makeProduct({ id: 'a', sellPrice: 20 }), false, 2); // total 40 → 130 > 100
+
+    const sale = await useCartStore.getState().checkout('user-1', 'shop-1');
+
+    expect(sale).toBeNull();
+    expect(createSale).not.toHaveBeenCalled();
+    expect(useCartStore.getState().error).toMatch(/credit limit/i);
+  });
+
+  it('allows a credit sale that lands exactly on the limit, and one with no limit (0)', async () => {
+    createSale.mockResolvedValue({ data: { id: 'srv-ok', customerBalance: 100 } });
+    const store = useCartStore.getState();
+    // 60 + 40 = 100 == limit 100 → allowed (only strictly-over is rejected).
+    store.setCustomer(makeCustomer({ id: 'cust-5', balance: 60, creditLimit: 100 }));
+    store.setPaymentMethod('credit');
+    store.addItem(makeProduct({ id: 'a', sellPrice: 20 }), false, 2);
+
+    const sale = await useCartStore.getState().checkout('user-1', 'shop-1');
+    expect(sale).not.toBeNull();
+    expect(createSale).toHaveBeenCalledTimes(1);
+
+    // creditLimit 0 = unlimited → never blocked regardless of balance.
+    useCartStore.getState().clear();
+    store.setCustomer(makeCustomer({ id: 'cust-6', balance: 9999, creditLimit: 0 }));
+    store.setPaymentMethod('credit');
+    store.addItem(makeProduct({ id: 'a', sellPrice: 20 }), false, 2);
+    const sale2 = await useCartStore.getState().checkout('user-1', 'shop-1');
+    expect(sale2).not.toBeNull();
+  });
 });
 
 describe('cartStore — checkout (offline outbox)', () => {

@@ -218,6 +218,21 @@ export const useCartStore = create<CartState>((set, get) => ({
     // this locally-computed projection so the receipt is still meaningful.
     const projectedBalance = isCredit && customer ? customer.balance + totalAmount : undefined;
 
+    // Enforce the credit limit here, BEFORE we touch the network or the offline
+    // outbox. Online the server re-checks this (defence in depth); but offline a
+    // credit sale is queued and optimistically completed, so without this guard
+    // an over-limit sale would be accepted locally (goods handed over) only to be
+    // rejected by the server on sync — a silent failure. Mirror the server rule
+    // exactly: creditLimit 0 = unlimited; reject only when the new balance would
+    // exceed a configured (> 0) limit. No silent fallback — surface it as an error.
+    if (isCredit && customer && customer.creditLimit > 0 && projectedBalance! > customer.creditLimit) {
+      set({
+        isProcessing: false,
+        error: `Credit limit exceeded. Limit: ${customer.creditLimit}, current balance: ${customer.balance}, this sale: ${totalAmount}. New balance would be ${projectedBalance}.`,
+      });
+      return null;
+    }
+
     set({ isProcessing: true, error: null });
 
     // Stable idempotency key for this checkout. Sent on the live attempt AND any
