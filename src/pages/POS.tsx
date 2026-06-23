@@ -702,10 +702,20 @@ export function POS() {
                   </div>
                 )}
                 {lastSale.tax > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span>VAT ({shop?.taxRate}%{shop?.taxInclusive ? ' incl.' : ''})</span>
-                    <span>{formatCurrency(lastSale.tax)}</span>
-                  </div>
+                  <>
+                    {/* Net (VAT-exclusive) amount so Net + VAT = TOTAL reconciles
+                        on the receipt — required for a compliant VAT receipt,
+                        and the only line that differs from the gross subtotal
+                        when prices are tax-inclusive. */}
+                    <div className="flex justify-between text-sm">
+                      <span>Net (excl. VAT)</span>
+                      <span>{formatCurrency(lastSale.total - lastSale.tax)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span>VAT ({shop?.taxRate}%{shop?.taxInclusive ? ' incl.' : ''})</span>
+                      <span>{formatCurrency(lastSale.tax)}</span>
+                    </div>
+                  </>
                 )}
               </div>
 

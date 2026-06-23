@@ -103,6 +103,8 @@ export function Sales() {
       lines.push(`Discount: -${formatCurrency(sale.discount)}`);
     }
     if (sale.tax && sale.tax > 0) {
+      // Net (VAT-exclusive) so Net + VAT = TOTAL reconciles on the shared receipt.
+      lines.push(`Net (excl. VAT): ${formatCurrency(sale.totalAmount - sale.tax)}`);
       lines.push(`VAT${shop?.taxRate ? ` (${shop.taxRate}%${shop.taxInclusive ? ' incl.' : ''})` : ''}: ${formatCurrency(sale.tax)}`);
     }
     lines.push(`TOTAL: ${formatCurrency(sale.totalAmount)}`);
@@ -369,10 +371,18 @@ export function Sales() {
                     </div>
                   )}
                   {selectedSale.tax && selectedSale.tax > 0 ? (
-                    <div className="flex justify-between text-sm">
-                      <span>VAT{shop?.taxRate ? ` (${shop.taxRate}%${shop.taxInclusive ? ' incl.' : ''})` : ''}</span>
-                      <span>{formatCurrency(selectedSale.tax)}</span>
-                    </div>
+                    <>
+                      {/* Net (VAT-exclusive) amount so Net + VAT = TOTAL
+                          reconciles — required for a compliant VAT receipt. */}
+                      <div className="flex justify-between text-sm">
+                        <span>Net (excl. VAT)</span>
+                        <span>{formatCurrency(selectedSale.totalAmount - selectedSale.tax)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span>VAT{shop?.taxRate ? ` (${shop.taxRate}%${shop.taxInclusive ? ' incl.' : ''})` : ''}</span>
+                        <span>{formatCurrency(selectedSale.tax)}</span>
+                      </div>
+                    </>
                   ) : null}
                   <div className="flex justify-between text-sm">
                     <span>Payment</span>
