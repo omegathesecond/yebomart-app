@@ -594,13 +594,30 @@ class ApiClient {
     });
   }
 
+  /**
+   * POST /api/stock/receive — purpose-built restock.
+   *
+   * Unlike adjustStock (shrinkage/counts), this records a RESTOCK movement and,
+   * when `costPrice` is supplied, updates the product's cost so COGS/profit stay
+   * accurate after a supplier price change. The endpoint takes an `items[]`
+   * batch; we send a single-item batch for the receive modal.
+   */
   async receiveStock(
     productId: string,
     data: { quantity: number; note?: string; costPrice?: number },
   ) {
-    return this.request<any>('/api/stock/receive', {
+    return this.request<Array<{ product: any; stockLog: any }>>('/api/stock/receive', {
       method: 'POST',
-      body: JSON.stringify({ productId, ...data }),
+      body: JSON.stringify({
+        items: [
+          {
+            productId,
+            quantity: data.quantity,
+            ...(data.note ? { note: data.note } : {}),
+            ...(data.costPrice !== undefined ? { costPrice: data.costPrice } : {}),
+          },
+        ],
+      }),
     });
   }
 

@@ -37,7 +37,7 @@ const ADJUSTMENT_TYPES: { value: AdjustmentType; label: string; icon: string }[]
 
 export function Stock() {
   const { shop } = useAuthStore();
-  const { products, stockLogs, alerts, loadAll, adjustStock } = useInventoryStore();
+  const { products, stockLogs, alerts, loadAll, receiveStock } = useInventoryStore();
   const { toast, showToast, dismissToast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
@@ -58,6 +58,7 @@ export function Stock() {
   const [showReceive, setShowReceive] = useState(false);
   const [receiveProduct, setReceiveProduct] = useState<string>('');
   const [receiveQty, setReceiveQty] = useState('');
+  const [receiveCostPrice, setReceiveCostPrice] = useState('');
   const [receiveNote, setReceiveNote] = useState('');
   const [isReceiving, setIsReceiving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -154,30 +155,47 @@ export function Stock() {
     } else if (parseInt(receiveQty) <= 0) {
       errors.quantity = 'Quantity must be greater than 0';
     }
-    
+    // Cost price is optional, but if entered it must be a valid non-negative number.
+    if (receiveCostPrice.trim() !== '') {
+      const cost = parseFloat(receiveCostPrice);
+      if (isNaN(cost) || cost < 0) {
+        errors.costPrice = 'Enter a valid cost price (0 or more)';
+      }
+    }
+
     setReceiveErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
-  // Receive stock handler
+  // Receive stock handler — routes through the purpose-built receive endpoint so
+  // an updated supplier cost is persisted (adjustStock is for shrinkage/counts).
   const handleReceiveStock = async () => {
     if (!validateReceive()) return;
-    
+
     setIsReceiving(true);
     try {
-      await adjustStock(receiveProduct, parseInt(receiveQty), 'restock', receiveNote || 'Stock received');
+      const costPrice =
+        receiveCostPrice.trim() !== '' ? parseFloat(receiveCostPrice) : undefined;
+      await receiveStock(
+        receiveProduct,
+        parseInt(receiveQty),
+        receiveNote || 'Stock received',
+        costPrice,
+      );
       setShowReceive(false);
       setReceiveProduct('');
       setReceiveQty('');
+      setReceiveCostPrice('');
       setReceiveNote('');
       setReceiveErrors({});
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 2000);
-      
+
       // Reload data
       if (shop) loadAll(shop.id);
     } catch (e) {
       console.error('Failed to receive stock:', e);
+      setReceiveErrors({ submit: e instanceof Error ? e.message : 'Failed to receive stock. Please try again.' });
     }
     setIsReceiving(false);
   };
@@ -262,6 +280,25 @@ export function Stock() {
 
   // Get low stock alerts from products
   const lowStockAlerts = products.filter(p => p.quantity <= p.reorderAt);
+
+  // Receive-modal margin preview: how this receive's cost affects profitability.
+  // Uses the entered cost when provided, else the product's current cost.
+  const receiveSelectedProduct = products.find(p => p.id === receiveProduct);
+  const receiveEffectiveCost =
+    receiveCostPrice.trim() !== '' && !isNaN(parseFloat(receiveCostPrice))
+      ? parseFloat(receiveCostPrice)
+      : receiveSelectedProduct?.costPrice ?? 0;
+  const receiveMarginPreview = (() => {
+    if (!receiveSelectedProduct) return null;
+    const sell = receiveSelectedProduct.sellPrice;
+    const profit = sell - receiveEffectiveCost;
+    const marginPct = sell > 0 ? (profit / sell) * 100 : null;
+    const costChanged =
+      receiveCostPrice.trim() !== '' &&
+      !isNaN(parseFloat(receiveCostPrice)) &&
+      parseFloat(receiveCostPrice) !== receiveSelectedProduct.costPrice;
+    return { sell, profit, marginPct, costChanged };
+  })();
 
   return (
     <div className="space-y-6">
@@ -613,7 +650,7 @@ export function Stock() {
       {/* Receive Stock Modal */}
       <Modal
         isOpen={showReceive}
-        onClose={() => { setShowReceive(false); setReceiveErrors({}); }}
+        onClose={() => { setShowReceive(false); setReceiveErrors({}); setReceiveCostPrice(""); }}
         title="Receive Stock"
         size="md"
       >
@@ -659,7 +696,65 @@ export function Stock() {
               <p className="text-red-400 text-sm mt-1">{receiveErrors.quantity}</p>
             )}
           </div>
-          
+
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              New Cost Price <span className="text-slate-500">(optional)</span>
+            </label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={receiveCostPrice}
+              onChange={(e) => { setReceiveCostPrice(e.target.value); if (receiveErrors.costPrice) setReceiveErrors({...receiveErrors, costPrice: ''}); }}
+              placeholder={
+                receiveSelectedProduct
+                  ? `Current: ${formatCurrency(receiveSelectedProduct.costPrice)}`
+                  : 'Cost per unit from this supplier'
+              }
+              className={`w-full px-4 py-3 bg-slate-700 border rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500 ${
+                receiveErrors.costPrice ? 'border-red-500' : 'border-slate-600'
+              }`}
+            />
+            {receiveErrors.costPrice ? (
+              <p className="text-red-400 text-sm mt-1">{receiveErrors.costPrice}</p>
+            ) : (
+              <p className="text-xs text-slate-500 mt-1">
+                Leave blank to keep the current cost. Enter the new supplier price to update margins.
+              </p>
+            )}
+          </div>
+
+          {/* Margin preview — shows how this receive's cost affects profit */}
+          {receiveMarginPreview && (
+            <div className="bg-slate-700/40 border border-slate-600 rounded-xl p-3">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-slate-400">Sell price</span>
+                <span className="text-white font-medium">{formatCurrency(receiveMarginPreview.sell)}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm mt-1">
+                <span className="text-slate-400">
+                  Cost {receiveMarginPreview.costChanged && <span className="text-amber-400">(new)</span>}
+                </span>
+                <span className="text-white font-medium">{formatCurrency(receiveEffectiveCost)}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm mt-1 pt-2 border-t border-slate-600">
+                <span className="text-slate-400">Profit / unit</span>
+                <span className={`font-semibold ${receiveMarginPreview.profit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                  {formatCurrency(receiveMarginPreview.profit)}
+                  {receiveMarginPreview.marginPct !== null && (
+                    <span className="text-slate-400 font-normal"> ({receiveMarginPreview.marginPct.toFixed(0)}%)</span>
+                  )}
+                </span>
+              </div>
+              {receiveMarginPreview.profit < 0 && (
+                <p className="text-xs text-red-400 mt-2">
+                  ⚠️ This cost is above the sell price — you'd lose money on each sale.
+                </p>
+              )}
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">
               Note (optional)
@@ -672,12 +767,18 @@ export function Stock() {
               className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
             />
           </div>
-          
+
+          {receiveErrors.submit && (
+            <div className="bg-red-500/20 border border-red-500/30 rounded-lg p-3">
+              <p className="text-red-400 text-sm">{receiveErrors.submit}</p>
+            </div>
+          )}
+
           <div className="flex gap-3 pt-4">
             <Button
               variant="secondary"
               className="flex-1"
-              onClick={() => { setShowReceive(false); setReceiveErrors({}); }}
+              onClick={() => { setShowReceive(false); setReceiveErrors({}); setReceiveCostPrice(""); }}
             >
               Cancel
             </Button>
