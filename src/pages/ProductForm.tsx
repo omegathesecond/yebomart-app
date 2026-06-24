@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeftIcon, QrCodeIcon, CheckIcon, PlusIcon, XMarkIcon, BuildingStorefrontIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, QrCodeIcon, CheckIcon, PlusIcon, XMarkIcon, BuildingStorefrontIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { formatCurrency } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { Input, Select, Textarea } from '@/components/ui/Input';
@@ -21,6 +21,7 @@ export function ProductForm() {
   const [showScanner, setShowScanner] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [supplierLinkFailed, setSupplierLinkFailed] = useState(false);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -194,9 +195,12 @@ export function ProductForm() {
     e.preventDefault();
     
     if (!validate() || !shop) return;
-    
+
     setIsSaving(true);
-    
+    // Clear any prior submit error from a previous attempt
+    setErrors(prev => ({ ...prev, submit: '' }));
+    setSupplierLinkFailed(false);
+
     try {
       // Combine defined attributes and custom attributes
       const allAttributes: Record<string, string | number> = { ...attributes };
@@ -232,21 +236,35 @@ export function ProductForm() {
         productId = await addProduct(productData);
       }
 
-      // Save suppliers if any selected
+      // Save suppliers if any selected. A supplier-link failure is a PARTIAL
+      // failure: the product itself saved, so surface a non-blocking warning
+      // rather than failing the whole save (or pretending it fully succeeded).
+      let supplierFailed = false;
       if (productId && selectedSupplierIds.size > 0) {
         try {
           await api.setProductSuppliers(productId, Array.from(selectedSupplierIds));
         } catch (error) {
           console.error('Failed to save suppliers:', error);
+          supplierFailed = true;
         }
       }
 
+      setSupplierLinkFailed(supplierFailed);
       setShowSuccess(true);
+      // Give the warning a little longer on screen so the user can read it.
       setTimeout(() => {
         navigate('/products');
-      }, 1500);
+      }, supplierFailed ? 2500 : 1500);
     } catch (error) {
+      // The product save itself failed (duplicate barcode, validation, auth,
+      // 5xx, …). Surface it loudly — do NOT navigate away or show success.
       console.error('Failed to save product:', error);
+      setErrors(prev => ({
+        ...prev,
+        submit: error instanceof Error && error.message
+          ? error.message
+          : 'Failed to save product. Please try again.',
+      }));
     } finally {
       setIsSaving(false);
     }
@@ -665,6 +683,17 @@ export function ProductForm() {
             </div>
           )}
 
+          {/* Submit error */}
+          {errors.submit && (
+            <div
+              role="alert"
+              className="flex items-start gap-3 p-3 rounded-lg bg-red-500/10 border border-red-500/30"
+            >
+              <ExclamationTriangleIcon className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+              <p className="text-sm text-red-400">{errors.submit}</p>
+            </div>
+          )}
+
           {/* Actions */}
           <div className="flex gap-3 pt-4 border-t border-slate-700">
             <Button
@@ -695,13 +724,19 @@ export function ProductForm() {
         />
       )}
 
-      {/* Success Toast */}
+      {/* Success / partial-success Toast */}
       {showSuccess && (
-        <div className="toast-success">
+        <div className={supplierLinkFailed ? 'toast-warning' : 'toast-success'}>
           <div className="flex items-center gap-3">
-            <CheckIcon className="w-6 h-6" />
+            {supplierLinkFailed ? (
+              <ExclamationTriangleIcon className="w-6 h-6" />
+            ) : (
+              <CheckIcon className="w-6 h-6" />
+            )}
             <span className="font-medium">
-              Product {isEdit ? 'updated' : 'added'} successfully!
+              {supplierLinkFailed
+                ? `Product ${isEdit ? 'updated' : 'saved'}, but suppliers couldn't be linked`
+                : `Product ${isEdit ? 'updated' : 'added'} successfully!`}
             </span>
           </div>
         </div>
