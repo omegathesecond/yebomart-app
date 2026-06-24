@@ -492,6 +492,21 @@ class ApiClient {
     });
   }
 
+  /**
+   * PATCH /api/shops/:id — owner-only. Persists shop profile fields (name,
+   * ownerName, assistantName, address, etc.). Returns the updated shop so the
+   * caller can replace its local copy with the authoritative server record.
+   */
+  async updateShop(
+    id: string,
+    data: { name?: string; ownerName?: string; assistantName?: string; address?: string; businessType?: string; currency?: string; timezone?: string; logoUrl?: string },
+  ) {
+    return this.request<any>(`/api/shops/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
   // ── Products ──────────────────────────────────────────────────────────
 
   async getProducts(params?: { page?: number; limit?: number }) {

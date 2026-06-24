@@ -115,15 +115,19 @@ export function Settings() {
     
     setIsSaving(true);
     setSaveSuccess(false);
-    await updateShop({
+    const result = await updateShop({
       name: shopName,
       ownerName,
       assistantName,
       address
     });
     setIsSaving(false);
-    setSaveSuccess(true);
-    setTimeout(() => setSaveSuccess(false), 3000);
+    if (result.success) {
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } else {
+      showToast(result.error || 'Failed to save shop settings', 'error');
+    }
   };
 
   return (

@@ -46,7 +46,7 @@ interface AuthState {
 
   logout: () => Promise<void>;
   loadUser: () => Promise<void>;
-  updateShop: (updates: Partial<Shop>) => Promise<void>;
+  updateShop: (updates: Partial<Shop>) => Promise<{ success: boolean; error?: string }>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -158,8 +158,25 @@ export const useAuthStore = create<AuthState>()(
 
         updateShop: async (updates: Partial<Shop>) => {
           const { shop } = get();
-          if (!shop) return;
-          set({ shop: { ...shop, ...updates } as Shop });
+          if (!shop) return { success: false, error: 'No active shop' };
+
+          // Persist to the API. Only on a real 2xx do we mutate local state —
+          // never show success for a write that didn't reach the server.
+          const { data, error } = await api.updateShop(shop.id, {
+            name: updates.name,
+            ownerName: updates.ownerName,
+            assistantName: updates.assistantName,
+            address: updates.address,
+          });
+          if (error || !data) {
+            return { success: false, error: error ?? 'Failed to save shop settings' };
+          }
+
+          // Replace with the authoritative server record (it may derive fields
+          // like currency from businessType/country).
+          set({ shop: { ...shop, ...data } as Shop });
+          syncShopLocale(get().shop);
+          return { success: true };
         },
       };
     },
