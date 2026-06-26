@@ -1105,6 +1105,23 @@ class ApiClient {
     });
   }
 
+  // ── SMS receipt ───────────────────────────────────────────────────────
+
+  /**
+   * Text a concise receipt to the customer via the YeboLink SMS gateway. The
+   * server loads the line items + totals from the persisted sale, so the client
+   * only needs the sale id and the recipient phone.
+   */
+  async sendReceiptSMS(data: { saleId: string; phone: string }) {
+    return this.request<{ success: boolean; messageId: string; status: string }>(
+      '/api/sales/sms-receipt',
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      },
+    );
+  }
+
   // ── Cash drawer / shifts ──────────────────────────────────────────────
 
   /** GET /api/cash-sessions/current — the open till (or null) + live cash tally. */

@@ -587,6 +587,7 @@ export function POS() {
         onClose={handleCloseReceipt}
         sale={lastSale}
         shop={shop}
+        customerPhone={customer?.phone || undefined}
       />
 
       {/* Discount Modal */}

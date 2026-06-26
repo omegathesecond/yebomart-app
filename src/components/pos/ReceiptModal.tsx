@@ -4,12 +4,14 @@ import {
   PrinterIcon,
   XMarkIcon,
   EnvelopeIcon,
+  ChatBubbleLeftRightIcon,
 } from '@heroicons/react/24/outline';
 import api from '@/api/client';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { Toast, useToast } from '@/components/ui/Toast';
 import { formatCurrency, type Shop } from '@/types';
+import { useInventoryStore } from '@/stores/inventoryStore';
 
 /**
  * The completed-sale data a receipt is rendered from. Mirrors the shape the
@@ -35,33 +37,66 @@ interface ReceiptModalProps {
   onClose: () => void;
   sale: ReceiptSale | null;
   shop: Shop | null;
+  /** The attached customer's phone, if any — pre-fills the SMS recipient. */
+  customerPhone?: string;
 }
 
 /**
  * Sale-complete receipt modal shared by the desktop POS and the mobile,
  * scan-centric POS. Renders the printable receipt (`id="receipt"`, isolated by
- * the global `@media print` rules in index.css), plus print and email-share
- * actions. The email-entry sub-modal and its send logic live here so any screen
- * that completes a sale gets receipt sharing for free — no per-page wiring.
+ * the global `@media print` rules in index.css), plus print, email, and SMS
+ * share actions. The email/SMS sub-modals and their send logic live here so any
+ * screen that completes a sale gets receipt sharing for free — no per-page
+ * wiring. Email + SMS both need the network, so both are disabled while offline.
  */
-export function ReceiptModal({ isOpen, onClose, sale, shop }: ReceiptModalProps) {
-  // Self-contained feedback channel for the email action so neither POS screen
+export function ReceiptModal({ isOpen, onClose, sale, shop, customerPhone }: ReceiptModalProps) {
+  // Self-contained feedback channel for the share actions so neither POS screen
   // has to thread a toast handler in.
   const { toast, showToast, dismissToast } = useToast();
+  const isOnline = useInventoryStore((s) => s.isOnline);
 
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [customerEmail, setCustomerEmail] = useState('');
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
 
-  // Reset the "emailed" confirmation whenever a fresh sale is shown so the
-  // Email button re-enables for the next customer.
+  const [showSmsModal, setShowSmsModal] = useState(false);
+  const [smsPhone, setSmsPhone] = useState('');
+  const [isSendingSms, setIsSendingSms] = useState(false);
+  const [smsSent, setSmsSent] = useState(false);
+
+  // Reset the "sent" confirmations whenever a fresh sale is shown so the
+  // Email/SMS buttons re-enable for the next customer.
   useEffect(() => {
     setEmailSent(false);
+    setSmsSent(false);
   }, [sale?.id]);
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleSendSms = async () => {
+    if (!smsPhone || !sale) return;
+
+    // Light client-side check; the server normalizes + validates authoritatively.
+    const cleaned = smsPhone.replace(/[\s\-()]/g, '');
+    if (!/^\+?[1-9]\d{6,14}$/.test(cleaned)) {
+      showToast('Please enter a valid phone number', 'error');
+      return;
+    }
+
+    setIsSendingSms(true);
+    try {
+      await api.sendReceiptSMS({ saleId: sale.id, phone: cleaned });
+      setSmsSent(true);
+      setShowSmsModal(false);
+      setSmsPhone('');
+      showToast('Receipt sent via SMS', 'success');
+    } catch (err: any) {
+      showToast('Failed to send SMS. Please try again.', 'error');
+    }
+    setIsSendingSms(false);
   };
 
   const handleSendEmail = async () => {
@@ -178,16 +213,20 @@ export function ReceiptModal({ isOpen, onClose, sale, shop }: ReceiptModalProps)
             </div>
           )}
 
-          {/* Email Sent Confirmation */}
-          {emailSent && (
+          {/* Email / SMS Sent Confirmation */}
+          {(emailSent || smsSent) && (
             <div className="flex items-center gap-2 text-emerald-400 text-sm bg-emerald-500/10 rounded-lg px-4 py-2">
               <CheckCircleIcon className="w-5 h-5" />
-              Receipt emailed successfully!
+              {emailSent && smsSent
+                ? 'Receipt sent by email and SMS!'
+                : emailSent
+                  ? 'Receipt emailed successfully!'
+                  : 'Receipt sent via SMS!'}
             </div>
           )}
 
           {/* Action Buttons */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <Button variant="secondary" size="lg" className="w-full" onClick={onClose}>
               <XMarkIcon className="w-5 h-5" />
               Close
@@ -196,8 +235,23 @@ export function ReceiptModal({ isOpen, onClose, sale, shop }: ReceiptModalProps)
               variant="secondary"
               size="lg"
               className="w-full"
+              onClick={() => {
+                setSmsPhone(customerPhone ?? '');
+                setShowSmsModal(true);
+              }}
+              disabled={smsSent || !isOnline}
+              title={isOnline ? undefined : 'You need to be online to text a receipt'}
+            >
+              <ChatBubbleLeftRightIcon className="w-5 h-5" />
+              SMS
+            </Button>
+            <Button
+              variant="secondary"
+              size="lg"
+              className="w-full"
               onClick={() => setShowEmailModal(true)}
-              disabled={emailSent}
+              disabled={emailSent || !isOnline}
+              title={isOnline ? undefined : 'You need to be online to email a receipt'}
             >
               <EnvelopeIcon className="w-5 h-5" />
               Email
@@ -258,6 +312,60 @@ export function ReceiptModal({ isOpen, onClose, sale, shop }: ReceiptModalProps)
               isLoading={isSendingEmail}
             >
               <EnvelopeIcon className="w-5 h-5" />
+              Send Receipt
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* SMS Receipt Modal */}
+      <Modal
+        isOpen={showSmsModal}
+        onClose={() => {
+          setShowSmsModal(false);
+          setSmsPhone('');
+        }}
+        title="Text Receipt"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-slate-400 text-sm">
+            Send a short receipt to the customer by SMS.
+          </p>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              Customer Phone
+            </label>
+            <input
+              type="tel"
+              value={smsPhone}
+              onChange={(e) => setSmsPhone(e.target.value)}
+              placeholder="+268 7842 2613"
+              autoFocus
+              className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
+            />
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <Button
+              variant="secondary"
+              className="flex-1"
+              onClick={() => {
+                setShowSmsModal(false);
+                setSmsPhone('');
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              className="flex-1"
+              onClick={handleSendSms}
+              disabled={!smsPhone || isSendingSms}
+              isLoading={isSendingSms}
+            >
+              <ChatBubbleLeftRightIcon className="w-5 h-5" />
               Send Receipt
             </Button>
           </div>
