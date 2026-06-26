@@ -1,4 +1,4 @@
-import { useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { 
   BellIcon, 
   MagnifyingGlassIcon,
@@ -18,7 +18,6 @@ const pageNames: Record<string, string> = {
   '/products/new': 'Add Product',
   '/stock': 'Stock Management',
   '/stock/adjust': 'Adjust Stock',
-  '/stock/alerts': 'Stock Alerts',
   '/sales': 'Sales History',
   '/reports': 'Reports',
   '/staff': 'Staff Management',
@@ -141,12 +140,13 @@ export function TopBar() {
                     )}
                   </div>
                   {alerts.length > 0 && (
-                    <a 
-                      href="/stock/alerts" 
+                    <Link
+                      to="/stock?filter=alerts"
+                      onClick={() => setShowNotifications(false)}
                       className="block p-3 text-center text-sm text-amber-400 hover:bg-slate-700/50"
                     >
                       View all alerts
-                    </a>
+                    </Link>
                   )}
                 </div>
               </>
