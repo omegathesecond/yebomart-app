@@ -725,9 +725,16 @@ class ApiClient {
   }
 
   async getInsights() {
-    return this.request<{ insights: string[]; alerts: any[] }>(
-      '/api/ai/insights',
-    );
+    return this.request<{
+      insights: Array<{
+        title: string;
+        insight: string;
+        action?: string;
+        priority?: 'high' | 'medium' | 'low';
+      }>;
+      generated?: string;
+      offline?: boolean;
+    }>('/api/ai/insights');
   }
 
   // ── Staff/Users ───────────────────────────────────────────────────────
