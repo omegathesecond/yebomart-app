@@ -303,7 +303,7 @@ export function Dashboard() {
                 ))}
               </div>
               <Link
-                to="/stock/alerts"
+                to="/stock?filter=alerts"
                 className="flex items-center justify-center gap-1 mt-3 text-sm text-amber-400 hover:text-amber-300"
               >
                 View all alerts <ArrowRightIcon className="w-4 h-4" />

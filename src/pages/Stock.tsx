@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowDownTrayIcon,
   AdjustmentsHorizontalIcon,
@@ -41,9 +41,19 @@ export function Stock() {
   const { toast, showToast, dismissToast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [filter, setFilter] = useState<'all' | 'low' | 'out'>('all');
+  const [filter, setFilter] = useState<'all' | 'low' | 'out' | 'alerts'>('all');
+
+  // Honor a ?filter= query param so the dashboard low-stock CTA and the TopBar
+  // alert bell can deep-link straight into the relevant view (e.g. /stock?filter=alerts).
+  useEffect(() => {
+    const f = searchParams.get('filter');
+    if (f === 'low' || f === 'out' || f === 'alerts' || f === 'all') {
+      setFilter(f);
+    }
+  }, [searchParams]);
 
   // Sales-velocity reorder suggestions
   const [suggestions, setSuggestions] = useState<ReorderSuggestion[]>([]);
@@ -267,6 +277,7 @@ export function Stock() {
     
     if (filter === 'low') return matchesSearch && p.quantity > 0 && p.quantity <= p.reorderAt;
     if (filter === 'out') return matchesSearch && p.quantity === 0;
+    if (filter === 'alerts') return matchesSearch && p.quantity <= p.reorderAt;
     return matchesSearch;
   });
 
@@ -510,6 +521,13 @@ export function Stock() {
             onClick={() => setFilter('all')}
           >
             All
+          </Button>
+          <Button
+            variant={filter === 'alerts' ? 'primary' : 'secondary'}
+            size="sm"
+            onClick={() => setFilter('alerts')}
+          >
+            Alerts
           </Button>
           <Button
             variant={filter === 'low' ? 'primary' : 'secondary'}
