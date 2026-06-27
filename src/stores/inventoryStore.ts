@@ -17,6 +17,8 @@ interface InventoryState {
   stockLogs: StockLog[];
   alerts: LowStockAlert[];
   insights: AIInsight[];
+  insightsLoading: boolean;
+  insightsError: string | null;
   staff: User[];
   expenses: Expense[];
   isLoading: boolean;
@@ -46,6 +48,7 @@ interface InventoryState {
   dismissAllAlerts: () => Promise<void>;
   
   // Insights
+  loadInsights: () => Promise<void>;
   markInsightRead: (insightId: string) => Promise<void>;
   
   // Staff
@@ -72,6 +75,8 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
   stockLogs: [],
   alerts: [],
   insights: [],
+  insightsLoading: false,
+  insightsError: null,
   staff: [],
   expenses: [],
   isLoading: false,
@@ -181,6 +186,8 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
     stockLogs: [],
     alerts: [],
     insights: [],
+    insightsLoading: false,
+    insightsError: null,
     staff: [],
     expenses: [],
     isLoading: false,
@@ -336,7 +343,34 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
     set({ alerts: [] });
   },
 
-  // Insights - Local only for now
+  // Insights - Fetched from the AI insights endpoint (GET /api/ai/insights)
+  loadInsights: async () => {
+    set({ insightsLoading: true, insightsError: null });
+    const { data, error } = await api.getInsights();
+    if (error || !data) {
+      set({
+        insightsLoading: false,
+        insightsError: error || 'Failed to load insights',
+      });
+      return;
+    }
+
+    // The endpoint returns rich insight objects ({ title, insight, action,
+    // priority }); map them onto the store's AIInsight shape so the dashboard
+    // and markInsightRead keep working off a single type.
+    const insights: AIInsight[] = (data.insights || []).map((item, index) => ({
+      id: `insight-${index}`,
+      type: item.priority === 'high' ? 'warning' : 'opportunity',
+      title: item.title,
+      description: item.insight,
+      data: { action: item.action, priority: item.priority },
+      isRead: false,
+      createdAt: new Date(),
+    }));
+
+    set({ insights, insightsLoading: false, insightsError: null });
+  },
+
   markInsightRead: async (insightId) => {
     set((state) => ({
       insights: state.insights.filter((i) => i.id !== insightId)
