@@ -12,6 +12,11 @@ import { Modal } from '@/components/ui/Modal';
 import { Toast, useToast } from '@/components/ui/Toast';
 import { formatCurrency, type Shop } from '@/types';
 import { useInventoryStore } from '@/stores/inventoryStore';
+import {
+  isBluetoothPrintingSupported,
+  printReceiptViaBluetooth,
+  ThermalPrintError,
+} from '@/lib/thermalPrinter';
 
 /**
  * The completed-sale data a receipt is rendered from. Mirrors the shape the
@@ -65,6 +70,11 @@ export function ReceiptModal({ isOpen, onClose, sale, shop, customerPhone }: Rec
   const [isSendingSms, setIsSendingSms] = useState(false);
   const [smsSent, setSmsSent] = useState(false);
 
+  const [isPrintingThermal, setIsPrintingThermal] = useState(false);
+  // Web Bluetooth is Chromium-only and needs a secure context; on unsupported
+  // browsers we hide the thermal button entirely rather than offer a dead one.
+  const thermalSupported = isBluetoothPrintingSupported();
+
   // Reset the "sent" confirmations whenever a fresh sale is shown so the
   // Email/SMS buttons re-enable for the next customer.
   useEffect(() => {
@@ -74,6 +84,26 @@ export function ReceiptModal({ isOpen, onClose, sale, shop, customerPhone }: Rec
 
   const handlePrint = () => {
     window.print();
+  };
+
+  // Print to a paired Bluetooth ESC/POS thermal printer. Failures surface as a
+  // toast (no silent fallback); a user-cancelled device chooser stays quiet.
+  const handleThermalPrint = async () => {
+    if (!sale) return;
+    setIsPrintingThermal(true);
+    try {
+      await printReceiptViaBluetooth(sale, shop);
+      showToast('Receipt sent to printer', 'success');
+    } catch (err) {
+      if (err instanceof ThermalPrintError && err.cancelled) {
+        // User dismissed the printer chooser — nothing to report.
+      } else {
+        const message =
+          err instanceof ThermalPrintError ? err.message : 'Could not print to the Bluetooth printer.';
+        showToast(message, 'error');
+      }
+    }
+    setIsPrintingThermal(false);
   };
 
   const handleSendSms = async () => {
@@ -226,7 +256,7 @@ export function ReceiptModal({ isOpen, onClose, sale, shop, customerPhone }: Rec
           )}
 
           {/* Action Buttons */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className={`grid grid-cols-2 ${thermalSupported ? 'sm:grid-cols-5' : 'sm:grid-cols-4'} gap-3`}>
             <Button variant="secondary" size="lg" className="w-full" onClick={onClose}>
               <XMarkIcon className="w-5 h-5" />
               Close
@@ -256,6 +286,21 @@ export function ReceiptModal({ isOpen, onClose, sale, shop, customerPhone }: Rec
               <EnvelopeIcon className="w-5 h-5" />
               Email
             </Button>
+            {/* Bluetooth thermal printing — only shown where Web Bluetooth works. */}
+            {thermalSupported && (
+              <Button
+                variant="secondary"
+                size="lg"
+                className="w-full"
+                onClick={handleThermalPrint}
+                isLoading={isPrintingThermal}
+                disabled={isPrintingThermal}
+                title="Print to a Bluetooth thermal receipt printer"
+              >
+                <PrinterIcon className="w-5 h-5" />
+                Thermal
+              </Button>
+            )}
             <Button variant="primary" size="lg" className="w-full" onClick={handlePrint}>
               <PrinterIcon className="w-5 h-5" />
               Print
