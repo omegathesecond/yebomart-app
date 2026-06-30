@@ -181,7 +181,7 @@ export function POS() {
     setIsProcessing(true);
     
     try {
-      const sale = await checkout(user!.id, shop!.id);
+      const sale = await checkout(user!.id, shop!.id, { cashReceived, changeGiven });
       setIsProcessing(false);
       
       if (sale) {

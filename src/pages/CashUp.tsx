@@ -320,6 +320,12 @@ function ZReportCard({ z, shopName }: { z: CashSessionZReport; shopName?: string
         ))}
         <div className="border-t border-slate-700 my-2" />
         <Row label="Opening float" value={formatCurrency(z.session.openingFloat)} />
+        {z.cashDrawer && (
+          <>
+            <Row label="Cash tendered" value={formatCurrency(z.cashDrawer.tendered)} />
+            <Row label="Change given" value={formatCurrency(z.cashDrawer.changeGiven)} />
+          </>
+        )}
         <Row label="Expected cash" value={formatCurrency(z.session.expectedCash ?? 0)} />
         <Row label="Counted cash" value={formatCurrency(z.session.countedCash ?? 0)} />
         <Row label="Variance" value={formatCurrency(z.session.variance ?? 0)} strong />
@@ -347,6 +353,12 @@ function ZReportCard({ z, shopName }: { z: CashSessionZReport; shopName?: string
         ))}
         <hr />
         <PrintRow label="Opening float" value={formatCurrency(z.session.openingFloat)} />
+        {z.cashDrawer && (
+          <>
+            <PrintRow label="Cash tendered" value={formatCurrency(z.cashDrawer.tendered)} />
+            <PrintRow label="Change given" value={formatCurrency(z.cashDrawer.changeGiven)} />
+          </>
+        )}
         <PrintRow label="Expected cash" value={formatCurrency(z.session.expectedCash ?? 0)} />
         <PrintRow label="Counted cash" value={formatCurrency(z.session.countedCash ?? 0)} />
         <PrintRow label="VARIANCE" value={formatCurrency(z.session.variance ?? 0)} bold />

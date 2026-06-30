@@ -83,8 +83,10 @@ export interface CashSession {
   notes: string | null;
   user?: { id: string; name: string } | null;
   // Present on GET /current (live tally since openedAt):
-  cashSalesTotal?: number;
+  cashSalesTotal?: number; // net cash retained = tendered − change
   cashSalesCount?: number;
+  cashTendered?: number; // Σ cash customers handed over
+  cashChangeGiven?: number; // Σ change handed back
 }
 
 export interface CashSessionZReport {
@@ -101,6 +103,8 @@ export interface CashSessionZReport {
     cashier?: { id: string; name: string } | null;
   };
   shop?: { name: string; currency: string; currencySymbol: string } | null;
+  // Cash-drawer reconciliation tally for the session window.
+  cashDrawer?: { tendered: number; changeGiven: number; netCash: number };
   transactionCount: number;
   gross: number;
   totalDiscount: number;

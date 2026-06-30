@@ -38,7 +38,14 @@ interface CartState {
   setPaymentMethod: (method: PaymentMethod) => void;
   setCustomer: (customer: Customer | null) => void;
   clear: () => void;
-  checkout: (userId: string, shopId: string) => Promise<Sale | null>;
+  // `cash` carries the actual cash tendered (and the change handed back) for a
+  // CASH sale so the server persists real amountPaid/change — without it the
+  // cash-drawer Z-report can't reconcile over/short. Omitted for non-cash sales.
+  checkout: (
+    userId: string,
+    shopId: string,
+    cash?: { cashReceived?: number; changeGiven?: number },
+  ) => Promise<Sale | null>;
 }
 
 // Helper to get item price (respects custom price, pack price, or regular price)
@@ -189,7 +196,7 @@ export const useCartStore = create<CartState>((set, get) => ({
   // Dexie syncQueue and optimistically complete the sale locally. The drain in
   // syncStore replays it on reconnect; the server dedups on `localId` so an
   // online attempt whose response was lost is never double-applied.
-  checkout: async (_userId: string, _shopId: string) => {
+  checkout: async (_userId: string, _shopId: string, cash) => {
     const { items, paymentMethod, discount, customer } = get();
 
     // Calculate subtotal with custom/pack pricing
@@ -199,6 +206,16 @@ export const useCartStore = create<CartState>((set, get) => ({
 
     const discountAmount = discount?.amount || 0;
     const totalAmount = computeCartTotal(subtotal, discountAmount);
+
+    // For a CASH sale, amountPaid is the actual cash the customer tendered (the
+    // server derives change = amountPaid − total and persists both, so the
+    // cash-up can reconcile the drawer). For non-cash sales there's no tender —
+    // amountPaid is simply the total. Guard against a stale/short tender by
+    // falling back to the total.
+    const amountPaid =
+      paymentMethod === 'cash' && cash?.cashReceived != null && cash.cashReceived >= totalAmount
+        ? cash.cashReceived
+        : totalAmount;
 
     if (items.length === 0) return null;
 
@@ -238,7 +255,7 @@ export const useCartStore = create<CartState>((set, get) => ({
     const payload = {
       items: saleItems,
       paymentMethod: paymentMethod.toUpperCase(),
-      amountPaid: totalAmount,
+      amountPaid,
       subtotal,
       discount: discountAmount,
       discountPercent: discount?.percent,

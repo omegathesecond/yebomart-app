@@ -257,7 +257,10 @@ export function MobilePOS() {
     setPaymentMethod(method);
     setIsProcessing(true);
     try {
-      const sale = await checkout(user.id, shop.id);
+      const sale = await checkout(user.id, shop.id, {
+        cashReceived: cashReceivedAmount,
+        changeGiven,
+      });
       if (sale) {
         setLastSale({
           total: sale.totalAmount,
