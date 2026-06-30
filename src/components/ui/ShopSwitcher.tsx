@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  ChevronDownIcon, 
-  PlusIcon, 
+import {
+  ChevronDownIcon,
   CheckIcon,
   BuildingStorefrontIcon,
   Cog6ToothIcon
@@ -41,10 +40,11 @@ export function ShopSwitcher({ variant = 'header', className }: ShopSwitcherProp
     window.location.reload();
   };
 
-  const handleCreateShop = () => {
-    setIsOpen(false);
-    navigate('/onboarding?mode=new-shop');
-  };
+  // Multi-shop ownership isn't supported yet — the backend keys each Shop to a
+  // single YeboID owner and has no createShop endpoint. The old "Add Shop"
+  // buttons routed to a flow that faked success and silently lost the shop, so
+  // they've been removed rather than left to mislead. Switching between shops
+  // the owner already has (via YeboID linking) still works below.
 
   // Manage a shop's settings. Settings is scoped to the active shop, so switch
   // to the chosen shop first (a reload re-scopes the whole app, same as
@@ -131,16 +131,6 @@ export function ShopSwitcher({ variant = 'header', className }: ShopSwitcherProp
                 </button>
               ))}
             </div>
-
-            <div className="p-2 border-t border-slate-700">
-              <button
-                onClick={handleCreateShop}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-amber-400 hover:bg-amber-500/10 transition"
-              >
-                <PlusIcon className="w-5 h-5" />
-                <span className="text-sm font-medium">Add Another Shop</span>
-              </button>
-            </div>
           </div>
         )}
       </div>
@@ -153,13 +143,6 @@ export function ShopSwitcher({ variant = 'header', className }: ShopSwitcherProp
       <div className={clsx('space-y-4', className)}>
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold text-white">Your Shops</h3>
-          <button
-            onClick={handleCreateShop}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm text-amber-400 hover:bg-amber-500/10 rounded-lg transition"
-          >
-            <PlusIcon className="w-4 h-4" />
-            Add Shop
-          </button>
         </div>
 
         <div className="space-y-2">
@@ -221,12 +204,6 @@ export function ShopSwitcher({ variant = 'header', className }: ShopSwitcherProp
           <div className="text-center py-8">
             <BuildingStorefrontIcon className="w-12 h-12 text-slate-600 mx-auto mb-4" />
             <p className="text-slate-400">No shops yet</p>
-            <button
-              onClick={handleCreateShop}
-              className="mt-4 px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-400 transition"
-            >
-              Create Your First Shop
-            </button>
           </div>
         )}
       </div>
