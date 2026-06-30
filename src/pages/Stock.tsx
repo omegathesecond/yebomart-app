@@ -61,7 +61,7 @@ export function Stock() {
   const [receiveCostPrice, setReceiveCostPrice] = useState('');
   const [receiveNote, setReceiveNote] = useState('');
   const [isReceiving, setIsReceiving] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
   const [receiveErrors, setReceiveErrors] = useState<Record<string, string>>({});
   
   // Adjust stock modal
@@ -188,8 +188,8 @@ export function Stock() {
       setReceiveCostPrice('');
       setReceiveNote('');
       setReceiveErrors({});
-      setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 2000);
+      setSuccessMessage('Stock received successfully!');
+      setTimeout(() => setSuccessMessage(''), 2000);
 
       // Reload data
       if (shop) loadAll(shop.id);
@@ -248,8 +248,8 @@ export function Stock() {
       setAdjustDirection('remove');
       setAdjustNote('');
       setAdjustErrors({});
-      setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 2000);
+      setSuccessMessage('Stock adjusted successfully!');
+      setTimeout(() => setSuccessMessage(''), 2000);
       
       // Reload data
       if (shop) loadAll(shop.id);
@@ -1077,10 +1077,10 @@ export function Stock() {
       </Modal>
 
       {/* Success Toast */}
-      {showSuccess && (
+      {successMessage && (
         <div className="fixed bottom-4 right-4 bg-emerald-500 text-white px-6 py-3 rounded-xl shadow-lg flex items-center gap-3 z-50">
           <CheckCircleIcon className="w-6 h-6" />
-          <span className="font-medium">Stock received successfully!</span>
+          <span className="font-medium">{successMessage}</span>
         </div>
       )}
 
