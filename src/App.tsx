@@ -35,6 +35,7 @@ const MobilePOS = lazy(() => import('@/pages/MobilePOS').then(m => ({ default: m
 const Billing = lazy(() => import('@/pages/Billing').then(m => ({ default: m.Billing })));
 const BillingSuccess = lazy(() => import('@/pages/BillingSuccess').then(m => ({ default: m.BillingSuccess })));
 const BillingCancel = lazy(() => import('@/pages/BillingCancel').then(m => ({ default: m.BillingCancel })));
+const NotFound = lazy(() => import('@/pages/NotFound').then(m => ({ default: m.NotFound })));
 
 // Create queryClient outside component to avoid re-creation
 const queryClient = new QueryClient({
@@ -196,10 +197,17 @@ function AppRoutes() {
           <Route path="billing/cancel" element={<Suspense fallback={<PageLoader />}><BillingCancel /></Suspense>} />
           <Route path="assistant" element={<Suspense fallback={<PageLoader />}><AIChat /></Suspense>} />
           <Route path="settings" element={<Suspense fallback={<PageLoader />}><Settings /></Suspense>} />
+          {/* Unknown in-app path → real 404 inside the Layout (keeps nav so the
+              user can recover). Nesting it here means ProtectedRoute still
+              bounces unauthenticated / no-shop users to /login or /onboarding,
+              while authenticated users SEE the dead link instead of being
+              silently redirected to onboarding. */}
+          <Route path="*" element={<Suspense fallback={<PageLoader />}><NotFound /></Suspense>} />
         </Route>
 
-        {/* Catch all - redirect to onboarding */}
-        <Route path="*" element={<Navigate to="/onboarding" replace />} />
+        {/* No top-level catch-all: every unmatched path resolves through the
+            protected "/" branch above (its nested splat ranks as "/*"), so dead
+            links surface as a 404 rather than a silent /onboarding redirect. */}
       </Routes>
     </Suspense>
   );
