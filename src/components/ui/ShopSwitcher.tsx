@@ -46,6 +46,19 @@ export function ShopSwitcher({ variant = 'header', className }: ShopSwitcherProp
     navigate('/onboarding?mode=new-shop');
   };
 
+  // Manage a shop's settings. Settings is scoped to the active shop, so switch
+  // to the chosen shop first (a reload re-scopes the whole app, same as
+  // handleSelectShop) — otherwise just open the already-scoped Settings page.
+  // Replaces the old dead /settings/shop/:id navigation.
+  const handleManageShop = (shop: ShopWithRole) => {
+    if (shop.id !== currentShopId) {
+      setCurrentShop(shop.id);
+      window.location.reload();
+      return;
+    }
+    navigate('/settings');
+  };
+
   if (!currentShop) {
     return null;
   }
@@ -193,7 +206,8 @@ export function ShopSwitcher({ variant = 'header', className }: ShopSwitcherProp
                   </button>
                 )}
                 <button
-                  onClick={() => navigate(`/settings/shop/${shop.id}`)}
+                  onClick={() => handleManageShop(shop)}
+                  aria-label={`Manage ${shop.name} settings`}
                   className="p-2 hover:bg-slate-700 rounded-lg transition"
                 >
                   <Cog6ToothIcon className="w-5 h-5 text-slate-400" />

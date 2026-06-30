@@ -80,13 +80,20 @@ export function Stock() {
     }
   }, [shop, loadAll]);
 
-  // The Dashboard "Receive Stock" quick action deep-links here with
-  // { openReceive: true } so it reuses this page's receive modal instead of a
-  // dead /stock/receive route. Open the modal, then clear the history state so
-  // a refresh / back-nav doesn't re-trigger it (same idiom as PurchaseOrders).
+  // Deep-links into this page reuse it instead of dead sub-routes:
+  //  - { openReceive: true } (Dashboard "Receive Stock") opens the receive modal
+  //    in place of a dead /stock/receive route.
+  //  - { showAlerts: true } (TopBar bell "View all alerts" + Dashboard low-stock
+  //    card) lands on the low-stock filter in place of a dead /stock/alerts
+  //    route — the alerts banner + reorder suggestions already render up top.
+  // Clear the history state after so a refresh / back-nav doesn't re-trigger it.
   useEffect(() => {
-    if ((location.state as { openReceive?: boolean } | null)?.openReceive) {
-      setShowReceive(true);
+    const state = location.state as
+      | { openReceive?: boolean; showAlerts?: boolean }
+      | null;
+    if (state?.openReceive) setShowReceive(true);
+    if (state?.showAlerts) setFilter('low');
+    if (state?.openReceive || state?.showAlerts) {
       navigate(location.pathname, { replace: true, state: null });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
