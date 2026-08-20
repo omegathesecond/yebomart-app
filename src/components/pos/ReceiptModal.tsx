@@ -27,6 +27,7 @@ export interface ReceiptSale {
   total: number;
   subtotal: number;
   discount: number;
+  tax: number;
   items: any[];
   id: string;
   receiptNumber?: string;
@@ -215,12 +216,32 @@ export function ReceiptModal({ isOpen, onClose, sale, shop, customerPhone }: Rec
                     <span>-{formatCurrency(sale.discount)}</span>
                   </div>
                 )}
+                {sale.tax > 0 && (
+                  <>
+                    {/* Net (VAT-exclusive) amount so Net + VAT = TOTAL reconciles
+                        on the receipt — required for a compliant VAT receipt,
+                        and the only line that differs from the gross subtotal
+                        when prices are tax-inclusive. */}
+                    <div className="flex justify-between text-sm">
+                      <span>Net (excl. VAT)</span>
+                      <span>{formatCurrency(sale.total - sale.tax)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span>VAT ({shop?.taxRate}%{shop?.taxInclusive ? ' incl.' : ''})</span>
+                      <span>{formatCurrency(sale.tax)}</span>
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="flex justify-between font-bold text-lg border-t border-gray-300 pt-2">
                 <span>TOTAL</span>
                 <span>{formatCurrency(sale.total)}</span>
               </div>
+
+              {shop?.taxNumber && (
+                <p className="text-xs text-gray-500 mt-2">VAT No: {shop.taxNumber}</p>
+              )}
 
               {/* Cash Payment Details */}
               {sale.paymentMethod === 'cash' && sale.cashReceived && (

@@ -12,7 +12,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
-import { useCartStore, useCartTotal } from '@/stores/cartStore';
+import { useCartStore, useCartSubtotal, useCartTaxBreakdown } from '@/stores/cartStore';
 import { computeChange } from '@/lib/money';
 import { formatCurrency, type Product, type PaymentMethod, PAYMENT_METHODS } from '@/types';
 import { Modal } from '@/components/ui/Modal';
@@ -24,7 +24,9 @@ export function MobilePOS() {
   const { user, shop } = useAuthStore();
   const { products, loadAll, getProductByBarcode, searchProducts } = useInventoryStore();
   const { items, addItem, updateQuantity, removeItem, checkout, clear, setPaymentMethod } = useCartStore();
-  const cartTotal = useCartTotal();
+  const cartSubtotal = useCartSubtotal();
+  const taxBreakdown = useCartTaxBreakdown();
+  const cartTotal = taxBreakdown.total;
 
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Product[]>([]);
@@ -263,6 +265,7 @@ export function MobilePOS() {
           total: sale.totalAmount,
           subtotal: sale.subtotal ?? sale.totalAmount,
           discount: sale.discount ?? 0,
+          tax: sale.tax ?? 0,
           items: sale.items,
           id: sale.id,
           receiptNumber: sale.receiptNumber,
@@ -514,6 +517,22 @@ export function MobilePOS() {
 
       {/* Fixed Bottom Section */}
       <div className="flex-shrink-0 p-4 bg-slate-800 border-t border-slate-700 safe-area-bottom">
+        {/* VAT breakdown — only when the shop charges tax */}
+        {taxBreakdown.tax > 0 && (
+          <div className="space-y-1 mb-2 text-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-slate-400">Subtotal</span>
+              <span className="text-slate-300">{formatCurrency(cartSubtotal)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-slate-400">
+                VAT ({shop?.taxRate}%{shop?.taxInclusive ? ' incl.' : ''})
+              </span>
+              <span className="text-slate-300">{formatCurrency(taxBreakdown.tax)}</span>
+            </div>
+          </div>
+        )}
+
         {/* Total */}
         <div className="flex items-center justify-between mb-4">
           <span className="text-slate-400">Total</span>

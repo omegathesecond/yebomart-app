@@ -34,6 +34,7 @@ type Tab = 'summary' | 'products' | 'staff';
  */
 interface ReportMetrics {
   totalRevenue: number;
+  totalTax: number;
   totalCost: number;
   grossProfit: number;
   periodExpenses: number;
@@ -95,7 +96,9 @@ export function Reports() {
     const s = report.summary ?? {};
     const stock = report.stock ?? {};
     return {
-      totalRevenue: s.totalSales ?? 0,
+      // Net of VAT — non-VAT shops have totalTax 0, so netRevenue === totalSales.
+      totalRevenue: s.netRevenue ?? s.totalSales ?? 0,
+      totalTax: s.totalTax ?? 0,
       totalCost: s.totalCost ?? 0,
       grossProfit: s.grossProfit ?? 0,
       periodExpenses: s.totalExpenses ?? 0,
@@ -116,17 +119,21 @@ export function Reports() {
   const computeFromCache = (): ReportMetrics => {
     const { start } = rangeFor(period);
     const filteredSales = sales.filter(s => new Date(s.createdAt) >= start);
-    const totalRevenue = filteredSales.reduce((sum, s) => sum + s.totalAmount, 0);
+    // Gross takings (what customers paid). VAT collected is owed to the revenue
+    // authority, not income — so revenue/profit are reckoned NET of VAT. Non-VAT
+    // shops have tax 0, so netRevenue === grossTakings (unchanged). Mirrors the
+    // server report.service netting.
+    const grossTakings = filteredSales.reduce((sum, s) => sum + s.totalAmount, 0);
+    const totalTax = filteredSales.reduce((sum, s) => sum + (s.tax || 0), 0);
+    const totalRevenue = grossTakings - totalTax;
     const totalTransactions = filteredSales.length;
 
-    let grossProfit = 0;
     let totalCost = 0;
     const productSales: Record<string, { name: string; qty: number; revenue: number }> = {};
     for (const sale of filteredSales) {
       for (const item of sale.items) {
         const product = products.find(p => p.id === item.productId);
         if (product) {
-          grossProfit += (item.unitPrice - product.costPrice) * item.quantity;
           totalCost += product.costPrice * item.quantity;
         }
         if (!productSales[item.productId]) {
@@ -136,6 +143,8 @@ export function Reports() {
         productSales[item.productId].revenue += item.totalPrice;
       }
     }
+    // Gross profit = net revenue - COGS (matches the server report.service).
+    const grossProfit = totalRevenue - totalCost;
 
     const periodExpenses = expenses
       .filter(e => new Date(e.date) >= start)
@@ -143,12 +152,13 @@ export function Reports() {
 
     return {
       totalRevenue,
+      totalTax,
       totalCost,
       grossProfit,
       periodExpenses,
       netProfit: grossProfit - periodExpenses,
       totalTransactions,
-      avgBasket: totalTransactions > 0 ? totalRevenue / totalTransactions : 0,
+      avgBasket: totalTransactions > 0 ? grossTakings / totalTransactions : 0,
       topProducts: Object.values(productSales).sort((a, b) => b.revenue - a.revenue).slice(0, 5),
       stockValue: products.reduce((sum, p) => sum + p.costPrice * p.quantity, 0),
       lowStockCount: products.filter(p => p.quantity <= p.reorderAt).length,
@@ -269,7 +279,8 @@ export function Reports() {
       ['Metric', 'Value (SZL)'],
       [
         ['Period', periodLabel],
-        ['Revenue', round(m.totalRevenue)],
+        ['Revenue' + (m.totalTax > 0 ? ' (net of VAT)' : ''), round(m.totalRevenue)],
+        ...(m.totalTax > 0 ? [['VAT Collected', round(m.totalTax)]] : []),
         ['Cost of Goods', round(m.totalCost)],
         ['Gross Profit', round(m.grossProfit)],
         ['Expenses', round(m.periodExpenses)],
@@ -504,9 +515,15 @@ export function Reports() {
                 <h3 className="text-lg font-semibold text-white mb-4">💰 {t('reports.profitReport')}</h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
                   <div className="text-center p-4 bg-slate-700/30 rounded-lg">
-                    <p className="text-sm text-slate-400">{t('reports.revenue')}</p>
+                    <p className="text-sm text-slate-400">{t('reports.revenue')}{m.totalTax > 0 ? ' (net)' : ''}</p>
                     <p className="text-xl font-bold text-white">{formatCurrency(m.totalRevenue)}</p>
                   </div>
+                  {m.totalTax > 0 && (
+                    <div className="text-center p-4 bg-slate-700/30 rounded-lg">
+                      <p className="text-sm text-slate-400">VAT Collected</p>
+                      <p className="text-xl font-bold text-sky-400">{formatCurrency(m.totalTax)}</p>
+                    </div>
+                  )}
                   <div className="text-center p-4 bg-slate-700/30 rounded-lg">
                     <p className="text-sm text-slate-400">Cost of Goods</p>
                     <p className="text-xl font-bold text-red-400">{formatCurrency(m.totalCost)}</p>
@@ -650,6 +667,7 @@ export function Reports() {
           m
             ? {
                 revenue: m.totalRevenue,
+                tax: m.totalTax,
                 costOfGoods: m.totalCost,
                 grossProfit: m.grossProfit,
                 expenses: m.periodExpenses,
@@ -683,7 +701,7 @@ function PrintableReport({
   periodLabel: string;
   tab: Tab;
   summary: {
-    revenue: number; costOfGoods: number; grossProfit: number; expenses: number;
+    revenue: number; tax: number; costOfGoods: number; grossProfit: number; expenses: number;
     netProfit: number; transactions: number; avgBasket: number; stockValue: number; lowStockCount: number;
   } | null;
   productReport: ProductReport | null;
@@ -705,7 +723,8 @@ function PrintableReport({
         <table className="w-full">
           <tbody>
             {[
-              ['Revenue', formatCurrency(summary.revenue)],
+              [summary.tax > 0 ? 'Revenue (net of VAT)' : 'Revenue', formatCurrency(summary.revenue)],
+              ...(summary.tax > 0 ? [['VAT Collected', formatCurrency(summary.tax)]] : []),
               ['Cost of Goods', formatCurrency(summary.costOfGoods)],
               ['Gross Profit', formatCurrency(summary.grossProfit)],
               ['Expenses', formatCurrency(summary.expenses)],

@@ -102,7 +102,16 @@ export function Sales() {
     if (sale.discount > 0) {
       lines.push(`Discount: -${formatCurrency(sale.discount)}`);
     }
-    lines.push(`TOTAL: ${formatCurrency(sale.totalAmount)}`, '', 'Thank you for shopping with us!');
+    if (sale.tax && sale.tax > 0) {
+      // Net (VAT-exclusive) so Net + VAT = TOTAL reconciles on the shared receipt.
+      lines.push(`Net (excl. VAT): ${formatCurrency(sale.totalAmount - sale.tax)}`);
+      lines.push(`VAT${shop?.taxRate ? ` (${shop.taxRate}%${shop.taxInclusive ? ' incl.' : ''})` : ''}: ${formatCurrency(sale.tax)}`);
+    }
+    lines.push(`TOTAL: ${formatCurrency(sale.totalAmount)}`);
+    if (shop?.taxNumber) {
+      lines.push(`VAT No: ${shop.taxNumber}`);
+    }
+    lines.push('', 'Thank you for shopping with us!');
     return lines.join('\n');
   };
 
@@ -361,6 +370,20 @@ export function Sales() {
                       <span>-{formatCurrency(selectedSale.discount)}</span>
                     </div>
                   )}
+                  {selectedSale.tax && selectedSale.tax > 0 ? (
+                    <>
+                      {/* Net (VAT-exclusive) amount so Net + VAT = TOTAL
+                          reconciles — required for a compliant VAT receipt. */}
+                      <div className="flex justify-between text-sm">
+                        <span>Net (excl. VAT)</span>
+                        <span>{formatCurrency(selectedSale.totalAmount - selectedSale.tax)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span>VAT{shop?.taxRate ? ` (${shop.taxRate}%${shop.taxInclusive ? ' incl.' : ''})` : ''}</span>
+                        <span>{formatCurrency(selectedSale.tax)}</span>
+                      </div>
+                    </>
+                  ) : null}
                   <div className="flex justify-between text-sm">
                     <span>Payment</span>
                     <span>{PAYMENT_METHODS.find(p => p.value === selectedSale.paymentMethod)?.label || selectedSale.paymentMethod}</span>
@@ -371,6 +394,10 @@ export function Sales() {
                   <span>TOTAL</span>
                   <span>{formatCurrency(selectedSale.totalAmount)}</span>
                 </div>
+
+                {shop?.taxNumber && (
+                  <p className="text-center text-xs text-gray-500 mt-2">VAT No: {shop.taxNumber}</p>
+                )}
 
                 <div className="text-center mt-4 pt-3 border-t border-dashed border-gray-300">
                   <p className="text-xs text-gray-500">Thank you for shopping with us!</p>
