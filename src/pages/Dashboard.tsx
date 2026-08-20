@@ -21,15 +21,17 @@ import { getShopType } from '@/data/shopTypes';
 export function Dashboard() {
   const { shop } = useAuthStore();
   const { loadAll, alerts, insights, sales, products } = useInventoryStore();
-  const { getDashboardMetrics } = useInventoryStore();
+  const { getDashboardMetrics, loadInsights, insightsLoading, insightsError } =
+    useInventoryStore();
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
 
   useEffect(() => {
     if (shop) {
       loadAll(shop.id);
       getDashboardMetrics(shop.id).then(setMetrics);
+      loadInsights();
     }
-  }, [shop, loadAll, getDashboardMetrics]);
+  }, [shop, loadAll, getDashboardMetrics, loadInsights]);
 
   // Get greeting based on time
   const getGreeting = () => {
@@ -133,7 +135,7 @@ export function Dashboard() {
             <span className="font-medium text-white">Add Product</span>
           </div>
         </Link>
-        <Link to="/stock/receive" className="card hover:border-emerald-500/50 transition-colors">
+        <Link to="/stock" state={{ openReceive: true }} className="card hover:border-emerald-500/50 transition-colors">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-emerald-500/20">
               <CubeIcon className="w-5 h-5 text-emerald-400" />
@@ -210,12 +212,37 @@ export function Dashboard() {
 
         {/* AI Insights + Low Stock */}
         <div className="space-y-6">
-          {insights.length > 0 && (
-            <Card gradient="purple">
-              <CardHeader
-                title={`${shop?.assistantName || 'AI'} says...`}
-                action={<SparklesIcon className="w-5 h-5 text-purple-400" />}
-              />
+          <Card gradient="purple">
+            <CardHeader
+              title={`${shop?.assistantName || 'AI'} says...`}
+              action={<SparklesIcon className="w-5 h-5 text-purple-400" />}
+            />
+            {insightsLoading ? (
+              <div className="space-y-3">
+                {[0, 1].map((i) => (
+                  <div
+                    key={i}
+                    className="p-3 rounded-xl bg-slate-800/50 border border-slate-700/50 animate-pulse"
+                  >
+                    <div className="h-3 w-1/2 rounded bg-slate-700" />
+                    <div className="h-2.5 w-3/4 rounded bg-slate-700/70 mt-2" />
+                  </div>
+                ))}
+              </div>
+            ) : insightsError ? (
+              <div className="p-3 rounded-xl bg-slate-800/50 border border-red-500/30">
+                <p className="text-sm font-medium text-red-300">
+                  Couldn't load insights
+                </p>
+                <p className="text-xs text-slate-400 mt-1">{insightsError}</p>
+                <button
+                  onClick={() => loadInsights()}
+                  className="mt-2 text-xs text-amber-400 hover:text-amber-300"
+                >
+                  Try again
+                </button>
+              </div>
+            ) : insights.length > 0 ? (
               <div className="space-y-3">
                 {insights.slice(0, 2).map((insight) => (
                   <div
@@ -229,8 +256,16 @@ export function Dashboard() {
                   </div>
                 ))}
               </div>
-            </Card>
-          )}
+            ) : (
+              <div className="p-3 rounded-xl bg-slate-800/50 border border-slate-700/50 text-center">
+                <p className="text-sm text-slate-300">No insights yet</p>
+                <p className="text-xs text-slate-500 mt-1">
+                  Make a few sales and {shop?.assistantName || 'your assistant'} will
+                  spot trends for you.
+                </p>
+              </div>
+            )}
+          </Card>
 
           {alerts.length > 0 && (
             <Card gradient="red">
@@ -268,7 +303,8 @@ export function Dashboard() {
                 ))}
               </div>
               <Link
-                to="/stock/alerts"
+                to="/stock"
+                state={{ showAlerts: true }}
                 className="flex items-center justify-center gap-1 mt-3 text-sm text-amber-400 hover:text-amber-300"
               >
                 View all alerts <ArrowRightIcon className="w-4 h-4" />

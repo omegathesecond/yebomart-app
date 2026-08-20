@@ -7,6 +7,7 @@ import {
   StopIcon,
   LightBulbIcon,
   BoltIcon,
+  ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -21,6 +22,10 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  // True when this bubble represents a failure (server error, empty AI body,
+  // network drop). Rendered as a visible error state — never as a normal reply
+  // — so genuine failures are never mistaken for in-character answers.
+  isError?: boolean;
 }
 
 const QUICK_ACTIONS = [
@@ -84,6 +89,7 @@ export function AIChat() {
       const { data, error, code, status } = await api.chat(messageText);
 
       let responseContent: string;
+      let isError = false;
       if (error) {
         if (code === INSUFFICIENT_CREDITS || status === 402) {
           // Out of credits — flip the CTA on and refresh the shared balance so
@@ -93,22 +99,31 @@ export function AIChat() {
           responseContent =
             "You're out of credits, so I can't answer that just now. Top up your credits to keep chatting — tap “Top up credits” below.";
         } else {
-          // Use smart error processor for helpful responses
+          // Real backend/network failure: surface it honestly as an error
+          // state. Never dress it up as a normal in-character reply.
+          isError = true;
           responseContent = getSmartErrorResponse(error, {
             shopName: shop?.name,
             assistantName: shop?.assistantName
           });
         }
-      } else {
+      } else if (data?.response || data?.message) {
         setOutOfCredits(false);
-        responseContent = data?.response || data?.message || 'I understand. Is there anything else you need help with?';
+        responseContent = (data.response || data.message) as string;
+      } else {
+        // 2xx but no usable body — treat as a failure rather than fabricating
+        // a fake "I understand…" reply that pretends the AI answered.
+        isError = true;
+        responseContent =
+          "I didn't get a response from the AI service. Please try again in a moment.";
       }
-      
+
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         content: responseContent,
-        timestamp: new Date()
+        timestamp: new Date(),
+        isError
       };
 
       setMessages(prev => [...prev, assistantMessage]);
@@ -121,7 +136,8 @@ export function AIChat() {
           shopName: shop?.name,
           assistantName: shop?.assistantName
         }),
-        timestamp: new Date()
+        timestamp: new Date(),
+        isError: true
       }]);
     } finally {
       setIsLoading(false);
@@ -192,12 +208,24 @@ export function AIChat() {
                 className={`max-w-[85%] rounded-2xl px-4 py-3 ${
                   message.role === 'user'
                     ? 'bg-amber-500 text-white'
-                    : 'bg-slate-700/50 text-slate-100'
+                    : message.isError
+                      ? 'bg-red-500/10 border border-red-500/30 text-red-200'
+                      : 'bg-slate-700/50 text-slate-100'
                 }`}
               >
+                {message.isError && (
+                  <div className="flex items-center gap-1.5 mb-1 text-red-300 text-xs font-medium uppercase tracking-wide">
+                    <ExclamationTriangleIcon className="w-4 h-4 shrink-0" />
+                    <span>Couldn't get a reply</span>
+                  </div>
+                )}
                 <p className="whitespace-pre-wrap">{message.content}</p>
                 <p className={`text-xs mt-1 ${
-                  message.role === 'user' ? 'text-amber-100' : 'text-slate-400'
+                  message.role === 'user'
+                    ? 'text-amber-100'
+                    : message.isError
+                      ? 'text-red-300/70'
+                      : 'text-slate-400'
                 }`}>
                   {formatTime(message.timestamp)}
                 </p>

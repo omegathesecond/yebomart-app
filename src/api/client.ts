@@ -36,6 +36,15 @@ export const NETWORK_ERROR = 'Network error. Please try again.';
  */
 export const INSUFFICIENT_CREDITS = 'INSUFFICIENT_CREDITS';
 
+/**
+ * Machine-readable `code` returned with a 422 from the customer-credit endpoint
+ * when a ledger entry would push the customer over their credit limit. Callers
+ * compare against this constant (and read `meta.requiresOverride`) — not the
+ * human `message` — to decide whether to prompt for an owner override. Mirrors
+ * api/src/controllers/customer.controller.ts (addCredit).
+ */
+export const CREDIT_LIMIT_EXCEEDED = 'CREDIT_LIMIT_EXCEEDED';
+
 interface ApiResponse<T> {
   data?: T;
   error?: string;
@@ -43,6 +52,18 @@ interface ApiResponse<T> {
   details?: any;
   /** Machine-readable error code from the API body (e.g. INSUFFICIENT_CREDITS). */
   code?: string;
+  /**
+   * Public structured details that accompany a `code` (never gated on the
+   * server's NODE_ENV). For CREDIT_LIMIT_EXCEEDED this carries
+   * `requiresOverride` plus the limit/balance figures.
+   */
+  meta?: {
+    requiresOverride?: boolean;
+    creditLimit?: number;
+    currentBalance?: number;
+    attemptedBalance?: number;
+    [key: string]: any;
+  };
   /** HTTP status of the response — lets callers branch on 402 etc. */
   status?: number;
 }
@@ -395,7 +416,7 @@ class ApiClient {
     if (!response.ok || json.success === false) {
       const errorMessage = json.message || json.error || 'Request failed';
       const details = json.details || json.errors;
-      return { error: errorMessage, details, code: json.code, status: response.status };
+      return { error: errorMessage, details, code: json.code, meta: json.meta, status: response.status };
     }
 
     return { data: json.data ?? json, message: json.message, status: response.status };
@@ -487,6 +508,21 @@ class ApiClient {
   /** PATCH /api/shops/tax — owner-only. Send only the fields you change. */
   async updateTaxSettings(data: Partial<TaxSettings>) {
     return this.request<TaxSettings>('/api/shops/tax', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  /**
+   * PATCH /api/shops/:id — owner-only. Persists shop profile fields (name,
+   * ownerName, assistantName, address, etc.). Returns the updated shop so the
+   * caller can replace its local copy with the authoritative server record.
+   */
+  async updateShop(
+    id: string,
+    data: { name?: string; ownerName?: string; assistantName?: string; address?: string; businessType?: string; currency?: string; timezone?: string; logoUrl?: string },
+  ) {
+    return this.request<any>(`/api/shops/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     });
@@ -594,13 +630,30 @@ class ApiClient {
     });
   }
 
+  /**
+   * POST /api/stock/receive — purpose-built restock.
+   *
+   * Unlike adjustStock (shrinkage/counts), this records a RESTOCK movement and,
+   * when `costPrice` is supplied, updates the product's cost so COGS/profit stay
+   * accurate after a supplier price change. The endpoint takes an `items[]`
+   * batch; we send a single-item batch for the receive modal.
+   */
   async receiveStock(
     productId: string,
     data: { quantity: number; note?: string; costPrice?: number },
   ) {
-    return this.request<any>('/api/stock/receive', {
+    return this.request<Array<{ product: any; stockLog: any }>>('/api/stock/receive', {
       method: 'POST',
-      body: JSON.stringify({ productId, ...data }),
+      body: JSON.stringify({
+        items: [
+          {
+            productId,
+            quantity: data.quantity,
+            ...(data.note ? { note: data.note } : {}),
+            ...(data.costPrice !== undefined ? { costPrice: data.costPrice } : {}),
+          },
+        ],
+      }),
     });
   }
 
@@ -635,6 +688,17 @@ class ApiClient {
   async getDailyReport(date?: string) {
     const query = date ? `?date=${date}` : '';
     return this.request<any>(`/api/reports/daily${query}`);
+  }
+
+  /**
+   * GET /api/reports/sales — server-aggregated summary (revenue, cost, profit,
+   * expenses, transactions, top products, stock snapshot) over a date range.
+   * This is the authoritative source for the Reports Summary tab.
+   */
+  async getSalesReport(startDate: string, endDate: string) {
+    return this.request<any>(
+      `/api/reports/sales?startDate=${startDate}&endDate=${endDate}`,
+    );
   }
 
   /** GET /api/reports/weekly — server-aggregated week (current week if omitted). */
@@ -682,9 +746,16 @@ class ApiClient {
   }
 
   async getInsights() {
-    return this.request<{ insights: string[]; alerts: any[] }>(
-      '/api/ai/insights',
-    );
+    return this.request<{
+      insights: Array<{
+        title: string;
+        insight: string;
+        action?: string;
+        priority?: 'high' | 'medium' | 'low';
+      }>;
+      generated?: string;
+      offline?: boolean;
+    }>('/api/ai/insights');
   }
 
   // ── Staff/Users ───────────────────────────────────────────────────────
@@ -1060,6 +1131,23 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify(data),
     });
+  }
+
+  // ── SMS receipt ───────────────────────────────────────────────────────
+
+  /**
+   * Text a concise receipt to the customer via the YeboLink SMS gateway. The
+   * server loads the line items + totals from the persisted sale, so the client
+   * only needs the sale id and the recipient phone.
+   */
+  async sendReceiptSMS(data: { saleId: string; phone: string }) {
+    return this.request<{ success: boolean; messageId: string; status: string }>(
+      '/api/sales/sms-receipt',
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      },
+    );
   }
 
   // ── Cash drawer / shifts ──────────────────────────────────────────────
