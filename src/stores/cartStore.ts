@@ -5,6 +5,8 @@ import api, { NETWORK_ERROR } from '@/api/client';
 import { addToSyncQueue } from '@/lib/db';
 import { computeCartTotal } from '@/lib/money';
 import { useSyncStore } from '@/stores/syncStore';
+import { useAuthStore } from '@/stores/authStore';
+import { computeTax, shopTaxConfig } from '@/lib/tax';
 
 interface DiscountInfo {
   amount: number;
@@ -198,7 +200,16 @@ export const useCartStore = create<CartState>((set, get) => ({
     }, 0);
 
     const discountAmount = discount?.amount || 0;
-    const totalAmount = computeCartTotal(subtotal, discountAmount);
+
+    // VAT. Computed from the shop's tax config with the SAME formula the server
+    // uses, so amountPaid matches the server's total exactly (no false
+    // "Insufficient payment"). Non-VAT shops (taxRate 0) → tax 0 and
+    // total = subtotal - discount, unchanged from before.
+    const { tax, total: totalAmount } = computeTax(
+      subtotal,
+      discountAmount,
+      shopTaxConfig(useAuthStore.getState().shop),
+    );
 
     if (items.length === 0) return null;
 
@@ -327,6 +338,7 @@ export const useCartStore = create<CartState>((set, get) => ({
         discount: discountAmount,
         discountPercent: discount?.percent,
         discountReason: discount?.reason,
+        tax,
         totalAmount,
         paymentMethod,
         customerBalance: projectedBalance,
@@ -359,8 +371,8 @@ export const useCartStore = create<CartState>((set, get) => ({
       set({ items: [], paymentMethod: 'cash', discount: null, customer: null, isProcessing: false });
 
       // Return the sale with formatted items for UI. Prefer the server's
-      // authoritative post-sale balance for credit; fall back to the local
-      // projection if the API didn't include it.
+      // authoritative tax/total/post-sale balance; fall back to the locally-
+      // computed figures if the API didn't include them.
       return {
         ...data,
         items: receiptItems,
@@ -368,7 +380,8 @@ export const useCartStore = create<CartState>((set, get) => ({
         discount: discountAmount,
         discountPercent: discount?.percent,
         discountReason: discount?.reason,
-        totalAmount,
+        tax: data.tax ?? tax,
+        totalAmount: data.totalAmount ?? totalAmount,
         customerBalance: data.customerBalance ?? projectedBalance,
         createdAt: new Date(),
       } as Sale;
@@ -400,6 +413,20 @@ export const useCartTotal = () => useCartStore((state) => {
 });
 
 export const useCartDiscount = () => useCartStore((state) => state.discount);
+
+/**
+ * Full cart money breakdown including VAT, derived from the active shop's tax
+ * config. Returns { subtotal, discount, tax, total }. For non-VAT shops tax is
+ * 0 and total === subtotal - discount (same as useCartTotal).
+ */
+export const useCartTaxBreakdown = () => {
+  const subtotal = useCartStore((state) =>
+    state.items.reduce((sum, item) => sum + (getItemPrice(item) * item.quantity), 0),
+  );
+  const discountAmount = useCartStore((state) => state.discount?.amount || 0);
+  const shop = useAuthStore((state) => state.shop);
+  return computeTax(subtotal, discountAmount, shopTaxConfig(shop));
+};
 
 export const useCartItemCount = () => useCartStore((state) => 
   state.items.reduce((sum, item) => sum + item.quantity, 0)

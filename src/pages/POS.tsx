@@ -21,7 +21,7 @@ import { ReceiptModal } from '@/components/pos/ReceiptModal';
 import { TillBanner } from '@/components/TillBanner';
 import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
-import { useCartStore, useCartTotal, useCartSubtotal, useCartDiscount } from '@/stores/cartStore';
+import { useCartStore, useCartSubtotal, useCartDiscount, useCartTaxBreakdown } from '@/stores/cartStore';
 import { computeChange } from '@/lib/money';
 import { formatCurrency, type Product, PAYMENT_METHODS } from '@/types';
 import { BarcodeScanner } from '@/components/scanner/BarcodeScanner';
@@ -45,23 +45,27 @@ export function POS() {
     setDiscountPercent, setDiscountAmount, clearDiscount,
     customer, setCustomer
   } = useCartStore();
-  const cartTotal = useCartTotal();
   const cartSubtotal = useCartSubtotal();
   const discount = useCartDiscount();
   // Non-blocking feedback channel for a touchscreen POS — replaces native
   // alert() which freezes the till. Failures stay loud (error toasts).
   const { toast, showToast, dismissToast } = useToast();
+  // Tax-aware money breakdown { subtotal, discount, tax, total }. `total` is the
+  // amount actually collected (includes VAT when the shop charges it exclusively).
+  const taxBreakdown = useCartTaxBreakdown();
+  const cartTotal = taxBreakdown.total;
 
   const [searchQuery, setSearchQuery] = useState('');
   const [showScanner, setShowScanner] = useState(false);
   const [showCustomerPicker, setShowCustomerPicker] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [lastSale, setLastSale] = useState<{ 
-    total: number; 
-    subtotal: number; 
-    discount: number; 
-    items: any[]; 
+  const [lastSale, setLastSale] = useState<{
+    total: number;
+    subtotal: number;
+    discount: number;
+    tax: number;
+    items: any[];
     id: string; 
     receiptNumber?: string;
     date: Date;
@@ -204,6 +208,7 @@ export function POS() {
           total: sale.totalAmount,
           subtotal: sale.subtotal || sale.totalAmount,
           discount: sale.discount || 0,
+          tax: sale.tax || 0,
           items: sale.items,
           id: sale.id,
           receiptNumber: sale.receiptNumber,
@@ -529,6 +534,16 @@ export function POS() {
               )}
             </div>
             
+            {/* Tax / VAT — only shown when the shop charges tax */}
+            {taxBreakdown.tax > 0 && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-slate-400">
+                  VAT ({shop?.taxRate}%{shop?.taxInclusive ? ' incl.' : ''})
+                </span>
+                <span className="text-slate-300">{formatCurrency(taxBreakdown.tax)}</span>
+              </div>
+            )}
+
             {/* Total */}
             <div className="flex items-center justify-between pt-2 border-t border-slate-600">
               <span className="text-white font-medium">Total</span>
