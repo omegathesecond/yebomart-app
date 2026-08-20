@@ -1,6 +1,13 @@
 /**
- * Smart error message processor for AI assistant
- * Maps API errors to helpful, contextual responses
+ * AI assistant error formatter.
+ *
+ * Maps an API/network error from the AI chat endpoint to a SHORT, HONEST,
+ * user-facing explanation of the failure. The returned text is ALWAYS rendered
+ * as a visible error state (red error bubble) in the chat — never as a normal
+ * assistant reply (see AIChat.tsx). The wording must therefore read as a
+ * *failure*, not as in-character chat: genuine outages (500s, "not available",
+ * network drops) must NOT be disguised as cheerful answers, or users will think
+ * the system is working when it is broken.
  */
 
 interface ErrorPattern {
@@ -9,82 +16,76 @@ interface ErrorPattern {
 }
 
 const ERROR_PATTERNS: ErrorPattern[] = [
-  // Upgrade required errors
+  // Upgrade required — the feature exists but the plan doesn't include it.
   {
     match: (msg) => msg.includes('requires an upgraded plan') || msg.includes('upgrade'),
-    response: (msg, ctx) => {
+    response: (msg) => {
       const tier = msg.match(/Current:\s*(\w+)/i)?.[1] || 'FREE';
-      return `✨ Oops! This feature needs a plan upgrade.\n\nYou're currently on the **${tier}** plan. To unlock this and other premium features like:\n• AI-powered stock predictions\n• Advanced sales analytics\n• Priority support\n\nTap the **Settings** tab and check out our upgrade options! 🚀`;
+      return `This feature isn't included in your current plan (${tier}). Upgrade in Settings to unlock AI stock predictions, advanced analytics and more.`;
     }
   },
-  
+
   // Rate limiting
   {
     match: (msg) => msg.includes('rate limit') || msg.includes('too many requests'),
-    response: () => `Whoa, slow down! 😅 You're asking questions faster than I can think!\n\nGive me a few seconds and try again.`
+    response: () => `Too many requests in a short time. Please wait a few seconds and try again.`
   },
-  
+
   // Quota exceeded
   {
     match: (msg) => msg.includes('quota') || msg.includes('limit reached'),
-    response: (msg, ctx) => `You've used up your AI chat quota for this period. 📊\n\nUpgrade your plan to get unlimited conversations with me! Check **Settings > Subscription** to see your options.`
+    response: () => `You've used up your AI chat quota for this billing period. Upgrade in Settings > Subscription to keep going.`
   },
-  
+
   // Authentication errors
   {
     match: (msg) => msg.includes('unauthorized') || msg.includes('authentication') || msg.includes('session expired'),
-    response: () => `Hmm, looks like your session expired. 🔐\n\nPlease log out and log back in to continue chatting with me!`
+    response: () => `Your session expired. Please log out and log back in, then try again.`
   },
-  
+
   // Network errors
   {
     match: (msg) => msg.includes('network') || msg.includes('connection') || msg.includes('offline'),
-    response: () => `I can't reach my brain right now! 🌐\n\nCheck your internet connection and try again.`
+    response: () => `Couldn't reach the AI service. Check your internet connection and try again.`
   },
-  
+
   // Server errors
   {
     match: (msg) => msg.includes('server error') || msg.includes('500') || msg.includes('internal error'),
-    response: (_, ctx) => `Oops! Something went wrong on my end. 🔧\n\nDon't worry, our team has been notified. Try again in a moment!`
+    response: () => `The AI service hit a server error and couldn't answer. Please try again in a moment.`
   },
-  
-  // Feature not available
+
+  // Feature not available — surface honestly, do NOT pretend it's "coming soon".
   {
     match: (msg) => msg.includes('not available') || msg.includes('coming soon'),
-    response: (msg) => `This feature is coming soon! 🚧\n\nWe're working hard to bring you more capabilities. Stay tuned!`
+    response: () => `The AI assistant isn't available right now. Please try again later.`
   },
-  
-  // No data/empty results
-  {
-    match: (msg) => msg.includes('no data') || msg.includes('no results') || msg.includes('not found'),
-    response: () => `I couldn't find any data for that. 📭\n\nThis might be because:\n• No sales recorded yet for that period\n• No matching products found\n• The data hasn't been synced yet\n\nTry a different query or check back later!`
-  },
-  
+
   // Maintenance
   {
     match: (msg) => msg.includes('maintenance') || msg.includes('temporarily unavailable'),
-    response: () => `I'm taking a quick nap for maintenance! 😴\n\nI'll be back shortly. Try again in a few minutes.`
+    response: () => `The AI service is temporarily down for maintenance. Please try again in a few minutes.`
   },
 ];
 
 /**
- * Process an API error and return a user-friendly response
+ * Turn a raw API/network error string into an honest, user-facing failure
+ * message. Always framed as an error — never as a successful answer.
  */
 export function getSmartErrorResponse(
   error: string,
   context?: { shopName?: string; assistantName?: string }
 ): string {
   const lowerError = error.toLowerCase();
-  
-  // Find matching pattern
+
   for (const pattern of ERROR_PATTERNS) {
     if (pattern.match(lowerError)) {
       return pattern.response(error, context);
     }
   }
-  
-  // Default fallback
-  return `Sorry, I ran into an issue: "${error}"\n\nPlease try again or rephrase your question. If the problem persists, contact support.`;
+
+  // Default — surface the real error verbatim rather than inventing a reply.
+  return `That request failed: ${error}. Please try again, and contact support if it keeps happening.`;
 }
 
 /**
@@ -92,7 +93,7 @@ export function getSmartErrorResponse(
  */
 export function isUpgradeError(error: string): boolean {
   const lowerError = error.toLowerCase();
-  return lowerError.includes('upgrade') || 
+  return lowerError.includes('upgrade') ||
          lowerError.includes('requires') && lowerError.includes('plan') ||
          lowerError.includes('quota') ||
          lowerError.includes('limit reached');

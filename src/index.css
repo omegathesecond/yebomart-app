@@ -366,6 +366,11 @@ input:focus, select:focus, textarea:focus {
   color: white;
 }
 
+.toast-warning {
+  background-color: #d97706;
+  color: white;
+}
+
 /* Number input - hide spinners */
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {

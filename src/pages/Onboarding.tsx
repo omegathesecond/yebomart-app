@@ -12,7 +12,8 @@ import {
   CheckCircleIcon,
   UserPlusIcon,
   CheckIcon,
-  GlobeAltIcon
+  GlobeAltIcon,
+  BuildingStorefrontIcon
 } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -166,6 +167,51 @@ export function Onboarding() {
 
   const selectedType = shopTypes.find(t => t.id === selectedShopType);
   const shopCountry = getCountryByCode(shopCountryCode);
+
+  // Adding an ADDITIONAL shop (reached via ShopSwitcher's "Add Shop" →
+  // ?mode=new-shop) is not supported: the backend keys each Shop to one YeboID
+  // owner (Shop.ownerYeboidSub/ownerPhone are @unique) and has no createShop
+  // endpoint, so the form below could never persist — it previously faked a
+  // success and dropped the user onto a phantom shop that vanished on reload.
+  // The ShopSwitcher entry points are removed; this is a defensive screen for
+  // any stale URL/bookmark. (createShop() in the store also fails loudly now.)
+  if (isNewShop) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl" />
+        </div>
+
+        <div className="relative w-full max-w-md text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 shadow-lg shadow-amber-500/25 mb-4">
+            <BuildingStorefrontIcon className="w-10 h-10 text-white" />
+          </div>
+          <h1 className="text-2xl font-bold text-white">Multiple shops are coming soon</h1>
+
+          <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-8 mt-6">
+            <p className="text-slate-300">
+              Your account currently supports one shop. Running several shops
+              from a single login isn't available yet — we're building it.
+            </p>
+            <p className="text-slate-400 text-sm mt-4">
+              Nothing was created. You can keep using your current shop in the
+              meantime.
+            </p>
+
+            <Button onClick={() => navigate('/')} className="w-full mt-8">
+              <ArrowLeftIcon className="w-4 h-4 mr-2" />
+              Back to Dashboard
+            </Button>
+          </div>
+
+          <p className="text-slate-500 text-sm mt-6">
+            © 2026 YeboMart by Omevision. Available across Africa 🌍
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // Entry screen
   if (step === 'entry') {
