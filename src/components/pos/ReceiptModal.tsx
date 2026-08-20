@@ -36,6 +36,14 @@ export interface ReceiptSale {
   cashReceived?: number;
   changeGiven?: number;
   pendingSync?: boolean;
+  /**
+   * CREDIT ("on the book" / pay-later) sales only. The customer the sale was
+   * booked to, and their outstanding balance AFTER this sale was added to their
+   * ledger — the whole point of the slip is that the customer walks away with a
+   * record of what they now owe.
+   */
+  customerName?: string;
+  customerBalance?: number;
 }
 
 interface ReceiptModalProps {
@@ -254,6 +262,30 @@ export function ReceiptModal({ isOpen, onClose, sale, shop, customerPhone }: Rec
                     <span>CHANGE</span>
                     <span>{formatCurrency(sale.changeGiven || 0)}</span>
                   </div>
+                </div>
+              )}
+
+              {/* Credit ("on the book") sale: nothing was tendered — the slip is
+                  the customer's record of what they now owe. */}
+              {sale.paymentMethod === 'credit' && (
+                <div className="mt-3 pt-3 border-t border-dashed border-gray-300 space-y-1">
+                  <div className="text-sm font-bold text-amber-700">SOLD ON CREDIT (PAY LATER)</div>
+                  {sale.customerName && (
+                    <div className="flex justify-between text-sm">
+                      <span>Customer</span>
+                      <span>{sale.customerName}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-sm">
+                    <span>Paid Now</span>
+                    <span>{formatCurrency(0)}</span>
+                  </div>
+                  {typeof sale.customerBalance === 'number' && (
+                    <div className="flex justify-between font-bold text-lg text-red-600">
+                      <span>BALANCE OWING</span>
+                      <span>{formatCurrency(sale.customerBalance)}</span>
+                    </div>
+                  )}
                 </div>
               )}
 

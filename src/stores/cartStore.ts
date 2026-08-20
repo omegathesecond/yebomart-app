@@ -213,6 +213,37 @@ export const useCartStore = create<CartState>((set, get) => ({
 
     if (items.length === 0) return null;
 
+    // CREDIT ("on the book" / pay-later): the sale is booked against a customer's
+    // ledger instead of being tendered now. A customer is mandatory — guard here
+    // so we never queue an un-attachable credit sale (the server enforces this
+    // too, but failing fast keeps the cashier from handing over goods first).
+    const isCredit = paymentMethod === 'credit';
+    if (isCredit && !customer) {
+      set({ isProcessing: false, error: 'Attach a customer before selling on credit' });
+      return null;
+    }
+    // Nothing is paid up front on a credit sale.
+    const amountPaid = isCredit ? 0 : totalAmount;
+    // Customer's projected new outstanding balance after this credit sale.
+    // Online we prefer the authoritative figure the API returns; offline we show
+    // this locally-computed projection so the receipt is still meaningful.
+    const projectedBalance = isCredit && customer ? customer.balance + totalAmount : undefined;
+
+    // Enforce the credit limit here, BEFORE we touch the network or the offline
+    // outbox. Online the server re-checks this (defence in depth); but offline a
+    // credit sale is queued and optimistically completed, so without this guard
+    // an over-limit sale would be accepted locally (goods handed over) only to be
+    // rejected by the server on sync — a silent failure. Mirror the server rule
+    // exactly: creditLimit 0 = unlimited; reject only when the new balance would
+    // exceed a configured (> 0) limit. No silent fallback — surface it as an error.
+    if (isCredit && customer && customer.creditLimit > 0 && projectedBalance! > customer.creditLimit) {
+      set({
+        isProcessing: false,
+        error: `Credit limit exceeded. Limit: ${customer.creditLimit}, current balance: ${customer.balance}, this sale: ${totalAmount}. New balance would be ${projectedBalance}.`,
+      });
+      return null;
+    }
+
     set({ isProcessing: true, error: null });
 
     // Stable idempotency key for this checkout. Sent on the live attempt AND any
@@ -249,7 +280,7 @@ export const useCartStore = create<CartState>((set, get) => ({
     const payload = {
       items: saleItems,
       paymentMethod: paymentMethod.toUpperCase(),
-      amountPaid: totalAmount,
+      amountPaid,
       subtotal,
       discount: discountAmount,
       discountPercent: discount?.percent,
@@ -310,6 +341,7 @@ export const useCartStore = create<CartState>((set, get) => ({
         tax,
         totalAmount,
         paymentMethod,
+        customerBalance: projectedBalance,
         createdAt: new Date(),
       } as Sale;
     };
@@ -339,7 +371,8 @@ export const useCartStore = create<CartState>((set, get) => ({
       set({ items: [], paymentMethod: 'cash', discount: null, customer: null, isProcessing: false });
 
       // Return the sale with formatted items for UI. Prefer the server's
-      // authoritative tax/total; fall back to the locally-computed figures.
+      // authoritative tax/total/post-sale balance; fall back to the locally-
+      // computed figures if the API didn't include them.
       return {
         ...data,
         items: receiptItems,
@@ -349,6 +382,7 @@ export const useCartStore = create<CartState>((set, get) => ({
         discountReason: discount?.reason,
         tax: data.tax ?? tax,
         totalAmount: data.totalAmount ?? totalAmount,
+        customerBalance: data.customerBalance ?? projectedBalance,
         createdAt: new Date(),
       } as Sale;
 

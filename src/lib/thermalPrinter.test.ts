@@ -82,3 +82,42 @@ describe('printReceiptViaBluetooth', () => {
     await expect(printReceiptViaBluetooth(sale, shop)).rejects.toBeInstanceOf(ThermalPrintError);
   });
 });
+
+describe('buildReceiptBytes — credit ("on the book") sales', () => {
+  const creditSale: ReceiptSale = {
+    ...sale,
+    paymentMethod: 'credit',
+    cashReceived: undefined,
+    changeGiven: undefined,
+    customerName: 'Sipho Dlamini',
+    customerBalance: 130,
+  };
+
+  it('prints the credit banner, the customer and the balance now owing', () => {
+    const text = asText(buildReceiptBytes(creditSale, shop));
+    expect(text).toContain('SOLD ON CREDIT (PAY LATER)');
+    expect(text).toContain('Sipho Dlamini');
+    expect(text).toContain('BALANCE OWING');
+    // The debt figure itself must be on the slip — it's the customer's only record.
+    expect(text).toMatch(/BALANCE OWING.*130/s);
+  });
+
+  it('does not print cash/change lines on a credit sale', () => {
+    const text = asText(buildReceiptBytes(creditSale, shop));
+    expect(text).not.toContain('Change');
+  });
+
+  it('omits the balance line when the figure is unknown, rather than printing a fake 0', () => {
+    const text = asText(
+      buildReceiptBytes({ ...creditSale, customerBalance: undefined }, shop),
+    );
+    expect(text).toContain('SOLD ON CREDIT (PAY LATER)');
+    expect(text).not.toContain('BALANCE OWING');
+  });
+
+  it('leaves a normal cash receipt untouched — no credit banner', () => {
+    const text = asText(buildReceiptBytes(sale, shop));
+    expect(text).not.toContain('SOLD ON CREDIT');
+    expect(text).toContain('Change');
+  });
+});

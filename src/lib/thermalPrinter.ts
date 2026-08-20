@@ -199,6 +199,19 @@ export function buildReceiptBytes(sale: ReceiptSale, shop: Shop | null): Uint8Ar
     b.line(twoColumns('Change', formatCurrency(sale.changeGiven || 0)));
   }
 
+  // Credit ("on the book") sale — nothing tendered. Print who it's booked to and
+  // the balance now owing, since this slip is the customer's only record of the
+  // debt they just took on.
+  if (sale.paymentMethod === 'credit') {
+    b.line(divider());
+    b.bold(true).line('SOLD ON CREDIT (PAY LATER)').bold(false);
+    if (sale.customerName) b.line(twoColumns('Customer', sale.customerName));
+    b.line(twoColumns('Paid now', formatCurrency(0)));
+    if (typeof sale.customerBalance === 'number') {
+      b.bold(true).line(twoColumns('BALANCE OWING', formatCurrency(sale.customerBalance))).bold(false);
+    }
+  }
+
   // Footer.
   b.align('center').line('').line('Thank you for shopping with us!').line('Powered by YeboMart');
   b.feed(3).cut();

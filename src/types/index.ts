@@ -2,7 +2,7 @@
 
 export type UserRole = 'owner' | 'manager' | 'cashier';
 export type ShopRole = 'owner' | 'admin' | 'staff';
-export type PaymentMethod = 'cash' | 'momo' | 'emali' | 'card';
+export type PaymentMethod = 'cash' | 'momo' | 'emali' | 'card' | 'credit';
 export type StockLogType = 'restock' | 'sale' | 'adjustment' | 'damaged';
 // Mirrors the API's ExpenseCategory Prisma enum (api/prisma/schema.prisma).
 // Stored lowercase in the app domain; the API client maps to/from UPPERCASE.
@@ -106,6 +106,10 @@ export interface Sale {
   tax?: number;               // VAT charged on this sale (0 for non-VAT shops)
   totalAmount: number;        // Final amount after discount (+ tax if exclusive)
   paymentMethod: PaymentMethod;
+  // For CREDIT ("on the book") sales: the customer's outstanding balance AFTER
+  // this sale was added to their ledger. Printed on the receipt. Undefined for
+  // non-credit sales.
+  customerBalance?: number;
   items: SaleItem[];
   createdAt: Date;
   syncedAt?: Date;
@@ -259,7 +263,8 @@ export const PAYMENT_METHODS: { value: PaymentMethod; label: string; icon: strin
   { value: 'cash', label: 'Cash', icon: '💵' },
   { value: 'momo', label: 'MoMo', icon: '📱' },
   { value: 'emali', label: 'E-Mali', icon: '💳' },
-  { value: 'card', label: 'Card', icon: '💳' }
+  { value: 'card', label: 'Card', icon: '💳' },
+  { value: 'credit', label: 'Credit', icon: '📒' }
 ];
 
 // Product categories

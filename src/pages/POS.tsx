@@ -73,6 +73,9 @@ export function POS() {
     cashReceived?: number;
     changeGiven?: number;
     pendingSync?: boolean;
+    // Credit ("on the book") sales: who it's booked to and their new balance owing.
+    customerName?: string;
+    customerBalance?: number;
   } | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   
@@ -155,7 +158,7 @@ export function POS() {
   };
 
   // Direct checkout with payment method
-  const handlePayment = async (method: 'cash' | 'card' | 'momo' | 'emali') => {
+  const handlePayment = async (method: 'cash' | 'card' | 'momo' | 'emali' | 'credit') => {
     // Debug: check why payment might not work
     if (!user) {
       showToast('Please log in first', 'error');
@@ -169,25 +172,37 @@ export function POS() {
       showToast('Cart is empty', 'error');
       return;
     }
-    
+
     // For cash, show the cash modal first
     if (method === 'cash') {
       handleCashPayment();
       return;
     }
-    
+
+    // Credit ("on the book") requires an attached customer — the sale lands on
+    // their ledger. Nudge the cashier to pick one instead of failing silently.
+    if (method === 'credit' && !customer) {
+      showToast('Attach a customer before selling on credit', 'error');
+      setShowCustomerPicker(true);
+      return;
+    }
+
     await processPayment(method);
   };
 
   // Process the actual payment
-  const processPayment = async (method: 'cash' | 'card' | 'momo' | 'emali', cashReceived?: number, changeGiven?: number) => {
+  const processPayment = async (method: 'cash' | 'card' | 'momo' | 'emali' | 'credit', cashReceived?: number, changeGiven?: number) => {
+    // Capture the booked-to customer's name before checkout clears the cart, so
+    // the credit receipt can name them.
+    const creditCustomerName = method === 'credit' ? customer?.name : undefined;
+
     setPaymentMethod(method);
     setIsProcessing(true);
-    
+
     try {
       const sale = await checkout(user!.id, shop!.id);
       setIsProcessing(false);
-      
+
       if (sale) {
         setLastSale({
           total: sale.totalAmount,
@@ -201,7 +216,9 @@ export function POS() {
           paymentMethod: method,
           cashReceived: cashReceived,
           changeGiven: changeGiven,
-          pendingSync: sale.pendingSync
+          pendingSync: sale.pendingSync,
+          customerName: creditCustomerName,
+          customerBalance: sale.customerBalance,
         });
         setShowReceipt(true);
       } else {
@@ -564,8 +581,8 @@ export function POS() {
               >
                 📱 MoMo
               </Button>
-              <Button 
-                variant="secondary" 
+              <Button
+                variant="secondary"
                 size="lg"
                 className="w-full"
                 onClick={() => handlePayment('emali')}
@@ -574,6 +591,19 @@ export function POS() {
                 📲 eMali
               </Button>
             </div>
+
+            {/* Credit / pay-later — books the sale to a customer's account.
+                Requires an attached customer (enforced in handlePayment). */}
+            <button
+              onClick={() => handlePayment('credit')}
+              disabled={isProcessing}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-300 font-medium hover:bg-amber-500/20 transition-colors disabled:opacity-50"
+            >
+              📒 Credit / On the book
+              {customer && (
+                <span className="text-xs text-amber-400/80">({customer.name.split(' ')[0]})</span>
+              )}
+            </button>
           </div>
         )}
       </div>

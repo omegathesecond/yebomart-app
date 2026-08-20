@@ -8,7 +8,8 @@ import {
   BoltIcon,
   XMarkIcon,
   ShoppingCartIcon,
-  ArrowLeftIcon
+  ArrowLeftIcon,
+  UserIcon
 } from '@heroicons/react/24/outline';
 import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
@@ -18,12 +19,14 @@ import { formatCurrency, type Product, type PaymentMethod, PAYMENT_METHODS } fro
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { ReceiptModal, type ReceiptSale } from '@/components/pos/ReceiptModal';
+import { CustomerPicker } from '@/components/CustomerPicker';
 
 export function MobilePOS() {
   const navigate = useNavigate();
   const { user, shop } = useAuthStore();
   const { products, loadAll, getProductByBarcode, searchProducts } = useInventoryStore();
-  const { items, addItem, updateQuantity, removeItem, checkout, clear, setPaymentMethod } = useCartStore();
+  const { items, addItem, updateQuantity, removeItem, checkout, clear, setPaymentMethod, customer, setCustomer } =
+    useCartStore();
   const cartSubtotal = useCartSubtotal();
   const taxBreakdown = useCartTaxBreakdown();
   const cartTotal = taxBreakdown.total;
@@ -31,6 +34,8 @@ export function MobilePOS() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
+  // Customer attachment — required before a CREDIT ("on the book") sale.
+  const [showCustomerPicker, setShowCustomerPicker] = useState(false);
   const [flashlightOn, setFlashlightOn] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [scannerReady, setScannerReady] = useState(false);
@@ -227,6 +232,13 @@ export function MobilePOS() {
       setShowCashModal(true);
       return;
     }
+    // Credit ("on the book") lands on a customer's ledger, so one must be
+    // attached. Open the picker instead of dead-ending on an error toast.
+    if (method === 'credit' && !customer) {
+      showError('Attach a customer before selling on credit');
+      setShowCustomerPicker(true);
+      return;
+    }
     void processPayment(method);
   };
 
@@ -256,6 +268,10 @@ export function MobilePOS() {
   ) => {
     if (!user || !shop) return;
 
+    // Capture the booked-to customer's name before checkout clears the cart, so
+    // the credit receipt can name them.
+    const creditCustomerName = method === 'credit' ? customer?.name : undefined;
+
     setPaymentMethod(method);
     setIsProcessing(true);
     try {
@@ -274,6 +290,8 @@ export function MobilePOS() {
           cashReceived: cashReceivedAmount,
           changeGiven,
           pendingSync: sale.pendingSync,
+          customerName: creditCustomerName,
+          customerBalance: sale.customerBalance,
         });
         setShowReceipt(true);
       } else {
@@ -517,6 +535,26 @@ export function MobilePOS() {
 
       {/* Fixed Bottom Section */}
       <div className="flex-shrink-0 p-4 bg-slate-800 border-t border-slate-700 safe-area-bottom">
+        {/* Attached customer — required for a credit sale, optional otherwise
+            (it just files the sale under their purchase history). */}
+        <div className="flex items-center justify-between mb-3">
+          <button
+            onClick={() => setShowCustomerPicker(true)}
+            className="flex items-center gap-2 text-sm text-slate-300 hover:text-white transition-colors"
+          >
+            <UserIcon className="w-4 h-4" />
+            {customer ? customer.name : 'Attach customer'}
+          </button>
+          {customer && (
+            <button
+              onClick={() => setCustomer(null)}
+              className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
+            >
+              Remove
+            </button>
+          )}
+        </div>
+
         {/* VAT breakdown — only when the shop charges tax */}
         {taxBreakdown.tax > 0 && (
           <div className="space-y-1 mb-2 text-sm">
@@ -680,6 +718,17 @@ export function MobilePOS() {
         onClose={handleCloseReceipt}
         sale={lastSale}
         shop={shop}
+        customerPhone={customer?.phone || undefined}
+      />
+
+      {/* Customer Picker — attach a buyer, and the gate for credit sales. */}
+      <CustomerPicker
+        isOpen={showCustomerPicker}
+        onClose={() => setShowCustomerPicker(false)}
+        onSelect={(c) => {
+          setCustomer(c);
+          setShowCustomerPicker(false);
+        }}
       />
     </div>
   );
