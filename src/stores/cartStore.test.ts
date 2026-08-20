@@ -10,7 +10,7 @@ const NETWORK_ERROR = 'Network error. Please try again.';
 vi.mock('@/api/client', () => ({
   // Literal inlined here (not the const above) — vi.mock factories are hoisted
   // above top-level declarations, so they cannot close over outer variables.
-  default: { createSale: vi.fn() },
+  default: { createSale: vi.fn(), setSessionExpiredCallback: vi.fn() },
   NETWORK_ERROR: 'Network error. Please try again.',
   INSUFFICIENT_CREDITS: 'INSUFFICIENT_CREDITS',
 }));
@@ -19,6 +19,12 @@ vi.mock('@/lib/db', () => ({
 }));
 vi.mock('@/stores/syncStore', () => ({
   useSyncStore: { getState: () => ({ refreshPending: vi.fn() }) },
+}));
+// cartStore reads the active shop's tax config off useAuthStore.getState().shop.
+// No shop (null) → shopTaxConfig defaults to taxRate 0, matching the "no VAT"
+// assertions below untouched.
+vi.mock('@/stores/authStore', () => ({
+  useAuthStore: { getState: () => ({ shop: null }) },
 }));
 
 import api from '@/api/client';
