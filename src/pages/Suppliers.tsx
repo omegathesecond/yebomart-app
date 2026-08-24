@@ -19,6 +19,7 @@ import { Card } from '@/components/ui/Card';
 import { Modal, ConfirmDialog } from '@/components/ui/Modal';
 import { api } from '@/api/client';
 import { useInventoryStore } from '@/stores/inventoryStore';
+import { formatCurrency } from '@/types';
 
 interface Supplier {
   id: string;
@@ -37,6 +38,10 @@ interface Supplier {
   leadTimeDays?: number;
   notes?: string;
   isActive: boolean;
+  // Accounts payable — what this shop currently owes the supplier. Mirrors
+  // Supplier.balance on the API (bumped by PO receipts, paid down by
+  // recordPayment on a PO). Positive = we owe them.
+  balance: number;
   products?: Array<{
     productId: string;
     product?: { id: string; name: string; barcode?: string };
@@ -330,6 +335,11 @@ export function Suppliers() {
                 </div>
 
                 <div className="flex flex-wrap gap-2 mt-3">
+                  {supplier.balance > 0 ? (
+                    <Badge variant="danger">Owe {formatCurrency(supplier.balance)}</Badge>
+                  ) : (
+                    <Badge variant="success">Settled</Badge>
+                  )}
                   {supplier.country && (
                     <Badge variant="neutral">{supplier.country}</Badge>
                   )}
@@ -366,6 +376,18 @@ export function Suppliers() {
         title={editingSupplier ? 'Edit Supplier' : 'Add Supplier'}
       >
         <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+          {/* Accounts payable — what this shop currently owes the supplier. */}
+          {editingSupplier && (
+            <div className="bg-slate-800 rounded-xl p-3 flex items-center justify-between">
+              <span className="text-sm text-slate-400">Balance owed</span>
+              <span
+                className={`font-bold ${editingSupplier.balance > 0 ? 'text-red-400' : 'text-emerald-400'}`}
+              >
+                {editingSupplier.balance > 0 ? formatCurrency(editingSupplier.balance) : 'Settled'}
+              </span>
+            </div>
+          )}
+
           {/* Company Details */}
           <div className="space-y-4">
             <p className="text-xs text-amber-400 mb-1 uppercase tracking-wider font-semibold">Company Details</p>

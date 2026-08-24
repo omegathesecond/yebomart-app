@@ -8,9 +8,10 @@ import {
   MagnifyingGlassIcon,
   TruckIcon,
   CheckIcon,
+  BanknotesIcon,
 } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
+import { Input, Textarea } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
@@ -18,6 +19,7 @@ import { Toast, useToast } from '@/components/ui/Toast';
 import { api } from '@/api/client';
 import { useInventoryStore } from '@/stores/inventoryStore';
 import { formatCurrency, formatDate } from '@/types';
+import { computeBalanceDue, validatePaymentAmount } from '@/lib/supplierPayments';
 
 interface POItem {
   id: string;
@@ -37,6 +39,11 @@ interface PurchaseOrder {
   subtotal: number;
   tax: number;
   totalAmount: number;
+  // Accounts payable — cumulative cost value received so far vs. paid to the
+  // supplier so far. Mirrors PurchaseOrder.amountReceived/amountPaid on the
+  // API. Balance due is derived client-side (see computeBalanceDue).
+  amountReceived: number;
+  amountPaid: number;
   orderDate: string;
   expectedDate?: string;
   receivedDate?: string;
@@ -96,6 +103,16 @@ export function PurchaseOrders() {
   const [receiving, setReceiving] = useState(false);
   const [receiveQty, setReceiveQty] = useState<Record<string, number>>({});
   const [updateCost, setUpdateCost] = useState(false);
+
+  // Detail modal state
+  const [detail, setDetail] = useState<PurchaseOrder | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+
+  // Record payment modal state
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentNote, setPaymentNote] = useState('');
+  const [recordingPayment, setRecordingPayment] = useState(false);
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
@@ -272,6 +289,55 @@ export function PurchaseOrders() {
     loadAll('');
   };
 
+  // ── Detail + record payment flow ────────────────────────────────────
+
+  const openDetail = async (id: string) => {
+    setDetailLoading(true);
+    const { data, error } = await api.getPurchaseOrder(id);
+    setDetailLoading(false);
+    if (error || !data) {
+      showToast(error || 'Failed to load purchase order', 'error');
+      return;
+    }
+    setDetail(data as PurchaseOrder);
+  };
+
+  const openPaymentModal = () => {
+    setPaymentAmount('');
+    setPaymentNote('');
+    setShowPaymentModal(true);
+  };
+
+  const paymentAmountError = useMemo(() => {
+    if (!detail || !paymentAmount) return null;
+    return validatePaymentAmount(parseFloat(paymentAmount), computeBalanceDue(detail));
+  }, [detail, paymentAmount]);
+
+  const handleRecordPayment = async () => {
+    if (!detail) return;
+    const amount = parseFloat(paymentAmount);
+    if (validatePaymentAmount(amount, computeBalanceDue(detail))) return;
+
+    setRecordingPayment(true);
+    const { data, error } = await api.recordSupplierPayment(detail.id, {
+      amount,
+      note: paymentNote.trim() || undefined,
+    });
+    setRecordingPayment(false);
+
+    if (error || !data) {
+      // No silent fallback — surface the API's real error (e.g. the 400 for an
+      // amount exceeding the balance due) rather than a generic message.
+      showToast(error || 'Failed to record payment', 'error');
+      return;
+    }
+    showToast(`Payment of ${formatCurrency(amount)} recorded`);
+    setShowPaymentModal(false);
+    // Refresh both the PO detail (new balance due) and the list.
+    openDetail(detail.id);
+    fetchOrders();
+  };
+
   const filteredProducts = useMemo(
     () =>
       products.filter(
@@ -332,8 +398,13 @@ export function PurchaseOrders() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {orders.map((po) => {
             const canReceive = po.status !== 'RECEIVED' && po.status !== 'CANCELLED';
+            const balanceDue = computeBalanceDue(po);
             return (
-              <Card key={po.id}>
+              <Card
+                key={po.id}
+                className="cursor-pointer hover:bg-slate-800/50 transition-colors"
+                onClick={() => openDetail(po.id)}
+              >
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <h3 className="font-semibold text-white">{po.orderNumber || po.id.slice(0, 8)}</h3>
@@ -357,6 +428,14 @@ export function PurchaseOrders() {
                     <span>Ordered</span>
                     <span className="text-slate-300">{formatDate(po.orderDate)}</span>
                   </div>
+                  {po.amountReceived > 0 && (
+                    <div className="flex justify-between">
+                      <span>Owed</span>
+                      <span className={balanceDue > 0 ? 'text-red-400 font-semibold' : 'text-emerald-400'}>
+                        {balanceDue > 0 ? formatCurrency(balanceDue) : 'Settled'}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {canReceive && (
@@ -364,7 +443,10 @@ export function PurchaseOrders() {
                     variant="secondary"
                     className="w-full mt-4"
                     leftIcon={<TruckIcon className="w-4 h-4" />}
-                    onClick={() => openReceive(po)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openReceive(po);
+                    }}
                   >
                     Receive Stock
                   </Button>
@@ -595,6 +677,150 @@ export function PurchaseOrders() {
               </Button>
               <Button variant="primary" className="flex-1" onClick={handleReceive} disabled={receiving}>
                 {receiving ? 'Receiving...' : 'Receive Stock'}
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Detail Modal */}
+      <Modal
+        isOpen={!!detail || detailLoading}
+        onClose={() => setDetail(null)}
+        title={detail?.orderNumber || 'Purchase Order'}
+        size="lg"
+      >
+        {detailLoading ? (
+          <div className="text-center py-10">
+            <ArrowPathIcon className="w-8 h-8 animate-spin mx-auto text-slate-400" />
+          </div>
+        ) : detail ? (
+          <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-1">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-slate-400">{detail.supplier?.name || 'Unknown supplier'}</p>
+              <Badge variant={STATUS_VARIANT[detail.status]}>
+                {detail.status.charAt(0) + detail.status.slice(1).toLowerCase()}
+              </Badge>
+            </div>
+
+            {/* Accounts payable — cumulative received value vs. paid to the supplier. */}
+            <div className="bg-slate-800 rounded-xl p-4">
+              <p className="text-sm text-slate-300">
+                Paid {formatCurrency(detail.amountPaid)} of {formatCurrency(detail.amountReceived)}
+              </p>
+              <p
+                className={`text-2xl font-bold mt-1 ${
+                  computeBalanceDue(detail) > 0 ? 'text-red-400' : 'text-emerald-400'
+                }`}
+              >
+                {computeBalanceDue(detail) > 0
+                  ? `${formatCurrency(computeBalanceDue(detail))} due`
+                  : 'Settled'}
+              </p>
+            </div>
+
+            {/* Line items */}
+            {detail.items && detail.items.length > 0 && (
+              <div className="space-y-2">
+                <div className="grid grid-cols-12 gap-2 text-xs text-slate-500 px-1">
+                  <span className="col-span-6">Product</span>
+                  <span className="col-span-2 text-right">Ordered</span>
+                  <span className="col-span-2 text-right">Received</span>
+                  <span className="col-span-2 text-right">Cost</span>
+                </div>
+                {detail.items.map((item) => (
+                  <div key={item.id} className="grid grid-cols-12 gap-2 items-center text-sm">
+                    <span className="col-span-6 text-white truncate">{item.productName}</span>
+                    <span className="col-span-2 text-right text-slate-300">{item.quantity}</span>
+                    <span className="col-span-2 text-right text-slate-300">{item.receivedQty}</span>
+                    <span className="col-span-2 text-right text-slate-300">
+                      {formatCurrency(item.totalCost)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="space-y-1 text-sm pt-3 border-t border-slate-700">
+              <div className="flex justify-between text-slate-400">
+                <span>Subtotal</span>
+                <span className="text-slate-300">{formatCurrency(detail.subtotal)}</span>
+              </div>
+              <div className="flex justify-between text-slate-400">
+                <span>Tax</span>
+                <span className="text-slate-300">{formatCurrency(detail.tax)}</span>
+              </div>
+              <div className="flex justify-between font-semibold">
+                <span className="text-slate-300">Total</span>
+                <span className="text-white">{formatCurrency(detail.totalAmount)}</span>
+              </div>
+            </div>
+
+            {(detail.status === 'RECEIVED' || detail.status === 'PARTIAL') &&
+              computeBalanceDue(detail) > 0 && (
+                <Button
+                  variant="success"
+                  className="w-full"
+                  leftIcon={<BanknotesIcon className="w-5 h-5" />}
+                  onClick={openPaymentModal}
+                >
+                  Record Payment
+                </Button>
+              )}
+          </div>
+        ) : null}
+      </Modal>
+
+      {/* Record Payment Modal */}
+      <Modal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        title="Record Supplier Payment"
+        size="sm"
+      >
+        {detail && (
+          <div className="space-y-4">
+            <div className="bg-slate-800 rounded-xl p-3 flex items-center justify-between">
+              <span className="text-sm text-slate-400">Balance due</span>
+              <span className="font-bold text-red-400">{formatCurrency(computeBalanceDue(detail))}</span>
+            </div>
+
+            <Input
+              label="Amount *"
+              type="number"
+              value={paymentAmount}
+              onChange={(e) => setPaymentAmount(e.target.value)}
+              placeholder="0.00"
+              leftIcon={<BanknotesIcon className="w-5 h-5" />}
+              hint={paymentAmountError || undefined}
+            />
+
+            <Textarea
+              label="Note"
+              value={paymentNote}
+              onChange={(e) => setPaymentNote(e.target.value)}
+              placeholder="Optional — e.g. cash, EFT reference"
+              maxLength={500}
+              className="min-h-[72px]"
+            />
+
+            <div className="flex gap-3 pt-2">
+              <Button
+                variant="secondary"
+                className="flex-1"
+                onClick={() => setShowPaymentModal(false)}
+                disabled={recordingPayment}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="success"
+                className="flex-1"
+                onClick={handleRecordPayment}
+                disabled={!paymentAmount || !!paymentAmountError || recordingPayment}
+                isLoading={recordingPayment}
+              >
+                Record Payment
               </Button>
             </div>
           </div>
