@@ -18,7 +18,8 @@ import {
   ClipboardDocumentListIcon,
   ChatBubbleLeftRightIcon,
   CreditCardIcon,
-  CalculatorIcon
+  CalculatorIcon,
+  ShieldExclamationIcon
 } from '@heroicons/react/24/outline';
 import { SparklesIcon as SparklesSolid } from '@heroicons/react/24/solid';
 import { useAuthStore } from '@/stores/authStore';
@@ -42,9 +43,17 @@ const navigation = [
   { name: 'Settings', href: '/settings', icon: Cog6ToothIcon }
 ];
 
+// Owner-only nav item — the API's GET /api/audit is ownerAuth-gated (see
+// api/src/routes/audit.routes.ts), so hide the entry point rather than let a
+// non-owner click through to a 403.
+const OWNER_ONLY_NAVIGATION = [
+  { name: 'Audit Log', href: '/audit-log', icon: ShieldExclamationIcon },
+];
+
 export function Sidebar() {
-  const { user, shop, logout } = useAuthStore();
+  const { user, shop, authMode, logout } = useAuthStore();
   const { alerts, insights } = useInventoryStore();
+  const isOwner = authMode === 'owner' || user?.role === 'owner';
 
   // Get assistant name from shop settings
   const assistantName = shop?.assistantName || 'AI Assistant';
@@ -132,13 +141,30 @@ export function Sidebar() {
           >
             <item.icon className="w-5 h-5" />
             <span className="font-medium text-sm">{item.name}</span>
-            
+
             {/* Badge for alerts */}
             {item.name === 'Stock' && alerts.length > 0 && (
               <span className="ml-auto px-1.5 py-0.5 text-[10px] font-bold bg-red-500 text-white rounded-full">
                 {alerts.length}
               </span>
             )}
+          </NavLink>
+        ))}
+
+        {isOwner && OWNER_ONLY_NAVIGATION.map((item) => (
+          <NavLink
+            key={item.name}
+            to={item.href}
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 group ${
+                isActive
+                  ? 'bg-amber-600/20 text-amber-400 border border-amber-500/30'
+                  : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+              }`
+            }
+          >
+            <item.icon className="w-5 h-5" />
+            <span className="font-medium text-sm">{item.name}</span>
           </NavLink>
         ))}
       </nav>

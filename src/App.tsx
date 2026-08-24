@@ -31,6 +31,7 @@ const Suppliers = lazy(() => import('@/pages/Suppliers').then(m => ({ default: m
 const PurchaseOrders = lazy(() => import('@/pages/PurchaseOrders').then(m => ({ default: m.PurchaseOrders })));
 const Customers = lazy(() => import('@/pages/Customers').then(m => ({ default: m.Customers })));
 const Expenses = lazy(() => import('@/pages/Expenses').then(m => ({ default: m.Expenses })));
+const AuditLog = lazy(() => import('@/pages/AuditLog').then(m => ({ default: m.AuditLog })));
 const MobilePOS = lazy(() => import('@/pages/MobilePOS').then(m => ({ default: m.MobilePOS })));
 const Billing = lazy(() => import('@/pages/Billing').then(m => ({ default: m.Billing })));
 const BillingSuccess = lazy(() => import('@/pages/BillingSuccess').then(m => ({ default: m.BillingSuccess })));
@@ -196,6 +197,7 @@ function AppRoutes() {
           <Route path="billing/success" element={<Suspense fallback={<PageLoader />}><BillingSuccess /></Suspense>} />
           <Route path="billing/cancel" element={<Suspense fallback={<PageLoader />}><BillingCancel /></Suspense>} />
           <Route path="assistant" element={<Suspense fallback={<PageLoader />}><AIChat /></Suspense>} />
+          <Route path="audit-log" element={<Suspense fallback={<PageLoader />}><AuditLog /></Suspense>} />
           <Route path="settings" element={<Suspense fallback={<PageLoader />}><Settings /></Suspense>} />
           {/* Unknown in-app path → real 404 inside the Layout (keeps nav so the
               user can recover). Nesting it here means ProtectedRoute still

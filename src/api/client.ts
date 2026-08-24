@@ -108,6 +108,50 @@ export interface CashSessionZReport {
   byPaymentMethod: { method: string; total: number; discount: number; count: number }[];
 }
 
+// ── Audit log shapes (mirror api/prisma/schema.prisma AuditLog model) ──
+
+// Mirrors api/src/services/audit.service.ts AuditAction — kept as a plain
+// string here (not a union) so an API-side action we haven't added to this
+// list yet still renders instead of failing a type check.
+export const AUDIT_ACTIONS = [
+  'LOGIN',
+  'LOGOUT',
+  'PRODUCT_CREATE',
+  'PRODUCT_UPDATE',
+  'PRODUCT_DELETE',
+  'SALE_CREATE',
+  'SALE_VOID',
+  'STOCK_ADJUST',
+  'STOCK_RECEIVE',
+  'USER_CREATE',
+  'USER_UPDATE',
+  'USER_DELETE',
+  'EXPENSE_CREATE',
+  'EXPENSE_DELETE',
+  'SETTINGS_UPDATE',
+  'LICENSE_APPLY',
+] as const;
+
+export interface AuditLogEntry {
+  id: string;
+  shopId: string;
+  userId: string;
+  action: string;
+  entityType: string;
+  entityId?: string | null;
+  details?: Record<string, any> | null;
+  ipAddress?: string | null;
+  createdAt: string;
+  user?: { name: string; role: string } | null;
+}
+
+export interface AuditLogPagination {
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
+}
+
 // ── Customer shapes (mirror api/src/controllers/customer.controller.ts) ──
 
 export interface Customer {
@@ -800,6 +844,34 @@ class ApiClient {
     return this.request<any>(`/api/users/${id}`, {
       method: 'DELETE',
     });
+  }
+
+  // ── Audit Log (owner-only) ───────────────────────────────────────────
+  //
+  // GET /api/audit — gated by ownerAuth on the API (mirrors
+  // api/src/routes/audit.routes.ts). Non-owners get a 403; callers should
+  // branch on ApiResponse.status rather than assume a network error.
+
+  async getAuditLogs(params?: {
+    page?: number;
+    limit?: number;
+    userId?: string;
+    action?: string;
+    startDate?: string;
+    endDate?: string;
+  }) {
+    const queryParams: Record<string, string> = {};
+    if (params) {
+      for (const [key, value] of Object.entries(params)) {
+        if (value !== undefined && value !== '') queryParams[key] = String(value);
+      }
+    }
+    const query = Object.keys(queryParams).length
+      ? `?${new URLSearchParams(queryParams)}`
+      : '';
+    return this.request<{ logs: AuditLogEntry[]; pagination: AuditLogPagination }>(
+      `/api/audit${query}`,
+    );
   }
 
   // ── Health ────────────────────────────────────────────────────────────
