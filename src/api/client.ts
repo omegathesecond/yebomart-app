@@ -931,6 +931,19 @@ class ApiClient {
     });
   }
 
+  /**
+   * Record a payment to the supplier against a PO's balance due. Partial
+   * payments are allowed and may be repeated until the balance is settled.
+   * Mirrors api/src/controllers/purchaseOrder.controller.ts recordPayment —
+   * the server rejects (400) an amount exceeding the current balance due.
+   */
+  async recordSupplierPayment(id: string, data: { amount: number; note?: string }) {
+    return this.request<any>(`/api/purchase-orders/${id}/payments`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
   // ── Customers ─────────────────────────────────────────────────────────
 
   /** GET /api/customers — list/search. `search` matches name or phone. */
