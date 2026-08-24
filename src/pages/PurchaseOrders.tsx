@@ -17,6 +17,7 @@ import { Card } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
 import { Toast, useToast } from '@/components/ui/Toast';
 import { api } from '@/api/client';
+import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
 import { formatCurrency, formatDate } from '@/types';
 import { computeBalanceDue, validatePaymentAmount } from '@/lib/supplierPayments';
@@ -78,9 +79,14 @@ const STATUS_FILTERS = ['ALL', 'DRAFT', 'SENT', 'PARTIAL', 'RECEIVED', 'CANCELLE
 
 export function PurchaseOrders() {
   const { products, loadAll } = useInventoryStore();
+  const { user, authMode } = useAuthStore();
   const { toast, showToast, dismissToast } = useToast();
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Recording a payment (POST .../payments) is managerAuth on the API: OWNER or MANAGER.
+  const canManage =
+    authMode === 'owner' || user?.role === 'owner' || user?.role === 'manager';
 
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -756,7 +762,8 @@ export function PurchaseOrders() {
               </div>
             </div>
 
-            {(detail.status === 'RECEIVED' || detail.status === 'PARTIAL') &&
+            {canManage &&
+              (detail.status === 'RECEIVED' || detail.status === 'PARTIAL') &&
               computeBalanceDue(detail) > 0 && (
                 <Button
                   variant="success"
