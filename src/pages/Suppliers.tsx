@@ -17,9 +17,15 @@ import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { Modal, ConfirmDialog } from '@/components/ui/Modal';
-import { api } from '@/api/client';
+import { api, type SupplierLedgerEntry } from '@/api/client';
 import { useInventoryStore } from '@/stores/inventoryStore';
 import { formatCurrency } from '@/types';
+
+const LEDGER_TYPE_LABEL: Record<SupplierLedgerEntry['type'], string> = {
+  BILL: 'Received (billed)',
+  PAYMENT: 'Payment',
+  ADJUSTMENT: 'Adjustment',
+};
 
 interface Supplier {
   id: string;
@@ -66,6 +72,8 @@ export function Suppliers() {
   const [saving, setSaving] = useState(false);
   const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set());
   const [productSearch, setProductSearch] = useState('');
+  const [supplierLedger, setSupplierLedger] = useState<SupplierLedgerEntry[]>([]);
+  const [ledgerLoading, setLedgerLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     contactName: '',
@@ -121,6 +129,12 @@ export function Suppliers() {
         leadTimeDays: supplier.leadTimeDays?.toString() || '',
         notes: supplier.notes || '',
       });
+      setSupplierLedger([]);
+      setLedgerLoading(true);
+      api.getSupplierLedger(supplier.id).then(({ data }) => {
+        setSupplierLedger(data || []);
+        setLedgerLoading(false);
+      });
     } else {
       setEditingSupplier(null);
       setFormData({
@@ -137,6 +151,7 @@ export function Suppliers() {
         leadTimeDays: '',
         notes: '',
       });
+      setSupplierLedger([]);
     }
     setShowModal(true);
   };
@@ -385,6 +400,43 @@ export function Suppliers() {
               >
                 {editingSupplier.balance > 0 ? formatCurrency(editingSupplier.balance) : 'Settled'}
               </span>
+            </div>
+          )}
+
+          {/* Accounts-payable ledger — BILL entries from PO receipts and
+              PAYMENT entries from Record Payment on a PO's detail view. */}
+          {editingSupplier && (ledgerLoading || supplierLedger.length > 0) && (
+            <div>
+              <p className="text-sm font-medium text-white mb-2">Account Ledger</p>
+              {ledgerLoading ? (
+                <div className="text-center py-3">
+                  <ArrowPathIcon className="w-5 h-5 animate-spin mx-auto text-slate-400" />
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {supplierLedger.map((entry) => (
+                    <div
+                      key={entry.id}
+                      className="flex justify-between items-center bg-slate-800 rounded-lg p-3"
+                    >
+                      <div>
+                        <p className="text-sm text-white">{LEDGER_TYPE_LABEL[entry.type]}</p>
+                        <p className="text-xs text-slate-500">
+                          {new Date(entry.createdAt).toLocaleDateString()}
+                          {entry.note ? ` · ${entry.note}` : ''}
+                        </p>
+                      </div>
+                      <p
+                        className={`font-semibold ${
+                          entry.type === 'PAYMENT' ? 'text-emerald-400' : 'text-slate-300'
+                        }`}
+                      >
+                        {formatCurrency(entry.amount)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
