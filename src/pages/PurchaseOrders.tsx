@@ -799,7 +799,7 @@ export function PurchaseOrders() {
               onChange={(e) => setPaymentAmount(e.target.value)}
               placeholder="0.00"
               leftIcon={<BanknotesIcon className="w-5 h-5" />}
-              hint={paymentAmountError || undefined}
+              error={paymentAmountError || undefined}
             />
 
             <Textarea
