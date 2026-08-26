@@ -120,6 +120,7 @@ export function PurchaseOrders() {
   const [detail, setDetail] = useState<PurchaseOrder | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [poPayments, setPoPayments] = useState<SupplierLedgerEntry[]>([]);
+  const [poPaymentsError, setPoPaymentsError] = useState<string | null>(null);
 
   // Record payment modal state
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -306,7 +307,7 @@ export function PurchaseOrders() {
 
   const openDetail = async (id: string) => {
     setDetailLoading(true);
-    const [{ data, error }, { data: payments }] = await Promise.all([
+    const [{ data, error }, { data: payments, error: paymentsError }] = await Promise.all([
       api.getPurchaseOrder(id),
       api.getPurchaseOrderPayments(id),
     ]);
@@ -316,7 +317,16 @@ export function PurchaseOrders() {
       return;
     }
     setDetail(data as PurchaseOrder);
-    setPoPayments(payments || []);
+    // Never render a failed history fetch as an empty history — an empty list
+    // means "no payments yet", which is a very different thing from "we could
+    // not reach the API".
+    if (paymentsError || !payments) {
+      setPoPayments([]);
+      setPoPaymentsError(paymentsError || 'Failed to load payment history');
+    } else {
+      setPoPayments(payments);
+      setPoPaymentsError(null);
+    }
   };
 
   const openPaymentModal = () => {
@@ -788,9 +798,12 @@ export function PurchaseOrders() {
 
             {/* Payment history — the BILL booked on receive plus every PAYMENT
                 recorded against this PO, newest first. */}
-            {poPayments.length > 0 && (
+            {(poPaymentsError || poPayments.length > 0) && (
               <div className="pt-3 border-t border-slate-700">
                 <p className="text-sm font-medium text-white mb-2">Payment History</p>
+                {poPaymentsError ? (
+                  <p className="text-sm text-red-400">{poPaymentsError}</p>
+                ) : (
                 <div className="space-y-2">
                   {poPayments.map((entry) => (
                     <div
@@ -814,6 +827,7 @@ export function PurchaseOrders() {
                     </div>
                   ))}
                 </div>
+                )}
               </div>
             )}
           </div>
