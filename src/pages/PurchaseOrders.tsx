@@ -730,21 +730,27 @@ export function PurchaseOrders() {
               </Badge>
             </div>
 
-            {/* Accounts payable — cumulative received value vs. paid to the supplier. */}
-            <div className="bg-slate-800 rounded-xl p-4">
-              <p className="text-sm text-slate-300">
-                Paid {formatCurrency(detail.amountPaid)} of {formatCurrency(detail.amountReceived)}
-              </p>
-              <p
-                className={`text-2xl font-bold mt-1 ${
-                  computeBalanceDue(detail) > 0 ? 'text-red-400' : 'text-emerald-400'
-                }`}
-              >
-                {computeBalanceDue(detail) > 0
-                  ? `${formatCurrency(computeBalanceDue(detail))} due`
-                  : 'Settled'}
-              </p>
-            </div>
+            {/* Accounts payable — cumulative received value vs. paid to the
+                supplier. Only meaningful once stock has actually been received:
+                nothing is billed until then, so rendering this for a DRAFT/SENT
+                PO would show a green "Settled" for a debt that does not exist.
+                Mirrors the `po.amountReceived > 0` gate on the list card. */}
+            {detail.amountReceived > 0 && (
+              <div className="bg-slate-800 rounded-xl p-4">
+                <p className="text-sm text-slate-300">
+                  Paid {formatCurrency(detail.amountPaid)} of {formatCurrency(detail.amountReceived)}
+                </p>
+                <p
+                  className={`text-2xl font-bold mt-1 ${
+                    computeBalanceDue(detail) > 0 ? 'text-red-400' : 'text-emerald-400'
+                  }`}
+                >
+                  {computeBalanceDue(detail) > 0
+                    ? `${formatCurrency(computeBalanceDue(detail))} due`
+                    : 'Settled'}
+                </p>
+              </div>
+            )}
 
             {/* Line items */}
             {detail.items && detail.items.length > 0 && (
