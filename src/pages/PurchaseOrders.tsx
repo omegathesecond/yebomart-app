@@ -16,11 +16,17 @@ import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
 import { Toast, useToast } from '@/components/ui/Toast';
-import { api } from '@/api/client';
+import { api, type SupplierLedgerEntry } from '@/api/client';
 import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
 import { formatCurrency, formatDate } from '@/types';
 import { computeBalanceDue, validatePaymentAmount } from '@/lib/supplierPayments';
+
+const LEDGER_TYPE_LABEL: Record<SupplierLedgerEntry['type'], string> = {
+  BILL: 'Received (billed)',
+  PAYMENT: 'Payment',
+  ADJUSTMENT: 'Adjustment',
+};
 
 interface POItem {
   id: string;
@@ -113,6 +119,8 @@ export function PurchaseOrders() {
   // Detail modal state
   const [detail, setDetail] = useState<PurchaseOrder | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [poPayments, setPoPayments] = useState<SupplierLedgerEntry[]>([]);
+  const [poPaymentsError, setPoPaymentsError] = useState<string | null>(null);
 
   // Record payment modal state
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -299,13 +307,26 @@ export function PurchaseOrders() {
 
   const openDetail = async (id: string) => {
     setDetailLoading(true);
-    const { data, error } = await api.getPurchaseOrder(id);
+    const [{ data, error }, { data: payments, error: paymentsError }] = await Promise.all([
+      api.getPurchaseOrder(id),
+      api.getPurchaseOrderPayments(id),
+    ]);
     setDetailLoading(false);
     if (error || !data) {
       showToast(error || 'Failed to load purchase order', 'error');
       return;
     }
     setDetail(data as PurchaseOrder);
+    // Never render a failed history fetch as an empty history — an empty list
+    // means "no payments yet", which is a very different thing from "we could
+    // not reach the API".
+    if (paymentsError || !payments) {
+      setPoPayments([]);
+      setPoPaymentsError(paymentsError || 'Failed to load payment history');
+    } else {
+      setPoPayments(payments);
+      setPoPaymentsError(null);
+    }
   };
 
   const openPaymentModal = () => {
@@ -774,6 +795,41 @@ export function PurchaseOrders() {
                   Record Payment
                 </Button>
               )}
+
+            {/* Payment history — the BILL booked on receive plus every PAYMENT
+                recorded against this PO, newest first. */}
+            {(poPaymentsError || poPayments.length > 0) && (
+              <div className="pt-3 border-t border-slate-700">
+                <p className="text-sm font-medium text-white mb-2">Payment History</p>
+                {poPaymentsError ? (
+                  <p className="text-sm text-red-400">{poPaymentsError}</p>
+                ) : (
+                <div className="space-y-2">
+                  {poPayments.map((entry) => (
+                    <div
+                      key={entry.id}
+                      className="flex justify-between items-center bg-slate-800 rounded-lg p-3"
+                    >
+                      <div>
+                        <p className="text-sm text-white">{LEDGER_TYPE_LABEL[entry.type]}</p>
+                        <p className="text-xs text-slate-500">
+                          {new Date(entry.createdAt).toLocaleDateString()}
+                          {entry.note ? ` · ${entry.note}` : ''}
+                        </p>
+                      </div>
+                      <p
+                        className={`font-semibold ${
+                          entry.type === 'PAYMENT' ? 'text-emerald-400' : 'text-slate-300'
+                        }`}
+                      >
+                        {formatCurrency(entry.amount)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+                )}
+              </div>
+            )}
           </div>
         ) : null}
       </Modal>

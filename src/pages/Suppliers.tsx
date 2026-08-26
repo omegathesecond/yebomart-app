@@ -17,9 +17,15 @@ import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { Modal, ConfirmDialog } from '@/components/ui/Modal';
-import { api } from '@/api/client';
+import { api, type SupplierLedgerEntry } from '@/api/client';
 import { useInventoryStore } from '@/stores/inventoryStore';
 import { formatCurrency } from '@/types';
+
+const LEDGER_TYPE_LABEL: Record<SupplierLedgerEntry['type'], string> = {
+  BILL: 'Received (billed)',
+  PAYMENT: 'Payment',
+  ADJUSTMENT: 'Adjustment',
+};
 
 interface Supplier {
   id: string;
@@ -66,6 +72,9 @@ export function Suppliers() {
   const [saving, setSaving] = useState(false);
   const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set());
   const [productSearch, setProductSearch] = useState('');
+  const [supplierLedger, setSupplierLedger] = useState<SupplierLedgerEntry[]>([]);
+  const [ledgerLoading, setLedgerLoading] = useState(false);
+  const [ledgerError, setLedgerError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     contactName: '',
@@ -121,6 +130,22 @@ export function Suppliers() {
         leadTimeDays: supplier.leadTimeDays?.toString() || '',
         notes: supplier.notes || '',
       });
+      setSupplierLedger([]);
+      setLedgerError(null);
+      setLedgerLoading(true);
+      // An empty ledger means "nothing booked against this supplier yet". A
+      // failed fetch must not be rendered as that same empty state, so the
+      // error is kept and shown in place of the list.
+      api.getSupplierLedger(supplier.id).then(({ data, error }) => {
+        if (error || !data) {
+          setSupplierLedger([]);
+          setLedgerError(error || 'Failed to load account ledger');
+        } else {
+          setSupplierLedger(data);
+          setLedgerError(null);
+        }
+        setLedgerLoading(false);
+      });
     } else {
       setEditingSupplier(null);
       setFormData({
@@ -137,6 +162,8 @@ export function Suppliers() {
         leadTimeDays: '',
         notes: '',
       });
+      setSupplierLedger([]);
+      setLedgerError(null);
     }
     setShowModal(true);
   };
@@ -385,6 +412,45 @@ export function Suppliers() {
               >
                 {editingSupplier.balance > 0 ? formatCurrency(editingSupplier.balance) : 'Settled'}
               </span>
+            </div>
+          )}
+
+          {/* Accounts-payable ledger — BILL entries from PO receipts and
+              PAYMENT entries from Record Payment on a PO's detail view. */}
+          {editingSupplier && (ledgerLoading || ledgerError || supplierLedger.length > 0) && (
+            <div>
+              <p className="text-sm font-medium text-white mb-2">Account Ledger</p>
+              {ledgerLoading ? (
+                <div className="text-center py-3">
+                  <ArrowPathIcon className="w-5 h-5 animate-spin mx-auto text-slate-400" />
+                </div>
+              ) : ledgerError ? (
+                <p className="text-sm text-red-400">{ledgerError}</p>
+              ) : (
+                <div className="space-y-2">
+                  {supplierLedger.map((entry) => (
+                    <div
+                      key={entry.id}
+                      className="flex justify-between items-center bg-slate-800 rounded-lg p-3"
+                    >
+                      <div>
+                        <p className="text-sm text-white">{LEDGER_TYPE_LABEL[entry.type]}</p>
+                        <p className="text-xs text-slate-500">
+                          {new Date(entry.createdAt).toLocaleDateString()}
+                          {entry.note ? ` · ${entry.note}` : ''}
+                        </p>
+                      </div>
+                      <p
+                        className={`font-semibold ${
+                          entry.type === 'PAYMENT' ? 'text-emerald-400' : 'text-slate-300'
+                        }`}
+                      >
+                        {formatCurrency(entry.amount)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

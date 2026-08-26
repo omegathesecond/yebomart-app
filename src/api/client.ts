@@ -201,6 +201,21 @@ export interface CustomerDetail extends Customer {
   sales: CustomerSale[];
 }
 
+// ── Supplier ledger shapes (mirror api/src/controllers/supplier.controller.ts
+// getLedger + purchaseOrder.controller.ts getPayments/recordPayment) ──
+
+export type SupplierLedgerType = 'BILL' | 'PAYMENT' | 'ADJUSTMENT';
+
+export interface SupplierLedgerEntry {
+  id: string;
+  supplierId: string;
+  poId?: string | null;
+  type: SupplierLedgerType;
+  amount: number;
+  note?: string | null;
+  createdAt: string;
+}
+
 // ── Billing / credits (mirror api/src/config/creditPacks.ts + billing.routes.ts) ──
 
 /** A purchasable credit pack. 1 credit = E1 (SZL); discounts are bonus credits. */
@@ -942,6 +957,18 @@ class ApiClient {
     });
   }
 
+  /**
+   * GET /api/suppliers/:id/ledger — the supplier's accounts-payable ledger
+   * (BILL/PAYMENT/ADJUSTMENT entries), newest first.
+   */
+  async getSupplierLedger(id: string, params?: { page?: number; limit?: number }) {
+    const qs = new URLSearchParams();
+    if (params?.page) qs.set('page', String(params.page));
+    if (params?.limit) qs.set('limit', String(params.limit));
+    const query = qs.toString() ? `?${qs.toString()}` : '';
+    return this.request<SupplierLedgerEntry[]>(`/api/suppliers/${id}/ledger${query}`);
+  }
+
   async setSupplierProducts(supplierId: string, productIds: string[]) {
     return this.request<any>(`/api/suppliers/${supplierId}/products`, {
       method: 'PUT',
@@ -1014,6 +1041,14 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify(data),
     });
+  }
+
+  /**
+   * GET /api/purchase-orders/:id/payments — the BILL entry booked on receive
+   * plus every PAYMENT recorded against this PO, newest first.
+   */
+  async getPurchaseOrderPayments(id: string) {
+    return this.request<SupplierLedgerEntry[]>(`/api/purchase-orders/${id}/payments`);
   }
 
   // ── Customers ─────────────────────────────────────────────────────────
