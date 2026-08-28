@@ -75,6 +75,15 @@ export function AuditLog() {
     setPage(1);
   };
 
+  const clearFilters = () => updateFilters(EMPTY_FILTERS);
+
+  // Single source of truth for "is the view narrowed?" — shared by the Clear
+  // filters button and the empty state so the two can never disagree about
+  // whether an empty result means "filtered out" or "nothing recorded".
+  const hasFilters = Boolean(
+    filters.userId || filters.action || filters.startDate || filters.endDate,
+  );
+
   useEffect(() => {
     if (!isOwner) return;
     api.getStaff().then((res) => {
@@ -183,9 +192,9 @@ export function AuditLog() {
             />
           </div>
         </div>
-        {(filters.userId || filters.action || filters.startDate || filters.endDate) && (
+        {hasFilters && (
           <div className="mt-3">
-            <Button variant="ghost" size="sm" onClick={() => updateFilters(EMPTY_FILTERS)}>
+            <Button variant="ghost" size="sm" onClick={clearFilters}>
               Clear filters
             </Button>
           </div>
@@ -223,7 +232,19 @@ export function AuditLog() {
       {!forbidden && !error && !loading && logs.length === 0 && (
         <Card className="text-center py-12">
           <ClockIcon className="w-12 h-12 mx-auto text-slate-500 mb-3" />
-          <p className="text-slate-400">No audit entries found</p>
+          {hasFilters ? (
+            <>
+              <p className="text-slate-400">No audit entries match these filters</p>
+              <p className="text-slate-500 text-sm mt-1">
+                Try a wider date range, or a different staff member or action.
+              </p>
+              <Button variant="ghost" size="sm" className="mt-4" onClick={clearFilters}>
+                Clear filters
+              </Button>
+            </>
+          ) : (
+            <p className="text-slate-400">No audit entries found</p>
+          )}
         </Card>
       )}
 

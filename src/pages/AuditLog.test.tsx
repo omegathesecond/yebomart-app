@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 
 // Mock the network boundary so the page's loading/populated/empty branching
 // is tested without a real API. Mirrors the vi.mock('@/api/client', ...)
@@ -96,6 +96,44 @@ describe('AuditLog', () => {
     });
 
     render(<AuditLog />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/no audit entries found/i)).toBeInTheDocument();
+    });
+  });
+
+  it('distinguishes a filtered miss from an empty log', async () => {
+    getAuditLogs.mockResolvedValue({
+      data: {
+        logs: [],
+        pagination: { page: 1, limit: 25, total: 0, pages: 0 },
+      },
+    });
+
+    render(<AuditLog />);
+
+    // Unfiltered: the empty result describes the shop's whole history.
+    await waitFor(() => {
+      expect(screen.getByText(/no audit entries found/i)).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/match these filters/i)).not.toBeInTheDocument();
+
+    // Narrowing to a single action turns the same empty result into a
+    // recoverable one, with a way back out.
+    // The shared <Select> renders its <label> without htmlFor/id, so the two
+    // aren't programmatically associated and getByLabelText can't reach it.
+    // Target the Action select by its current selection instead.
+    fireEvent.change(screen.getByDisplayValue('All actions'), {
+      target: { value: 'SALE_VOID' },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/no audit entries match these filters/i)).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/^no audit entries found$/i)).not.toBeInTheDocument();
+
+    // Clearing from the empty state restores the unfiltered view.
+    fireEvent.click(screen.getAllByRole('button', { name: /clear filters/i })[0]);
 
     await waitFor(() => {
       expect(screen.getByText(/no audit entries found/i)).toBeInTheDocument();
