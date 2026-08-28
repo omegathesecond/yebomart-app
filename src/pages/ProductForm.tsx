@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeftIcon, QrCodeIcon, CheckIcon, PlusIcon, XMarkIcon, BuildingStorefrontIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, QrCodeIcon, CheckIcon, PlusIcon, XMarkIcon, BuildingStorefrontIcon, ExclamationTriangleIcon, PhotoIcon } from '@heroicons/react/24/outline';
 import { formatCurrency } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { Input, Select, Textarea } from '@/components/ui/Input';
@@ -38,6 +38,15 @@ export function ProductForm() {
     packPrice: ''
   });
   
+  // Product photo. imageUrl is the persisted R2 url (saved on submit);
+  // imagePreviewUrl is a local blob preview shown only while a new file is
+  // uploading, then discarded in favor of the real url.
+  const [imageUrl, setImageUrl] = useState('');
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [imageUploadError, setImageUploadError] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [errors, setErrors] = useState<Record<string, string>>({});
   
   // Dynamic attributes state
@@ -83,7 +92,8 @@ export function ProductForm() {
           packSize: product.packSize?.toString() || '',
           packPrice: product.packPrice?.toString() || ''
         });
-        
+        setImageUrl(product.imageUrl || '');
+
         // Load existing attributes
         if (product.attributes) {
           const definedFields = getCategoryAttributes(product.category || '');
@@ -168,6 +178,39 @@ export function ProductForm() {
     setShowScanner(false);
   };
 
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // allow re-selecting the same file after a failure
+    if (!file) return;
+
+    setImageUploadError('');
+    const objectUrl = URL.createObjectURL(file);
+    setImagePreviewUrl(objectUrl);
+    setIsUploadingImage(true);
+
+    try {
+      const response = await api.uploadImage(file);
+      if (response.data?.url) {
+        setImageUrl(response.data.url);
+      } else {
+        // Upload failed — surface loudly, keep whatever image was there
+        // before, never fabricate a fallback url.
+        setImageUploadError(response.error || 'Failed to upload image. Please try again.');
+      }
+    } finally {
+      setIsUploadingImage(false);
+      setImagePreviewUrl(null);
+      URL.revokeObjectURL(objectUrl);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setImageUrl('');
+    setImageUploadError('');
+  };
+
+  const displayImageUrl = imagePreviewUrl || imageUrl;
+
   const validate = () => {
     const newErrors: Record<string, string> = {};
     
@@ -223,6 +266,12 @@ export function ProductForm() {
         quantity: parseInt(formData.quantity),
         reorderAt: parseInt(formData.reorderAt) || 10,
         unit: formData.unit,
+        // On create, the API's create schema rejects an empty-string
+        // imageUrl (must be a valid uri or omitted) — only send it when set.
+        // On update, an empty string is explicitly allowed and is how a
+        // removed photo actually clears the stored value (omitting the key
+        // entirely is a no-op for Prisma's update).
+        ...(isEdit ? { imageUrl } : imageUrl ? { imageUrl } : {}),
         packSize: formData.packSize ? parseInt(formData.packSize) : undefined,
         packPrice: formData.packPrice ? parseFloat(formData.packPrice) : undefined,
         isActive: true
@@ -297,10 +346,74 @@ export function ProductForm() {
 
       <form onSubmit={handleSubmit}>
         <Card className="space-y-6">
+          {/* Photo */}
+          <div className="space-y-4">
+            <h3 className="font-semibold text-white">Product Photo</h3>
+
+            <div className="flex items-center gap-4">
+              <div className="relative w-20 h-20 rounded-xl bg-slate-700/50 border border-slate-600 overflow-hidden flex items-center justify-center shrink-0">
+                {displayImageUrl ? (
+                  <img
+                    src={displayImageUrl}
+                    alt="Product preview"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <PhotoIcon className="w-8 h-8 text-slate-500" />
+                )}
+                {isUploadingImage && (
+                  <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-col items-start gap-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  disabled={isUploadingImage}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {isUploadingImage ? 'Uploading…' : displayImageUrl ? 'Replace Photo' : 'Add Photo'}
+                </Button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={handleImageSelect}
+                  aria-label="Product photo"
+                />
+                {imageUrl && !isUploadingImage && (
+                  <button
+                    type="button"
+                    onClick={handleRemoveImage}
+                    className="text-sm text-red-400 hover:text-red-300"
+                  >
+                    Remove photo
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {imageUploadError && (
+              <div
+                role="alert"
+                className="flex items-start gap-3 p-3 rounded-lg bg-red-500/10 border border-red-500/30"
+              >
+                <ExclamationTriangleIcon className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+                <p className="text-sm text-red-400">{imageUploadError}</p>
+              </div>
+            )}
+          </div>
+
           {/* Basic Info */}
           <div className="space-y-4">
             <h3 className="font-semibold text-white">Basic Information</h3>
-            
+
             <Input
               label="Product Name"
               name="name"

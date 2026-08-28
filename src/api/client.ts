@@ -436,8 +436,12 @@ class ApiClient {
     const url = `${API_URL}${endpoint}`;
     const token = await this.getActiveToken();
 
+    // FormData bodies (multipart uploads) must NOT get a manual Content-Type:
+    // the browser needs to set its own with the multipart boundary.
+    const isFormData = options.body instanceof FormData;
+
     const headers: HeadersInit = {
-      'Content-Type': 'application/json',
+      ...(!isFormData && { 'Content-Type': 'application/json' }),
       ...(token && { Authorization: `Bearer ${token}` }),
       ...options.headers,
     };
@@ -584,6 +588,23 @@ class ApiClient {
     return this.request<any>(`/api/shops/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
+    });
+  }
+
+  // ── Uploads ───────────────────────────────────────────────────────────
+
+  /**
+   * POST /api/upload — multipart upload to R2 (field name must be `file`,
+   * per api/src/routes/upload.routes.ts). Returns the public R2 url on
+   * success; callers must surface `error` loudly rather than falling back
+   * to a fabricated url.
+   */
+  async uploadImage(file: File): Promise<ApiResponse<{ url: string; key: string }>> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.request<{ url: string; key: string }>('/api/upload', {
+      method: 'POST',
+      body: formData,
     });
   }
 
