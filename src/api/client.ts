@@ -386,6 +386,7 @@ function mapApiExpense(e: ApiExpense): Expense {
     amount: e.amount,
     description: e.description ?? undefined,
     date: new Date(e.date),
+    receiptUrl: e.receiptUrl ?? undefined,
     createdAt: new Date(e.createdAt),
   };
 }
@@ -1206,6 +1207,33 @@ class ApiClient {
       body: JSON.stringify({ ...data, category: String(data.category).toUpperCase() }),
     });
     if (res.error || !res.data) return { error: res.error ?? 'Failed to record expense', details: res.details };
+    return { data: mapApiExpense(res.data), message: res.message };
+  }
+
+  /**
+   * PUT /api/expenses/:id — manager-only on the API (managerAuth).
+   * Partial update. Pass `receiptUrl: ''` to detach an existing receipt —
+   * the API maps that to NULL (the create schema rejects '', so createExpense
+   * callers must omit the field instead).
+   */
+  async updateExpense(
+    id: string,
+    data: {
+      category?: ExpenseCategory | string;
+      amount?: number;
+      description?: string;
+      date?: string;
+      receiptUrl?: string;
+    },
+  ): Promise<ApiResponse<Expense>> {
+    const res = await this.request<ApiExpense>(`/api/expenses/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        ...data,
+        ...(data.category ? { category: String(data.category).toUpperCase() } : {}),
+      }),
+    });
+    if (res.error || !res.data) return { error: res.error ?? 'Failed to update expense', details: res.details };
     return { data: mapApiExpense(res.data), message: res.message };
   }
 
