@@ -154,6 +154,8 @@ export interface Expense {
   amount: number;
   description?: string;
   date: Date;
+  /** Public R2 url of the attached receipt photo, when one was uploaded. */
+  receiptUrl?: string;
   createdAt: Date;
 }
 

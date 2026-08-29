@@ -59,6 +59,7 @@ interface InventoryState {
   // Expenses
   loadExpenses: () => Promise<void>;
   addExpense: (expense: Omit<Expense, 'id' | 'createdAt'>) => Promise<string>;
+  updateExpense: (id: string, updates: Partial<Omit<Expense, 'id' | 'createdAt' | 'shopId'>>) => Promise<void>;
   deleteExpense: (id: string) => Promise<void>;
   
   // Dashboard
@@ -473,6 +474,9 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
       amount: expenseData.amount,
       description: expenseData.description,
       date: expenseData.date ? new Date(expenseData.date).toISOString() : undefined,
+      // The API's create schema rejects an empty-string uri, so only send a
+      // receipt when one was actually uploaded.
+      ...(expenseData.receiptUrl ? { receiptUrl: expenseData.receiptUrl } : {}),
     });
     if (error || !data) {
       set({ error: error || 'Failed to record expense' });
@@ -481,6 +485,23 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
     // Refresh from the API so totals/order stay authoritative
     await get().loadExpenses();
     return data.id;
+  },
+
+  updateExpense: async (id, updates) => {
+    const { error } = await api.updateExpense(id, {
+      category: updates.category,
+      amount: updates.amount,
+      description: updates.description,
+      date: updates.date ? new Date(updates.date).toISOString() : undefined,
+      // '' is meaningful here: it detaches an existing receipt. Only omit
+      // the key when the caller didn't mention receiptUrl at all.
+      ...(updates.receiptUrl === undefined ? {} : { receiptUrl: updates.receiptUrl }),
+    });
+    if (error) {
+      set({ error });
+      throw new Error(error);
+    }
+    await get().loadExpenses();
   },
 
   deleteExpense: async (id) => {
