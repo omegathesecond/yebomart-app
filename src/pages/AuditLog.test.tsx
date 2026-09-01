@@ -87,6 +87,21 @@ describe('AuditLog', () => {
     expect(screen.queryByText(/no audit entries found/i)).not.toBeInTheDocument();
   });
 
+  it('renders the entity id next to the entity type for a row that has one', async () => {
+    getAuditLogs.mockResolvedValue({
+      data: {
+        logs: SAMPLE_LOGS,
+        pagination: { page: 1, limit: 25, total: 1, pages: 1 },
+      },
+    });
+
+    render(<AuditLog />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/sale-1/)).toBeInTheDocument();
+    });
+  });
+
   it('renders an empty state when there are no audit entries', async () => {
     getAuditLogs.mockResolvedValue({
       data: {

@@ -276,7 +276,15 @@ export function AuditLog() {
                     </td>
                     <td className="py-3 px-4">
                       <Badge variant={actionVariant(log.action)}>{actionLabel(log.action)}</Badge>
-                      <p className="text-xs text-slate-500 mt-1 capitalize">{log.entityType}</p>
+                      <p
+                        className="text-xs text-slate-500 mt-1 capitalize truncate max-w-[10rem]"
+                        title={log.entityId ? `${log.entityType} · ${log.entityId}` : log.entityType}
+                      >
+                        {log.entityType}
+                        {log.entityId && (
+                          <span className="font-mono normal-case"> · {log.entityId}</span>
+                        )}
+                      </p>
                     </td>
                     <td
                       className="py-3 px-4 text-slate-400 max-w-xs truncate"
