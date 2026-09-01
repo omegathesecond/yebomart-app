@@ -129,6 +129,18 @@ describe('PurchaseOrders — accounts payable', () => {
     await waitFor(() => expect(paidLine()).toHaveLength(1));
     expect(screen.queryByRole('button', { name: 'Record Payment' })).toBeNull();
   });
+
+  it('still allows recording a payment on a cancelled PO with an outstanding payable', async () => {
+    // Cancelling a PO after a partial receive does not erase the debt already
+    // booked to Supplier.balance — the server (recordPayment) only checks
+    // balanceDue, not status, so the button must follow suit or the payable
+    // becomes unpayable from this screen.
+    await openDetail(makePo({ status: 'CANCELLED', amountReceived: 500, amountPaid: 200 }));
+
+    await waitFor(() => expect(paidLine()).toHaveLength(1));
+    expect(balanceLine()[0]).toHaveTextContent('E300.00 due');
+    expect(screen.getByRole('button', { name: 'Record Payment' })).toBeInTheDocument();
+  });
 });
 
 describe('PurchaseOrders — recording a supplier payment', () => {

@@ -790,7 +790,7 @@ export function PurchaseOrders() {
             </div>
 
             {canManage &&
-              (detail.status === 'RECEIVED' || detail.status === 'PARTIAL') &&
+              detail.amountReceived > 0 &&
               computeBalanceDue(detail) > 0 && (
                 <Button
                   variant="success"
