@@ -127,7 +127,7 @@ export function Billing() {
       </div>
 
       {/* Balance */}
-      <Card gradient={low ? 'red' : 'amber'} className="flex items-center justify-between gap-4">
+      <Card accent={low} className="flex items-center justify-between gap-4">
         <div>
           <p className="text-sm text-mute">Current balance</p>
           {balanceLoading && !balance ? (
@@ -191,7 +191,7 @@ export function Billing() {
               return (
                 <Card
                   key={pack.id}
-                  gradient={isBest && pack.discountPercent > 0 ? 'purple' : undefined}
+                  accent={isBest && pack.discountPercent > 0}
                   className="flex flex-col"
                 >
                   <div className="flex items-center justify-between mb-2">

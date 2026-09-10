@@ -239,7 +239,7 @@ export function StaffDetail() {
             </div>
             <div>
               <p className="text-xs text-mute">Revenue</p>
-              <p className="text-lg font-bold text-ink">{formatCurrency(stats.totalRevenue)}</p>
+              <p className="m text-lg font-bold text-ink">{formatCurrency(stats.totalRevenue)}</p>
             </div>
           </div>
         </Card>
@@ -261,7 +261,7 @@ export function StaffDetail() {
             </div>
             <div>
               <p className="text-xs text-mute">Avg Sale</p>
-              <p className="text-lg font-bold text-ink">{formatCurrency(stats.averageTransaction)}</p>
+              <p className="m text-lg font-bold text-ink">{formatCurrency(stats.averageTransaction)}</p>
             </div>
           </div>
         </Card>
@@ -368,7 +368,7 @@ export function StaffDetail() {
             {recentSales.slice(0, 10).map((sale) => (
               <div key={sale.id} className="flex items-center justify-between p-3 bg-shade/50 rounded-sharp">
                 <div>
-                  <p className="text-sm font-medium text-ink">{formatCurrency(sale.totalAmount)}</p>
+                  <p className="m text-sm font-medium text-ink">{formatCurrency(sale.totalAmount)}</p>
                   <p className="text-xs text-mute">{sale.itemCount} items • {sale.paymentMethod}</p>
                 </div>
                 <div className="text-right">

@@ -340,7 +340,7 @@ export function Returns() {
                   </div>
                   {ret.type === 'REFUND' && (
                     <div className="text-right">
-                      <p className="text-lg font-bold text-ok">
+                      <p className="m text-lg font-bold text-ok">
                         {formatCurrency(ret.refundAmount)}
                       </p>
                       <p className="text-xs text-mist">Refund</p>
@@ -412,7 +412,7 @@ export function Returns() {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-lg font-bold text-ink">
+                    <p className="m text-lg font-bold text-ink">
                       {formatCurrency(foundSale.totalAmount)}
                     </p>
                     <p className="text-xs text-mist uppercase">
@@ -556,7 +556,7 @@ export function Returns() {
               {returnType === 'REFUND' && selectedItems.size > 0 && (
                 <div className="p-4 bg-ok/30 border border-ok rounded-sharp">
                   <p className="text-sm text-ok mb-1">Refund Amount</p>
-                  <p className="text-2xl font-bold text-ok">
+                  <p className="m text-2xl font-bold text-ok">
                     {formatCurrency(calculateRefundAmount())}
                   </p>
                 </div>
@@ -614,7 +614,7 @@ export function Returns() {
                       <p className="text-ink font-medium">{item.productName}</p>
                       <p className="text-sm text-mute">Qty: {item.quantity}</p>
                     </div>
-                    <p className="text-ink">{formatCurrency(item.unitPrice * item.quantity)}</p>
+                    <p className="m text-ink">{formatCurrency(item.unitPrice * item.quantity)}</p>
                   </div>
                 ))}
               </div>
@@ -624,7 +624,7 @@ export function Returns() {
             {selectedReturn.type === 'REFUND' && (
               <div className="bg-ok/30 border border-ok rounded-sharp p-4">
                 <p className="text-sm text-ok mb-1">Refund Amount</p>
-                <p className="text-2xl font-bold text-ok">
+                <p className="m text-2xl font-bold text-ok">
                   {formatCurrency(selectedReturn.refundAmount)}
                 </p>
               </div>

@@ -449,7 +449,7 @@ export function PurchaseOrders() {
                   </div>
                   <div className="flex justify-between">
                     <span>Total</span>
-                    <span className="text-ink font-semibold">{formatCurrency(po.totalAmount)}</span>
+                    <span className="m text-ink font-semibold">{formatCurrency(po.totalAmount)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Ordered</span>
@@ -626,7 +626,7 @@ export function PurchaseOrders() {
           {/* Totals */}
           <div className="flex justify-between items-center pt-3 border-t border-line">
             <span className="text-mute">Total</span>
-            <span className="text-xl font-bold text-ink">{formatCurrency(draftTotal)}</span>
+            <span className="m text-xl font-bold text-ink">{formatCurrency(draftTotal)}</span>
           </div>
 
           <div className="flex gap-3 pt-1">
@@ -766,7 +766,7 @@ export function PurchaseOrders() {
                     <span className="col-span-6 text-ink truncate">{item.productName}</span>
                     <span className="col-span-2 text-right text-body">{item.quantity}</span>
                     <span className="col-span-2 text-right text-body">{item.receivedQty}</span>
-                    <span className="col-span-2 text-right text-body">
+                    <span className="m col-span-2 text-right text-body">
                       {formatCurrency(item.totalCost)}
                     </span>
                   </div>
@@ -777,15 +777,15 @@ export function PurchaseOrders() {
             <div className="space-y-1 text-sm pt-3 border-t border-line">
               <div className="flex justify-between text-mute">
                 <span>Subtotal</span>
-                <span className="text-body">{formatCurrency(detail.subtotal)}</span>
+                <span className="m text-body">{formatCurrency(detail.subtotal)}</span>
               </div>
               <div className="flex justify-between text-mute">
                 <span>Tax</span>
-                <span className="text-body">{formatCurrency(detail.tax)}</span>
+                <span className="m text-body">{formatCurrency(detail.tax)}</span>
               </div>
               <div className="flex justify-between font-semibold">
                 <span className="text-body">Total</span>
-                <span className="text-ink">{formatCurrency(detail.totalAmount)}</span>
+                <span className="m text-ink">{formatCurrency(detail.totalAmount)}</span>
               </div>
             </div>
 
@@ -851,7 +851,7 @@ export function PurchaseOrders() {
           <div className="space-y-4">
             <div className="bg-sand rounded-sharp p-3 flex items-center justify-between">
               <span className="text-sm text-mute">Balance due</span>
-              <span className="font-bold text-bad">{formatCurrency(computeBalanceDue(detail))}</span>
+              <span className="m font-bold text-bad">{formatCurrency(computeBalanceDue(detail))}</span>
             </div>
 
             <Input

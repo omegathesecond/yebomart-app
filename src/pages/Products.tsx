@@ -131,13 +131,13 @@ export function Products() {
                 <div className="flex-1">
                   <div className="flex justify-between items-baseline mb-2">
                     <span className="text-sm text-mute">Sell Price</span>
-                    <span className="text-xl font-bold text-brick">
+                    <span className="m text-xl font-bold text-brick">
                       {formatCurrency(product.sellPrice)}
                     </span>
                   </div>
                   <div className="flex justify-between items-baseline text-sm">
                     <span className="text-mute">Cost</span>
-                    <span className="text-body">{formatCurrency(product.costPrice)}</span>
+                    <span className="m text-body">{formatCurrency(product.costPrice)}</span>
                   </div>
                   <div className="flex justify-between items-baseline text-sm mt-1">
                     <span className="text-mute">Margin</span>

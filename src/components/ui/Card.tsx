@@ -4,27 +4,20 @@ import { clsx } from 'clsx';
 export interface CardProps {
   children: ReactNode;
   className?: string;
-  gradient?: 'blue' | 'emerald' | 'amber' | 'purple' | 'red';
+  /** Marks a card as the one that matters: a 2px brand rule on its leading edge. */
+  accent?: boolean;
   hover?: boolean;
   padding?: string;
   onClick?: () => void;
 }
 
-export function Card({ children, className, gradient, hover, padding, onClick }: CardProps) {
-  const gradientStyles = {
-    blue: 'border-line-strong/30 bg-sand to-transparent',
-    emerald: 'border-ok/30 bg-ok to-transparent',
-    amber: 'border-ink/30 bg-brand to-transparent',
-    purple: 'border-ink/30 bg-ink to-transparent',
-    red: 'border-bad/30 bg-bad to-transparent'
-  };
-
+export function Card({ children, className, accent, hover, padding, onClick }: CardProps) {
   return (
     <div
       className={clsx(
         'card',
-        gradient && gradientStyles[gradient],
-        hover && 'card-hover cursor-pointer',
+        accent && 'border-l-2 border-l-brand',
+        hover && 'cursor-pointer transition-colors hover:border-line-strong',
         onClick && 'cursor-pointer',
         padding,
         className

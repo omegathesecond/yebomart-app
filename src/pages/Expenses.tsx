@@ -249,14 +249,14 @@ export function Expenses() {
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-        <Card gradient="amber">
+        <Card>
           <div className="flex items-center gap-3">
             <div className="p-2 bg-wash rounded-sharp">
               <BanknotesIcon className="w-6 h-6 text-brick" />
             </div>
             <div>
               <p className="text-sm text-mute">This Month</p>
-              <p className="text-2xl font-bold text-ink">
+              <p className="m text-2xl font-bold text-ink">
                 {formatCurrency(summary?.thisMonth || 0)}
               </p>
             </div>
@@ -269,7 +269,7 @@ export function Expenses() {
             </div>
             <div>
               <p className="text-sm text-mute">Last Month</p>
-              <p className="text-2xl font-bold text-ink">
+              <p className="m text-2xl font-bold text-ink">
                 {formatCurrency(summary?.lastMonth || 0)}
               </p>
             </div>
@@ -343,7 +343,7 @@ export function Expenses() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
-                  <span className="text-lg font-semibold text-brick">
+                  <span className="m text-lg font-semibold text-brick">
                     {formatCurrency(e.amount)}
                   </span>
                   {canManage && (

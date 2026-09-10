@@ -41,32 +41,37 @@ export function Dashboard() {
     return 'Good evening';
   };
 
+  const lowStock = (metrics?.lowStockCount || 0) + (metrics?.criticalStockCount || 0);
+  const basket =
+    metrics?.todayTransactions && metrics.todayTransactions > 0
+      ? (metrics.todaySales || 0) / metrics.todayTransactions
+      : 0;
+
   const stats = [
     {
-      label: "Today's Sales",
+      label: 'Sales',
       value: formatCurrency(metrics?.todaySales || 0),
-      icon: BanknotesIcon,
-      color: 'emerald',
-      change: metrics?.todaySales && metrics.todaySales > 0 ? '+' : ''
+      note: `${metrics?.todayTransactions || 0} sale${metrics?.todayTransactions === 1 ? '' : 's'} so far`,
     },
     {
       label: 'Transactions',
-      value: metrics?.todayTransactions || 0,
-      icon: ShoppingCartIcon,
-      color: 'blue'
+      value: String(metrics?.todayTransactions || 0),
+      note: basket > 0 ? `${formatCurrency(basket)} average basket` : undefined,
     },
     {
-      label: 'Profit',
+      label: 'Gross profit',
       value: formatCurrency(metrics?.todayProfit || 0),
-      icon: ArrowTrendingUpIcon,
-      color: 'amber'
+      note: undefined,
     },
     {
-      label: 'Low Stock',
-      value: (metrics?.lowStockCount || 0) + (metrics?.criticalStockCount || 0),
-      icon: ExclamationTriangleIcon,
-      color: alerts.length > 0 ? 'red' : 'emerald'
-    }
+      label: 'Needs attention',
+      value: String(lowStock),
+      note:
+        lowStock > 0
+          ? `${metrics?.criticalStockCount || 0} out of stock, ${metrics?.lowStockCount || 0} running low`
+          : 'Nothing running low',
+      attention: lowStock > 0,
+    },
   ];
 
   return (
@@ -99,29 +104,28 @@ export function Dashboard() {
         </Link>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat) => (
-          <Card 
-            key={stat.label} 
-            gradient={stat.color as any}
-            className="relative overflow-hidden"
+      {/*
+        The day's numbers as one band split by rules, not four cards. An owner
+        reads these in about two seconds at opening and the job is comparison —
+        a shared baseline does that better than four boxes each drawing its own
+        border and competing for attention.
+      */}
+      <div className="grid grid-cols-2 border border-line-strong bg-cream lg:grid-cols-4">
+        {stats.map((stat, i) => (
+          <div
+            key={stat.label}
+            className={`px-5 py-4 ${i < stats.length - 1 ? 'border-b border-r border-line lg:border-b-0' : ''} ${
+              stat.attention ? 'bg-wash' : ''
+            }`}
           >
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-mute">{stat.label}</p>
-                <p className="text-2xl font-bold text-ink mt-1">{stat.value}</p>
-              </div>
-              <div className={`p-2.5 rounded-sharp ${
-                stat.color === 'emerald' ? '' :
-                stat.color === 'blue' ? '' :
-                stat.color === 'amber' ? '' :
-                ''
-              }`}>
-                <stat.icon className="w-5 h-5 text-ink" />
-              </div>
-            </div>
-          </Card>
+            <p className={`eyebrow ${stat.attention ? 'text-brick' : ''}`}>{stat.label}</p>
+            <p className="m mt-2 text-[26px] font-semibold tracking-[-0.03em]">{stat.value}</p>
+            {stat.note && (
+              <p className={`mt-1 text-[11.5px] ${stat.attention ? 'text-brick' : 'text-mute'}`}>
+                {stat.note}
+              </p>
+            )}
+          </div>
         ))}
       </div>
 
@@ -193,7 +197,7 @@ export function Dashboard() {
                       </p>
                     </div>
                   </div>
-                  <p className="text-lg font-semibold text-ok">
+                  <p className="m text-lg font-semibold text-ok">
                     {formatCurrency(sale.totalAmount)}
                   </p>
                 </div>
@@ -212,7 +216,7 @@ export function Dashboard() {
 
         {/* AI Insights + Low Stock */}
         <div className="space-y-6">
-          <Card gradient="purple">
+          <Card accent>
             <CardHeader
               title={`${shop?.assistantName || 'AI'} says...`}
               action={<SparklesIcon className="w-5 h-5 text-brick" />}
@@ -268,7 +272,7 @@ export function Dashboard() {
           </Card>
 
           {alerts.length > 0 && (
-            <Card gradient="red">
+            <Card accent>
               <CardHeader
                 title="Low Stock Alerts"
                 subtitle={`${alerts.length} product${alerts.length > 1 ? 's' : ''} need attention`}

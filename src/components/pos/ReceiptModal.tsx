@@ -208,7 +208,7 @@ export function ReceiptModal({ isOpen, onClose, sale, shop, customerPhone }: Rec
                   <div key={idx} className="flex justify-between py-1">
                     <span className="flex-1">{item.productName}</span>
                     <span className="w-8 text-center">x{item.quantity}</span>
-                    <span className="w-20 text-right">{formatCurrency(item.totalPrice)}</span>
+                    <span className="m w-20 text-right">{formatCurrency(item.totalPrice)}</span>
                   </div>
                 ))}
               </div>
@@ -216,7 +216,7 @@ export function ReceiptModal({ isOpen, onClose, sale, shop, customerPhone }: Rec
               <div className="space-y-1 mb-2">
                 <div className="flex justify-between text-sm">
                   <span>Subtotal</span>
-                  <span>{formatCurrency(sale.subtotal || sale.total)}</span>
+                  <span className="m">{formatCurrency(sale.subtotal || sale.total)}</span>
                 </div>
                 {sale.discount > 0 && (
                   <div className="flex justify-between text-sm text-ok">
@@ -232,11 +232,11 @@ export function ReceiptModal({ isOpen, onClose, sale, shop, customerPhone }: Rec
                         when prices are tax-inclusive. */}
                     <div className="flex justify-between text-sm">
                       <span>Net (excl. VAT)</span>
-                      <span>{formatCurrency(sale.total - sale.tax)}</span>
+                      <span className="m">{formatCurrency(sale.total - sale.tax)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span>VAT ({shop?.taxRate}%{shop?.taxInclusive ? ' incl.' : ''})</span>
-                      <span>{formatCurrency(sale.tax)}</span>
+                      <span className="m">{formatCurrency(sale.tax)}</span>
                     </div>
                   </>
                 )}
@@ -244,7 +244,7 @@ export function ReceiptModal({ isOpen, onClose, sale, shop, customerPhone }: Rec
 
               <div className="flex justify-between font-bold text-lg border-t border-line-strong pt-2">
                 <span>TOTAL</span>
-                <span>{formatCurrency(sale.total)}</span>
+                <span className="m">{formatCurrency(sale.total)}</span>
               </div>
 
               {shop?.taxNumber && (
@@ -256,11 +256,11 @@ export function ReceiptModal({ isOpen, onClose, sale, shop, customerPhone }: Rec
                 <div className="mt-3 pt-3 border-t border-dashed border-line-strong space-y-1">
                   <div className="flex justify-between text-sm">
                     <span>Cash Received</span>
-                    <span>{formatCurrency(sale.cashReceived)}</span>
+                    <span className="m">{formatCurrency(sale.cashReceived)}</span>
                   </div>
                   <div className="flex justify-between font-bold text-lg text-ok">
                     <span>CHANGE</span>
-                    <span>{formatCurrency(sale.changeGiven || 0)}</span>
+                    <span className="m">{formatCurrency(sale.changeGiven || 0)}</span>
                   </div>
                 </div>
               )}
@@ -278,12 +278,12 @@ export function ReceiptModal({ isOpen, onClose, sale, shop, customerPhone }: Rec
                   )}
                   <div className="flex justify-between text-sm">
                     <span>Paid Now</span>
-                    <span>{formatCurrency(0)}</span>
+                    <span className="m">{formatCurrency(0)}</span>
                   </div>
                   {typeof sale.customerBalance === 'number' && (
                     <div className="flex justify-between font-bold text-lg text-bad">
                       <span>BALANCE OWING</span>
-                      <span>{formatCurrency(sale.customerBalance)}</span>
+                      <span className="m">{formatCurrency(sale.customerBalance)}</span>
                     </div>
                   )}
                 </div>

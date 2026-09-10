@@ -434,11 +434,11 @@ export function Customers() {
               </div>
               <div className="bg-sand rounded-sharp p-3 text-center">
                 <p className="text-xs text-mute">Recent Spent</p>
-                <p className="text-lg font-bold text-ink">{formatCurrency(recentSpent)}</p>
+                <p className="m text-lg font-bold text-ink">{formatCurrency(recentSpent)}</p>
               </div>
               <div className="bg-sand rounded-sharp p-3 text-center">
                 <p className="text-xs text-mute">Credit Limit</p>
-                <p className="text-lg font-bold text-ink">
+                <p className="m text-lg font-bold text-ink">
                   {formatCurrency(detail.creditLimit)}
                 </p>
               </div>
@@ -483,7 +483,7 @@ export function Customers() {
                           {s.paymentMethod}
                         </p>
                       </div>
-                      <p className="font-semibold text-ink">
+                      <p className="m font-semibold text-ink">
                         {formatCurrency(s.totalAmount)}
                       </p>
                     </div>
@@ -635,7 +635,7 @@ export function Customers() {
             {isPaymentAmountValid() && (
               <p className="text-xs text-mute">
                 New balance:{' '}
-                <span className="font-semibold text-ink">
+                <span className="m font-semibold text-ink">
                   {formatCurrency(
                     detail.balance +
                       (paymentType === 'ADJUSTMENT'

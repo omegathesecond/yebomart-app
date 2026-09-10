@@ -198,17 +198,17 @@ export function Sales() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card gradient="emerald">
+        <Card>
           <p className="text-sm text-mute">Total Sales</p>
-          <p className="text-2xl font-bold text-ink mt-1">{formatCurrency(totalSales)}</p>
+          <p className="m text-2xl font-bold text-ink mt-1">{formatCurrency(totalSales)}</p>
         </Card>
-        <Card gradient="blue">
+        <Card>
           <p className="text-sm text-mute">Transactions</p>
           <p className="text-2xl font-bold text-ink mt-1">{totalTransactions}</p>
         </Card>
-        <Card gradient="amber">
+        <Card>
           <p className="text-sm text-mute">Avg. Transaction</p>
-          <p className="text-2xl font-bold text-ink mt-1">{formatCurrency(avgTransaction)}</p>
+          <p className="m text-2xl font-bold text-ink mt-1">{formatCurrency(avgTransaction)}</p>
         </Card>
         <Card>
           <p className="text-sm text-mute">Payment Split</p>
@@ -237,7 +237,7 @@ export function Sales() {
                     <PaymentMethodIcon method={method as PaymentMethod} className="h-[18px] w-[18px] text-mute" />
                     <span className="font-medium text-ink">{pm?.label}</span>
                   </div>
-                  <p className="text-lg font-bold text-brick">{formatCurrency(amount)}</p>
+                  <p className="m text-lg font-bold text-brick">{formatCurrency(amount)}</p>
                   <p className="text-xs text-mist">{percentage}% of total</p>
                 </div>
               );
@@ -258,7 +258,7 @@ export function Sales() {
                   <CalendarIcon className="w-4 h-4 text-mute" />
                   <span className="font-medium text-body">{date}</span>
                 </div>
-                <span className="text-sm text-ok">{formatCurrency(dayTotal)}</span>
+                <span className="m text-sm text-ok">{formatCurrency(dayTotal)}</span>
               </div>
               
               <Card className="divide-y divide-line/50">
@@ -285,7 +285,7 @@ export function Sales() {
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <p className="text-lg font-semibold text-ok">
+                      <p className="m text-lg font-semibold text-ok">
                         {formatCurrency(sale.totalAmount)}
                       </p>
                       <ChevronRightIcon className="w-5 h-5 text-mist" />
@@ -351,7 +351,7 @@ export function Sales() {
                     <div key={item.id} className="flex justify-between py-1">
                       <span className="flex-1">{item.productName}</span>
                       <span className="w-8 text-center">x{item.quantity}</span>
-                      <span className="w-20 text-right">{formatCurrency(item.totalPrice)}</span>
+                      <span className="m w-20 text-right">{formatCurrency(item.totalPrice)}</span>
                     </div>
                   ))}
                 </div>
@@ -359,7 +359,7 @@ export function Sales() {
                 <div className="space-y-1 mb-2">
                   <div className="flex justify-between text-sm">
                     <span>Subtotal</span>
-                    <span>{formatCurrency(selectedSale.subtotal)}</span>
+                    <span className="m">{formatCurrency(selectedSale.subtotal)}</span>
                   </div>
                   {selectedSale.discount > 0 && (
                     <div className="flex justify-between text-sm text-ok">
@@ -373,11 +373,11 @@ export function Sales() {
                           reconciles — required for a compliant VAT receipt. */}
                       <div className="flex justify-between text-sm">
                         <span>Net (excl. VAT)</span>
-                        <span>{formatCurrency(selectedSale.totalAmount - selectedSale.tax)}</span>
+                        <span className="m">{formatCurrency(selectedSale.totalAmount - selectedSale.tax)}</span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span>VAT{shop?.taxRate ? ` (${shop.taxRate}%${shop.taxInclusive ? ' incl.' : ''})` : ''}</span>
-                        <span>{formatCurrency(selectedSale.tax)}</span>
+                        <span className="m">{formatCurrency(selectedSale.tax)}</span>
                       </div>
                     </>
                   ) : null}
@@ -389,7 +389,7 @@ export function Sales() {
 
                 <div className="flex justify-between font-bold text-lg border-t border-line-strong pt-2">
                   <span>TOTAL</span>
-                  <span>{formatCurrency(selectedSale.totalAmount)}</span>
+                  <span className="m">{formatCurrency(selectedSale.totalAmount)}</span>
                 </div>
 
                 {shop?.taxNumber && (

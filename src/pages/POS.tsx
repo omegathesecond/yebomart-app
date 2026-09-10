@@ -322,7 +322,7 @@ export function POS() {
                           )}
                         </div>
                         <div className="mt-2 flex items-end justify-between">
-                          <span className="text-lg font-bold text-brick">
+                          <span className="m text-lg font-bold text-brick">
                             {formatCurrency(product.sellPrice)}
                           </span>
                           <span className={`text-xs ${
@@ -346,7 +346,7 @@ export function POS() {
                         >
                           <span className="flex items-center justify-between">
                             <span>{product.packSize}-Pack</span>
-                            <span className="font-bold">{formatCurrency(product.packPrice!)}</span>
+                            <span className="m font-bold">{formatCurrency(product.packPrice!)}</span>
                             {inCartPack && (
                               <span className="ml-1 w-4 h-4 rounded-full bg-ok text-cream text-xs flex items-center justify-center">
                                 {inCartPack.quantity}
@@ -486,7 +486,7 @@ export function POS() {
                       <TrashIcon className="w-4 h-4" />
                     </button>
                   </div>
-                  <p className="font-semibold text-brick w-20 text-right">
+                  <p className="m font-semibold text-brick w-20 text-right">
                     {formatCurrency(unitPrice * item.quantity)}
                   </p>
                 </div>
@@ -501,7 +501,7 @@ export function POS() {
             {/* Subtotal */}
             <div className="flex items-center justify-between text-sm">
               <span className="text-mute">Subtotal</span>
-              <span className="text-body">{formatCurrency(cartSubtotal)}</span>
+              <span className="m text-body">{formatCurrency(cartSubtotal)}</span>
             </div>
             
             {/* Discount Row */}
@@ -519,7 +519,7 @@ export function POS() {
               </div>
               {discount ? (
                 <div className="flex items-center gap-2">
-                  <span className="text-ok font-medium">
+                  <span className="m font-medium text-ok">
                     -{formatCurrency(discount.amount)}
                     {discount.percent && <span className="text-xs ml-1">({discount.percent}%)</span>}
                   </span>
@@ -541,14 +541,16 @@ export function POS() {
                 <span className="text-mute">
                   VAT ({shop?.taxRate}%{shop?.taxInclusive ? ' incl.' : ''})
                 </span>
-                <span className="text-body">{formatCurrency(taxBreakdown.tax)}</span>
+                <span className="m text-body">{formatCurrency(taxBreakdown.tax)}</span>
               </div>
             )}
 
-            {/* Total */}
-            <div className="flex items-center justify-between pt-2 border-t border-line-strong">
-              <span className="text-ink font-medium">Total</span>
-              <span className="text-2xl font-bold text-ink">
+            {/* Amount due — the one ink band on the till. */}
+            <div className="pos-total-band -mx-4">
+              <span className="m text-[11px] uppercase tracking-[0.14em] text-mist">
+                Amount due
+              </span>
+              <span className="m text-[28px] font-semibold tracking-[-0.02em]">
                 {formatCurrency(cartTotal)}
               </span>
             </div>
@@ -745,7 +747,7 @@ export function POS() {
             <div className="bg-shade/30 rounded-sharp p-3 space-y-1">
               <div className="flex justify-between text-sm">
                 <span className="text-mute">Subtotal</span>
-                <span className="text-ink">{formatCurrency(cartSubtotal)}</span>
+                <span className="m text-ink">{formatCurrency(cartSubtotal)}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-mute">Discount</span>
@@ -759,7 +761,7 @@ export function POS() {
               </div>
               <div className="flex justify-between font-medium border-t border-line-strong pt-1">
                 <span className="text-ink">New Total</span>
-                <span className="text-ink">
+                <span className="m text-ink">
                   {formatCurrency(Math.max(0, 
                     cartSubtotal - (discountType === 'percent' 
                       ? cartSubtotal * (parseFloat(discountValue) || 0) / 100
@@ -828,7 +830,7 @@ export function POS() {
           {/* Total Due */}
           <div className="bg-shade/50 rounded-sharp p-4 text-center">
             <p className="text-sm text-mute mb-1">Total Due</p>
-            <p className="text-3xl font-bold text-ink">{formatCurrency(cartTotal)}</p>
+            <p className="m text-3xl font-bold text-ink">{formatCurrency(cartTotal)}</p>
           </div>
 
           {/* Cash Received Input */}
@@ -884,7 +886,7 @@ export function POS() {
           {parseFloat(cashReceived) >= cartTotal && (
             <div className="bg-ok/20 border border-ok/30 rounded-sharp p-4 text-center">
               <p className="text-sm text-ok mb-1">Change Due</p>
-              <p className="text-3xl font-bold text-ok">{formatCurrency(changeAmount)}</p>
+              <p className="m text-3xl font-bold text-ok">{formatCurrency(changeAmount)}</p>
             </div>
           )}
 

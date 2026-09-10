@@ -404,31 +404,31 @@ export function Reports() {
           {m && (
             <>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card gradient="emerald">
+                <Card>
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-ok/20 rounded-sharp">
                       <BanknotesIcon className="w-6 h-6 text-ok" />
                     </div>
                     <div>
                       <p className="text-sm text-mute">{t('reports.revenue')}</p>
-                      <p className="text-2xl font-bold text-ink">{formatCurrency(m.totalRevenue)}</p>
+                      <p className="m text-2xl font-bold text-ink">{formatCurrency(m.totalRevenue)}</p>
                     </div>
                   </div>
                 </Card>
 
-                <Card gradient="blue">
+                <Card>
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-sand/20 rounded-sharp">
                       <ArrowTrendingUpIcon className="w-6 h-6 text-body" />
                     </div>
                     <div>
                       <p className="text-sm text-mute">Net Profit</p>
-                      <p className="text-2xl font-bold text-ink">{formatCurrency(m.netProfit)}</p>
+                      <p className="m text-2xl font-bold text-ink">{formatCurrency(m.netProfit)}</p>
                     </div>
                   </div>
                 </Card>
 
-                <Card gradient="amber">
+                <Card>
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-wash rounded-sharp">
                       <ShoppingCartIcon className="w-6 h-6 text-brick" />
@@ -440,14 +440,14 @@ export function Reports() {
                   </div>
                 </Card>
 
-                <Card gradient="purple">
+                <Card>
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-ink/20 rounded-sharp">
                       <ChartBarIcon className="w-6 h-6 text-brick" />
                     </div>
                     <div>
                       <p className="text-sm text-mute">{t('reports.averageSale')}</p>
-                      <p className="text-2xl font-bold text-ink">{formatCurrency(m.avgBasket)}</p>
+                      <p className="m text-2xl font-bold text-ink">{formatCurrency(m.avgBasket)}</p>
                     </div>
                   </div>
                 </Card>
@@ -469,7 +469,7 @@ export function Reports() {
                               <p className="text-sm text-mute">{product.qty} sold</p>
                             </div>
                           </div>
-                          <p className="font-semibold text-ok">{formatCurrency(product.revenue)}</p>
+                          <p className="m font-semibold text-ok">{formatCurrency(product.revenue)}</p>
                         </div>
                       ))}
                     </div>
@@ -497,7 +497,7 @@ export function Reports() {
                         <BanknotesIcon className="w-6 h-6 text-ok" />
                         <span className="text-body">Stock Value</span>
                       </div>
-                      <span className="text-xl font-bold text-ok">{formatCurrency(m.stockValue)}</span>
+                      <span className="m text-xl font-bold text-ok">{formatCurrency(m.stockValue)}</span>
                     </div>
 
                     <div className="flex items-center justify-between p-4 bg-shade/30 rounded-sharp">
@@ -516,25 +516,25 @@ export function Reports() {
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
                   <div className="text-center p-4 bg-shade/30 rounded-sharp">
                     <p className="text-sm text-mute">{t('reports.revenue')}{m.totalTax > 0 ? ' (net)' : ''}</p>
-                    <p className="text-xl font-bold text-ink">{formatCurrency(m.totalRevenue)}</p>
+                    <p className="m text-xl font-bold text-ink">{formatCurrency(m.totalRevenue)}</p>
                   </div>
                   {m.totalTax > 0 && (
                     <div className="text-center p-4 bg-shade/30 rounded-sharp">
                       <p className="text-sm text-mute">VAT Collected</p>
-                      <p className="text-xl font-bold text-body">{formatCurrency(m.totalTax)}</p>
+                      <p className="m text-xl font-bold text-body">{formatCurrency(m.totalTax)}</p>
                     </div>
                   )}
                   <div className="text-center p-4 bg-shade/30 rounded-sharp">
                     <p className="text-sm text-mute">Cost of Goods</p>
-                    <p className="text-xl font-bold text-bad">{formatCurrency(m.totalCost)}</p>
+                    <p className="m text-xl font-bold text-bad">{formatCurrency(m.totalCost)}</p>
                   </div>
                   <div className="text-center p-4 bg-shade/30 rounded-sharp">
                     <p className="text-sm text-mute">Gross Profit</p>
-                    <p className="text-xl font-bold text-ink">{formatCurrency(m.grossProfit)}</p>
+                    <p className="m text-xl font-bold text-ink">{formatCurrency(m.grossProfit)}</p>
                   </div>
                   <div className="text-center p-4 bg-shade/30 rounded-sharp">
                     <p className="text-sm text-mute">Expenses</p>
-                    <p className="text-xl font-bold text-brick">{formatCurrency(m.periodExpenses)}</p>
+                    <p className="m text-xl font-bold text-brick">{formatCurrency(m.periodExpenses)}</p>
                   </div>
                   <div className="text-center p-4 bg-shade/30 rounded-sharp">
                     <p className="text-sm text-mute">Net Profit</p>
@@ -594,7 +594,7 @@ export function Reports() {
                       <td className="py-2 pr-4 text-ink">{p.name}</td>
                       <td className="py-2 px-4 text-mute">{p.category}</td>
                       <td className="py-2 px-4 text-right text-body">{p.quantitySold}</td>
-                      <td className="py-2 px-4 text-right text-ok">{formatCurrency(p.revenue)}</td>
+                      <td className="m py-2 px-4 text-right text-ok">{formatCurrency(p.revenue)}</td>
                       <td className={`py-2 px-4 text-right ${p.profit >= 0 ? 'text-ink' : 'text-bad'}`}>{formatCurrency(p.profit)}</td>
                       <td className="py-2 pl-4 text-right text-body">{p.margin.toFixed(1)}%</td>
                     </tr>
@@ -645,9 +645,9 @@ export function Reports() {
                     <tr key={s.id} className="border-b border-line">
                       <td className="py-2 pr-4 text-ink">{s.name}</td>
                       <td className="py-2 px-4 text-mute capitalize">{s.role.toLowerCase()}</td>
-                      <td className="py-2 px-4 text-right text-ok">{formatCurrency(s.totalSales)}</td>
+                      <td className="m py-2 px-4 text-right text-ok">{formatCurrency(s.totalSales)}</td>
                       <td className="py-2 px-4 text-right text-body">{s.transactionCount}</td>
-                      <td className="py-2 px-4 text-right text-body">{formatCurrency(s.averageTransaction)}</td>
+                      <td className="m py-2 px-4 text-right text-body">{formatCurrency(s.averageTransaction)}</td>
                       <td className={`py-2 pl-4 text-right ${s.voidCount > 0 ? 'text-bad' : 'text-body'}`}>{s.voidCount}</td>
                     </tr>
                   ))}

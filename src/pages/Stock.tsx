@@ -337,19 +337,19 @@ export function Stock() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card gradient="blue">
+        <Card>
           <p className="text-sm text-mute">Total Products</p>
           <p className="text-2xl font-bold text-ink mt-1">{products.length}</p>
         </Card>
-        <Card gradient="emerald">
+        <Card>
           <p className="text-sm text-mute">Total Stock Value</p>
-          <p className="text-2xl font-bold text-ink mt-1">{formatCurrency(totalValue)}</p>
+          <p className="m text-2xl font-bold text-ink mt-1">{formatCurrency(totalValue)}</p>
         </Card>
-        <Card gradient="amber" onClick={() => setFilter('low')} hover>
+        <Card accent onClick={() => setFilter('low')} hover>
           <p className="text-sm text-mute">Low Stock</p>
           <p className="text-2xl font-bold text-brick mt-1">{lowStockCount}</p>
         </Card>
-        <Card gradient="red" onClick={() => setFilter('out')} hover>
+        <Card accent onClick={() => setFilter('out')} hover>
           <p className="text-sm text-mute">Out of Stock</p>
           <p className="text-2xl font-bold text-bad mt-1">{outOfStockCount}</p>
         </Card>
@@ -579,7 +579,7 @@ export function Stock() {
                     <td className="py-3 px-4 text-center text-mute">
                       {product.reorderAt}
                     </td>
-                    <td className="py-3 px-4 text-right text-body">
+                    <td className="m py-3 px-4 text-right text-body">
                       {formatCurrency(stockValue)}
                     </td>
                     <td className="py-3 px-4 text-center">
@@ -737,13 +737,13 @@ export function Stock() {
             <div className="bg-shade/40 border border-line-strong rounded-sharp p-3">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-mute">Sell price</span>
-                <span className="text-ink font-medium">{formatCurrency(receiveMarginPreview.sell)}</span>
+                <span className="m text-ink font-medium">{formatCurrency(receiveMarginPreview.sell)}</span>
               </div>
               <div className="flex items-center justify-between text-sm mt-1">
                 <span className="text-mute">
                   Cost {receiveMarginPreview.costChanged && <span className="text-brick">(new)</span>}
                 </span>
-                <span className="text-ink font-medium">{formatCurrency(receiveEffectiveCost)}</span>
+                <span className="m text-ink font-medium">{formatCurrency(receiveEffectiveCost)}</span>
               </div>
               <div className="flex items-center justify-between text-sm mt-1 pt-2 border-t border-line-strong">
                 <span className="text-mute">Profit / unit</span>
@@ -972,11 +972,11 @@ export function Stock() {
               </div>
               <div className="bg-shade/30 p-3 rounded-sharp">
                 <p className="text-xs text-mute">Cost Price</p>
-                <p className="text-xl font-bold text-ink">{formatCurrency(selectedProduct.costPrice)}</p>
+                <p className="m text-xl font-bold text-ink">{formatCurrency(selectedProduct.costPrice)}</p>
               </div>
               <div className="bg-shade/30 p-3 rounded-sharp">
                 <p className="text-xs text-mute">Sell Price</p>
-                <p className="text-xl font-bold text-ok">{formatCurrency(selectedProduct.sellPrice)}</p>
+                <p className="m text-xl font-bold text-ok">{formatCurrency(selectedProduct.sellPrice)}</p>
               </div>
             </div>
 

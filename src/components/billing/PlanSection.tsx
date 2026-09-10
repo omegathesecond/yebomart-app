@@ -159,7 +159,7 @@ export function PlanSection({ onNotify }: { onNotify: (msg: string, kind: 'succe
       )}
 
       {/* Current entitlement + this month's usage. */}
-      <Card gradient={entitledPlan === 'TILL' ? undefined : 'emerald'}>
+      <Card accent={entitledPlan !== 'TILL'}>
         <div className="flex items-start justify-between gap-4 mb-4">
           <div>
             <p className="text-sm text-mute">Your plan</p>
@@ -222,7 +222,7 @@ export function PlanSection({ onNotify }: { onNotify: (msg: string, kind: 'succe
             return (
               <Card
                 key={plan.code}
-                gradient={plan.code === 'SHOP' ? 'amber' : undefined}
+                accent={plan.code === 'SHOP'}
                 className="flex flex-col"
               >
                 <div className="flex items-center justify-between mb-1">

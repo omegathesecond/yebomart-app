@@ -427,7 +427,7 @@ export function MobilePOS() {
                 </div>
                 <div className="flex-1 text-left">
                   <p className="text-ink font-medium text-sm">{product.name}</p>
-                  <p className="text-brick text-sm">{formatCurrency(product.sellPrice)}</p>
+                  <p className="m text-brick text-sm">{formatCurrency(product.sellPrice)}</p>
                 </div>
                 <PlusIcon className="w-5 h-5 text-brick" />
               </button>
@@ -504,7 +504,7 @@ export function MobilePOS() {
                         <span className="text-brick ml-1">({item.product.packSize}-Pack)</span>
                       )}
                     </p>
-                    <p className="text-brick text-sm font-medium">
+                    <p className="m text-brick text-sm font-medium">
                       {formatCurrency(unitPrice)}
                     </p>
                   </div>
@@ -561,13 +561,13 @@ export function MobilePOS() {
           <div className="space-y-1 mb-2 text-sm">
             <div className="flex items-center justify-between">
               <span className="text-mute">Subtotal</span>
-              <span className="text-body">{formatCurrency(cartSubtotal)}</span>
+              <span className="m text-body">{formatCurrency(cartSubtotal)}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-mute">
                 VAT ({shop?.taxRate}%{shop?.taxInclusive ? ' incl.' : ''})
               </span>
-              <span className="text-body">{formatCurrency(taxBreakdown.tax)}</span>
+              <span className="m text-body">{formatCurrency(taxBreakdown.tax)}</span>
             </div>
           </div>
         )}
@@ -575,7 +575,7 @@ export function MobilePOS() {
         {/* Total */}
         <div className="flex items-center justify-between mb-4">
           <span className="text-mute">Total</span>
-          <span className="text-2xl font-bold text-ink">
+          <span className="m text-2xl font-bold text-ink">
             {formatCurrency(cartTotal)}
           </span>
         </div>
@@ -619,7 +619,7 @@ export function MobilePOS() {
           {/* Total Due */}
           <div className="bg-shade/50 rounded-sharp p-4 text-center">
             <p className="text-sm text-mute mb-1">Total Due</p>
-            <p className="text-3xl font-bold text-ink">{formatCurrency(cartTotal)}</p>
+            <p className="m text-3xl font-bold text-ink">{formatCurrency(cartTotal)}</p>
           </div>
 
           {/* Cash Received Input */}
@@ -676,7 +676,7 @@ export function MobilePOS() {
           {parseFloat(cashReceived) >= cartTotal && (
             <div className="bg-ok/20 border border-ok/30 rounded-sharp p-4 text-center">
               <p className="text-sm text-ok mb-1">Change Due</p>
-              <p className="text-3xl font-bold text-ok">{formatCurrency(changeAmount)}</p>
+              <p className="m text-3xl font-bold text-ok">{formatCurrency(changeAmount)}</p>
             </div>
           )}
 
