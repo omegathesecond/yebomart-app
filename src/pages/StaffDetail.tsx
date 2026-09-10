@@ -302,25 +302,27 @@ export function StaffDetail() {
         {dailySales.length > 0 ? (
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={dailySales}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+              <CartesianGrid vertical={false} stroke="rgba(26,24,20,0.12)" />
               <XAxis 
                 dataKey="date" 
-                stroke="#94a3b8"
-                tick={{ fontSize: 10 }}
+                stroke="rgba(26,24,20,0.28)"
+                tick={{ fontSize: 10, fill: '#78716c' }}
+                tickLine={false}
                 tickFormatter={(val) => new Date(val).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
               />
               <YAxis 
-                stroke="#94a3b8" 
-                tick={{ fontSize: 10 }}
+                stroke="rgba(26,24,20,0.28)"
+                tick={{ fontSize: 10, fill: '#78716c' }}
+                tickLine={false}
                 tickFormatter={(val) => formatCurrency(Number(val))} 
               />
               <Tooltip
-                contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
-                labelStyle={{ color: '#f8fafc' }}
+                contentStyle={{ backgroundColor: '#fdfbf7', border: '1px solid rgba(26,24,20,0.28)', borderRadius: 2, fontSize: 12 }}
+                labelStyle={{ color: '#1a1814', fontWeight: 600 }}
                 formatter={(value) => [formatCurrency(Number(value)), 'Revenue']}
                 labelFormatter={(label) => new Date(label).toLocaleDateString()}
               />
-              <Line type="monotone" dataKey="revenue" stroke="#f59e0b" strokeWidth={2} dot={false} />
+              <Line type="monotone" dataKey="revenue" stroke="#1a1814" strokeWidth={2} dot={false} />
             </LineChart>
           </ResponsiveContainer>
         ) : (
@@ -336,21 +338,22 @@ export function StaffDetail() {
         {dailySales.length > 0 ? (
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={dailySales}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+              <CartesianGrid vertical={false} stroke="rgba(26,24,20,0.12)" />
               <XAxis 
                 dataKey="date" 
-                stroke="#94a3b8"
-                tick={{ fontSize: 10 }}
+                stroke="rgba(26,24,20,0.28)"
+                tick={{ fontSize: 10, fill: '#78716c' }}
+                tickLine={false}
                 tickFormatter={(val) => new Date(val).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
               />
-              <YAxis stroke="#94a3b8" tick={{ fontSize: 10 }} />
+              <YAxis stroke="rgba(26,24,20,0.28)" tick={{ fontSize: 10, fill: '#78716c' }} tickLine={false} axisLine={false} />
               <Tooltip
-                contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
-                labelStyle={{ color: '#f8fafc' }}
+                contentStyle={{ backgroundColor: '#fdfbf7', border: '1px solid rgba(26,24,20,0.28)', borderRadius: 2, fontSize: 12 }}
+                labelStyle={{ color: '#1a1814', fontWeight: 600 }}
                 formatter={(value) => [Number(value), 'Transactions']}
                 labelFormatter={(label) => new Date(label).toLocaleDateString()}
               />
-              <Bar dataKey="transactions" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="transactions" fill="#1a1814" maxBarSize={24} radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         ) : (

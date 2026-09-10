@@ -360,7 +360,7 @@ export function Expenses() {
                     <button
                       onClick={() => handleDelete(e.id)}
                       disabled={deletingId === e.id}
-                      className="p-1.5 rounded-sharp bg-shade hover:bg-bad/80 text-body hover:text-ink transition-colors disabled:opacity-50"
+                      className="p-1.5 rounded-sharp bg-shade hover:bg-bad text-body hover:text-cream transition-colors disabled:opacity-50"
                       title="Delete expense"
                     >
                       {deletingId === e.id ? (

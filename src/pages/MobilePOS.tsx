@@ -318,7 +318,7 @@ export function MobilePOS() {
   return (
     <div className="h-screen flex flex-col bg-cream overflow-hidden">
       {/* Scanner Section - ~25% of screen */}
-      <div className="relative h-[28vh] min-h-[180px] bg-black flex-shrink-0">
+      <div className="on-ink relative h-[28vh] min-h-[180px] shrink-0 bg-ink-2">
         {/* Scanner container */}
         <div 
           ref={scannerContainerRef}
@@ -329,36 +329,39 @@ export function MobilePOS() {
         {/* Scanner overlay UI */}
         <div className="absolute inset-0 pointer-events-none">
           {/* Top bar with back button and flashlight */}
-          <div className="absolute top-0 left-0 right-0 flex items-center justify-between p-3 from-black/70 to-transparent pointer-events-auto">
+          <div className="pointer-events-auto absolute inset-x-0 top-0 flex items-center justify-between bg-ink/70 p-3">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => navigate('/pos')}
-                className="p-2 rounded-full bg-cream/20 text-ink hover:bg-cream/30 transition-colors"
+                aria-label="Back to the till"
+                className="grid h-11 w-11 place-items-center border border-cream/30 text-cream transition-colors hover:bg-cream/10"
               >
-                <ArrowLeftIcon className="w-5 h-5" />
+                <ArrowLeftIcon className="h-5 w-5" />
               </button>
-              <span className="text-ink text-sm font-medium">Scan Product Code</span>
+              <span className="text-[14px] font-medium text-cream">Scan a barcode</span>
             </div>
             <button
               onClick={toggleFlashlight}
-              className={`p-2 rounded-full transition-colors ${
-                flashlightOn 
-                  ? 'bg-brand text-ink' 
-                  : 'bg-cream/20 text-ink hover:bg-cream/30'
+              aria-label={flashlightOn ? 'Turn the light off' : 'Turn the light on'}
+              aria-pressed={flashlightOn}
+              className={`grid h-11 w-11 place-items-center border transition-colors ${
+                flashlightOn
+                  ? 'border-brand bg-brand text-ink'
+                  : 'border-cream/30 text-cream hover:bg-cream/10'
               }`}
             >
-              <BoltIcon className="w-5 h-5" />
+              <BoltIcon className="h-5 w-5" />
             </button>
           </div>
 
           {/* Scanning frame overlay */}
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="relative w-64 h-28 border-2 border-ink/50 rounded-sharp">
+            <div className="relative h-28 w-64">
               {/* Corner accents */}
-              <div className="absolute -top-0.5 -left-0.5 w-6 h-6 border-t-3 border-l-3 border-ink rounded-tl-sharp" />
-              <div className="absolute -top-0.5 -right-0.5 w-6 h-6 border-t-3 border-r-3 border-ink rounded-tr-sharp" />
-              <div className="absolute -bottom-0.5 -left-0.5 w-6 h-6 border-b-3 border-l-3 border-ink rounded-bl-sharp" />
-              <div className="absolute -bottom-0.5 -right-0.5 w-6 h-6 border-b-3 border-r-3 border-ink rounded-br-sharp" />
+              <div className="absolute -top-0.5 -left-0.5 h-[30px] w-[30px] border-t-3 border-l-3 border-brand" />
+              <div className="absolute -top-0.5 -right-0.5 h-[30px] w-[30px] border-t-3 border-r-3 border-brand" />
+              <div className="absolute -bottom-0.5 -left-0.5 h-[30px] w-[30px] border-b-3 border-l-3 border-brand" />
+              <div className="absolute -bottom-0.5 -right-0.5 h-[30px] w-[30px] border-b-3 border-r-3 border-brand" />
               
               {/* Scanning line animation */}
               <div className="absolute inset-x-2 top-1/2 h-0.5 bg-brand animate-pulse" />
@@ -513,16 +516,16 @@ export function MobilePOS() {
                   <div className="flex items-center gap-1 flex-shrink-0">
                     <button
                       onClick={() => updateQuantity(item.productId, item.quantity - 1, item.isPack)}
-                      className="w-8 h-8 rounded-sharp bg-brand/20 text-brick flex items-center justify-center hover:bg-brand/30 transition-colors"
+                      className="grid h-11 w-11 shrink-0 place-items-center border border-line-strong bg-cream transition-colors hover:border-ink"
                     >
                       <MinusIcon className="w-4 h-4" />
                     </button>
-                    <span className="w-8 text-center text-ink font-medium">
+                    <span className="m w-9 text-center text-[15px] font-semibold">
                       {item.quantity}
                     </span>
                     <button
                       onClick={() => updateQuantity(item.productId, item.quantity + 1, item.isPack)}
-                      className="w-8 h-8 rounded-sharp bg-brand/20 text-brick flex items-center justify-center hover:bg-brand/30 transition-colors"
+                      className="grid h-11 w-11 shrink-0 place-items-center border border-line-strong bg-cream transition-colors hover:border-ink"
                     >
                       <PlusIcon className="w-4 h-4" />
                     </button>

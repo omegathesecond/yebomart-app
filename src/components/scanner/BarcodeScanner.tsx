@@ -124,20 +124,21 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-cream">
+    <div className="on-ink fixed inset-0 z-50 flex flex-col bg-ink">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 bg-black/50">
-        <h2 className="text-lg font-semibold text-ink">Scan Barcode</h2>
+      <div className="flex items-center justify-between border-b border-line-ink p-4">
+        <h2 className="text-[17px] font-semibold text-cream">Scan a barcode</h2>
         <button
           onClick={handleClose}
-          className="p-2 hover:bg-cream/10 rounded-sharp transition-colors"
+          aria-label="Close the scanner"
+          className="grid h-11 w-11 place-items-center rounded-sharp transition-colors hover:bg-cream/10"
         >
-          <XMarkIcon className="w-6 h-6 text-ink" />
+          <XMarkIcon className="h-6 w-6 text-cream" />
         </button>
       </div>
 
       {/* Camera View */}
-      <div className="flex-1 relative bg-black">
+      <div className="relative flex-1 bg-ink-2">
         {hasCamera ? (
           <>
             {/* html5-qrcode injects its <video> into this region */}
@@ -145,23 +146,23 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
             {/* Framing guide for the cashier (purely visual) */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="relative w-64 h-40">
-                <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-ink rounded-tl-sharp" />
-                <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-ink rounded-tr-sharp" />
-                <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-ink rounded-bl-sharp" />
-                <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-ink rounded-br-sharp" />
+                <div className="absolute top-0 left-0 h-8 w-8 border-t-4 border-l-4 border-brand" />
+                <div className="absolute top-0 right-0 h-8 w-8 border-t-4 border-r-4 border-brand" />
+                <div className="absolute bottom-0 left-0 h-8 w-8 border-b-4 border-l-4 border-brand" />
+                <div className="absolute bottom-0 right-0 h-8 w-8 border-b-4 border-r-4 border-brand" />
               </div>
             </div>
           </>
         ) : (
           <div className="flex flex-col items-center justify-center h-full p-8">
             <CameraIcon className="w-16 h-16 text-mist mb-4" />
-            <p className="text-mute text-center mb-2">{error}</p>
+            <p className="mb-2 text-center text-mist">{error}</p>
           </div>
         )}
       </div>
 
       {/* Manual Entry */}
-      <div className="p-4 bg-cream">
+      <div className="bg-cream p-4">
         <form onSubmit={handleManualSubmit} className="flex gap-2">
           <Input
             placeholder="Enter barcode manually"

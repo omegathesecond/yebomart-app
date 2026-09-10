@@ -22,13 +22,13 @@ export function Table<T extends Record<string, unknown>>({
   data,
   keyField,
   onRowClick,
-  emptyMessage = 'Keine Daten vorhanden',
+  emptyMessage = 'Nothing here yet',
   isLoading
 }: TableProps<T>) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-line-strong border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-shade border-t-brand" />
       </div>
     );
   }
@@ -45,12 +45,12 @@ export function Table<T extends Record<string, unknown>>({
     <div className="overflow-x-auto">
       <table className="w-full">
         <thead>
-          <tr className="border-b border-line">
+          <tr className="border-b border-line-strong">
             {columns.map((col) => (
               <th
                 key={col.key}
                 className={clsx(
-                  'px-4 py-3 text-left text-sm font-medium text-mute uppercase tracking-wider',
+                  'eyebrow px-4 pb-2.5 pt-3 text-left',
                   col.className
                 )}
               >
@@ -59,20 +59,20 @@ export function Table<T extends Record<string, unknown>>({
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-line/50">
+        <tbody className="divide-y divide-line">
           {data.map((item) => (
             <tr
               key={String(item[keyField])}
               onClick={() => onRowClick?.(item)}
               className={clsx(
-                'table-row-hover',
-                onRowClick && 'cursor-pointer'
+                'transition-colors',
+                onRowClick && 'cursor-pointer hover:bg-sand'
               )}
             >
               {columns.map((col) => (
                 <td
                   key={col.key}
-                  className={clsx('px-4 py-4 text-sm text-body', col.className)}
+                  className={clsx('px-4 py-3.5 text-[13.5px]', col.className)}
                 >
                   {col.render ? col.render(item) : String(item[col.key] ?? '')}
                 </td>

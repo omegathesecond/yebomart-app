@@ -5,6 +5,7 @@ import {
   PrinterIcon,
   LockOpenIcon,
   ArrowPathIcon,
+  ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline';
 import api, { type CashSession, type CashSessionZReport } from '@/api/client';
 import { Button } from '@/components/ui/Button';
@@ -129,7 +130,7 @@ export function CashUp() {
   if (loading) {
     return (
       <div className="min-h-[50vh] flex items-center justify-center">
-        <div className="w-10 h-10 border-3 border-ink border-t-transparent rounded-full animate-spin" />
+        <div className="h-8 w-8 rounded-full border-2 border-shade border-t-brand animate-spin" />
       </div>
     );
   }
@@ -139,14 +140,13 @@ export function CashUp() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="w-11 h-11 rounded-sharp bg-wash border border-ink/30 flex items-center justify-center">
-          <CalculatorIcon className="w-6 h-6 text-brick" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-ink">Cash Up</h1>
-          <p className="text-sm text-mute">Open a till, track cash, reconcile the drawer at end of shift.</p>
-        </div>
+      <div>
+        <span className="eyebrow">Closing the drawer</span>
+        <h1 className="mt-2.5 text-[27px] font-semibold leading-[1.15] tracking-[-0.03em]">
+          Count what is in the drawer.
+          <br />
+          <span className="font-normal text-mute">YeboMart knows what should be there.</span>
+        </h1>
       </div>
 
       {/* ── State 1: no open till ─────────────────────────────────────────── */}
@@ -235,9 +235,11 @@ export function CashUp() {
 
             {/* Live preview of the variance as they type. */}
             {countedCash !== '' && !isNaN(parseFloat(countedCash)) && (
-              <div className="rounded-sharp bg-sand/60 border border-line p-4 flex items-center justify-between">
-                <span className="text-sm text-mute">Expected {formatCurrency(session.expectedCash ?? session.openingFloat)}</span>
-                <span className={`text-sm font-semibold ${varianceTone(parseFloat(countedCash) - (session.expectedCash ?? session.openingFloat))}`}>
+              <div className="flex items-baseline justify-between border border-line bg-sand px-4 py-3.5">
+                <span className="m text-[11.5px] text-mute">
+                  Expected {formatCurrency(session.expectedCash ?? session.openingFloat)}
+                </span>
+                <span className={`m text-[15px] font-semibold ${varianceTone(parseFloat(countedCash) - (session.expectedCash ?? session.openingFloat))}`}>
                   {varianceLabel(parseFloat(countedCash) - (session.expectedCash ?? session.openingFloat))}
                 </span>
               </div>
@@ -260,14 +262,26 @@ export function CashUp() {
               <Stat label="Counted" value={formatCurrency(session.countedCash ?? 0)} />
               <Stat label="Variance" value={formatCurrency(session.variance ?? 0)} />
             </div>
-            <div className={`rounded-sharp p-4 text-center font-bold text-xl ${
+            <div className={`flex items-center justify-between border bg-cream px-5 py-4 ${
               (session.variance ?? 0) === 0
-                ? 'bg-ok/10 border border-ok/30 text-ok'
+                ? 'border-ok'
                 : (session.variance ?? 0) < 0
-                  ? 'bg-bad/10 border border-bad/30 text-bad'
-                  : 'bg-wash border border-ink/30 text-brick'
+                  ? 'border-bad'
+                  : 'border-warn'
             }`}>
-              {varianceLabel(session.variance ?? 0)}
+              <div>
+                <p className={`eyebrow ${
+                  (session.variance ?? 0) === 0 ? 'text-ok' : (session.variance ?? 0) < 0 ? 'text-bad' : 'text-warn'
+                }`}>
+                  Variance
+                </p>
+                <p className={`m mt-1.5 text-[32px] font-semibold leading-none tracking-[-0.03em] ${varianceTone(session.variance ?? 0)}`}>
+                  {varianceLabel(session.variance ?? 0)}
+                </p>
+              </div>
+              {(session.variance ?? 0) !== 0 && (
+                <ExclamationTriangleIcon className={`h-8 w-8 ${varianceTone(session.variance ?? 0)}`} />
+              )}
             </div>
 
             <div className="flex gap-3 mt-5">
@@ -291,10 +305,10 @@ export function CashUp() {
 
 function Stat({ label, value, sub, highlight }: { label: string; value: string; sub?: string; highlight?: boolean }) {
   return (
-    <div className={`rounded-sharp p-3 ${highlight ? 'bg-brand/15 border border-ink/30' : 'bg-sand/60 border border-line'}`}>
-      <p className="text-[11px] uppercase tracking-wide text-mute">{label}</p>
-      <p className={`text-lg font-bold ${highlight ? 'text-brick' : 'text-ink'} truncate`}>{value}</p>
-      {sub && <p className="text-[11px] text-mist truncate">{sub}</p>}
+    <div className={`border p-3.5 ${highlight ? 'border-line-strong bg-sand' : 'border-line bg-cream'}`}>
+      <p className="eyebrow">{label}</p>
+      <p className={`m mt-1.5 truncate text-[19px] font-semibold tracking-[-0.02em]`}>{value}</p>
+      {sub && <p className="m mt-1 truncate text-[10.5px] text-mute">{sub}</p>}
     </div>
   );
 }

@@ -258,41 +258,52 @@ export function Sales() {
                   <CalendarIcon className="w-4 h-4 text-mute" />
                   <span className="font-medium text-body">{date}</span>
                 </div>
-                <span className="m text-sm text-ok">{formatCurrency(dayTotal)}</span>
+                <span className="m text-[14px] font-semibold">{formatCurrency(dayTotal)}</span>
               </div>
               
-              <Card className="divide-y divide-line/50">
+              <div className="border border-line-strong bg-cream">
+                <div className="hidden items-center gap-4 border-b border-line-strong px-4 pb-2.5 pt-3 sm:flex">
+                  <span className="eyebrow w-[62px]">Time</span>
+                  <span className="eyebrow flex-1">Sale</span>
+                  <span className="eyebrow w-[104px]">Method</span>
+                  <span className="eyebrow w-[92px] text-right">Total</span>
+                  <span className="w-5" />
+                </div>
                 {dateSales.map((sale) => (
                   <button
                     key={sale.id}
                     onClick={() => setSelectedSale(sale)}
-                    className="w-full p-4 flex items-center justify-between hover:bg-shade/30 transition-colors text-left"
+                    className="flex w-full items-center gap-4 border-b border-line px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-sand"
                   >
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-full bg-ok/20 flex items-center justify-center">
-                        <BanknotesIcon className="w-5 h-5 text-ok" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-ink">
-                          {sale.items.length} item{sale.items.length > 1 ? 's' : ''}
-                        </p>
-                        <div className="flex items-center gap-2">
-                          <PaymentMethodIcon method={sale.paymentMethod} className="h-3.5 w-3.5 text-mute" />
-                          <span className="text-xs text-mute">
-                            {formatTime(sale.createdAt)}
+                    <span className="m hidden w-[62px] text-[12px] text-mute sm:block">
+                      {formatTime(sale.createdAt)}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[13.5px] font-medium">
+                        {sale.items.length} item{sale.items.length > 1 ? 's' : ''}
+                        {sale.receiptNumber && (
+                          <span className="m ml-2 text-[11.5px] font-normal text-mute">
+                            {sale.receiptNumber}
                           </span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <p className="m text-lg font-semibold text-ok">
-                        {formatCurrency(sale.totalAmount)}
+                        )}
                       </p>
-                      <ChevronRightIcon className="w-5 h-5 text-mist" />
+                      <span className="m mt-0.5 text-[10.5px] text-mute sm:hidden">
+                        {formatTime(sale.createdAt)}
+                      </span>
                     </div>
+                    <span className="hidden w-[104px] items-center gap-2 sm:flex">
+                      <PaymentMethodIcon method={sale.paymentMethod} className="h-[15px] w-[15px] text-mute" />
+                      <span className="m text-[10.5px] uppercase tracking-[0.08em] text-body">
+                        {PAYMENT_METHODS.find((m) => m.value === sale.paymentMethod)?.label ?? sale.paymentMethod}
+                      </span>
+                    </span>
+                    <p className="m w-[92px] text-right text-[13.5px] font-semibold">
+                      {formatCurrency(sale.totalAmount)}
+                    </p>
+                    <ChevronRightIcon className="h-4 w-4 shrink-0 text-mist" />
                   </button>
                 ))}
-              </Card>
+              </div>
             </div>
           );
         })}
