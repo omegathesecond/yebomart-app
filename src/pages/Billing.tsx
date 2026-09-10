@@ -108,8 +108,8 @@ export function Billing() {
     <div className="space-y-6 max-w-4xl">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-white">Plan &amp; Credits</h1>
-        <p className="text-slate-400 mt-1">
+        <h1 className="text-2xl font-bold text-ink">Plan &amp; Credits</h1>
+        <p className="text-mute mt-1">
           Your plan covers the day-to-day. Credits cover anything beyond it. 1 credit = {szl(1)}.
         </p>
       </div>
@@ -118,9 +118,9 @@ export function Billing() {
           credits are the overage on top of it. */}
       <PlanSection onNotify={showToast} />
 
-      <div className="border-t border-slate-700/60 pt-6">
-        <h2 className="text-lg font-semibold text-white">Credits</h2>
-        <p className="text-slate-400 text-sm mt-1">
+      <div className="border-t border-line/60 pt-6">
+        <h2 className="text-lg font-semibold text-ink">Credits</h2>
+        <p className="text-mute text-sm mt-1">
           Used for anything past your plan&rsquo;s monthly allowance, and for everything on the free
           Till plan.
         </p>
@@ -129,38 +129,38 @@ export function Billing() {
       {/* Balance */}
       <Card gradient={low ? 'red' : 'amber'} className="flex items-center justify-between gap-4">
         <div>
-          <p className="text-sm text-slate-400">Current balance</p>
+          <p className="text-sm text-mute">Current balance</p>
           {balanceLoading && !balance ? (
-            <div className="flex items-center gap-2 mt-1 text-slate-300">
+            <div className="flex items-center gap-2 mt-1 text-body">
               <ArrowPathIcon className="w-5 h-5 animate-spin" />
               <span>Loading…</span>
             </div>
           ) : balanceError && !balance ? (
             <div className="mt-1">
-              <p className="text-red-400 font-medium">Couldn’t load your balance</p>
+              <p className="text-bad font-medium">Couldn’t load your balance</p>
               <button
                 onClick={fetchBalance}
-                className="text-sm text-amber-400 hover:underline mt-1"
+                className="text-sm text-brick hover:underline mt-1"
               >
                 Try again
               </button>
             </div>
           ) : (
-            <p className={`text-3xl font-bold mt-1 ${low ? 'text-red-400' : 'text-white'}`}>
+            <p className={`text-3xl font-bold mt-1 ${low ? 'text-bad' : 'text-ink'}`}>
               {(balance?.available ?? 0).toLocaleString()}{' '}
-              <span className="text-lg font-medium text-slate-400">credits</span>
+              <span className="text-lg font-medium text-mute">credits</span>
             </p>
           )}
         </div>
-        <div className="hidden sm:flex w-14 h-14 rounded-2xl bg-amber-500/20 items-center justify-center shrink-0">
-          <BoltIcon className="w-8 h-8 text-amber-400" />
+        <div className="hidden sm:flex w-14 h-14 rounded-sharp bg-wash items-center justify-center shrink-0">
+          <BoltIcon className="w-8 h-8 text-brick" />
         </div>
       </Card>
 
       {low && balance && (
-        <div className="flex items-start gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/30">
-          <ExclamationTriangleIcon className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
-          <p className="text-sm text-red-200">
+        <div className="flex items-start gap-3 p-4 rounded-sharp bg-bad/10 border border-bad/30">
+          <ExclamationTriangleIcon className="w-5 h-5 text-bad shrink-0 mt-0.5" />
+          <p className="text-sm text-bad">
             Your balance is low ({balance.available.toLocaleString()} credits left). Top up below so
             anything beyond your plan&rsquo;s allowance keeps working.
           </p>
@@ -169,17 +169,17 @@ export function Billing() {
 
       {/* Packs */}
       <div>
-        <h2 className="text-lg font-semibold text-white mb-3">Choose a pack</h2>
+        <h2 className="text-lg font-semibold text-ink mb-3">Choose a pack</h2>
 
         {packsLoading ? (
           <div className="text-center py-12">
-            <ArrowPathIcon className="w-8 h-8 animate-spin mx-auto text-slate-400" />
-            <p className="text-slate-400 mt-2">Loading packs…</p>
+            <ArrowPathIcon className="w-8 h-8 animate-spin mx-auto text-mute" />
+            <p className="text-mute mt-2">Loading packs…</p>
           </div>
         ) : packsError ? (
           <Card className="text-center py-10">
-            <ExclamationTriangleIcon className="w-10 h-10 mx-auto text-red-400 mb-3" />
-            <p className="text-red-300 mb-4">{packsError}</p>
+            <ExclamationTriangleIcon className="w-10 h-10 mx-auto text-bad mb-3" />
+            <p className="text-bad mb-4">{packsError}</p>
             <Button variant="secondary" onClick={loadPacks}>
               Retry
             </Button>
@@ -195,7 +195,7 @@ export function Billing() {
                   className="flex flex-col"
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-semibold text-white">{pack.name}</h3>
+                    <h3 className="font-semibold text-ink">{pack.name}</h3>
                     {pack.discountPercent > 0 && (
                       <Badge variant={isBest ? 'success' : 'info'}>
                         Save {pack.discountPercent}%
@@ -204,13 +204,13 @@ export function Billing() {
                   </div>
 
                   <div className="flex items-baseline gap-2 mb-1">
-                    <span className="text-3xl font-bold text-white">
+                    <span className="text-3xl font-bold text-ink">
                       {pack.credits.toLocaleString()}
                     </span>
-                    <span className="text-slate-400">credits</span>
+                    <span className="text-mute">credits</span>
                   </div>
-                  <p className="text-amber-400 font-semibold mb-3">{szl(pack.priceSzl)}</p>
-                  <p className="text-sm text-slate-400 flex-1">{pack.description}</p>
+                  <p className="text-brick font-semibold mb-3">{szl(pack.priceSzl)}</p>
+                  <p className="text-sm text-mute flex-1">{pack.description}</p>
 
                   <Button
                     variant={isBest && pack.discountPercent > 0 ? 'primary' : 'secondary'}
@@ -232,10 +232,10 @@ export function Billing() {
       {/* Custom amount */}
       <Card>
         <div className="flex items-center gap-2 mb-2">
-          <CheckBadgeIcon className="w-5 h-5 text-amber-400" />
-          <h2 className="text-lg font-semibold text-white">Custom top-up</h2>
+          <CheckBadgeIcon className="w-5 h-5 text-brick" />
+          <h2 className="text-lg font-semibold text-ink">Custom top-up</h2>
         </div>
-        <p className="text-sm text-slate-400 mb-3">
+        <p className="text-sm text-mute mb-3">
           Buy any amount (minimum {szl(MIN_CUSTOM)}). Custom top-ups are 1:1 — no bonus credits.
         </p>
         <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
@@ -265,7 +265,7 @@ export function Billing() {
         </div>
       </Card>
 
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-mist">
         Payments are processed securely by YeboPay. You’ll be redirected to complete your purchase
         and brought back here once it’s done.
       </p>

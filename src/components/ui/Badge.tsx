@@ -14,8 +14,8 @@ export function Badge({ children, variant = 'default', size = 'md', dot, classNa
     warning: 'badge-warning',
     danger: 'badge-danger',
     info: 'badge-info',
-    neutral: 'bg-slate-600 text-slate-300',
-    default: 'bg-slate-700 text-slate-300'
+    neutral: 'bg-shade text-body',
+    default: 'bg-shade text-body'
   };
 
   const sizes = {
@@ -27,11 +27,11 @@ export function Badge({ children, variant = 'default', size = 'md', dot, classNa
     return (
       <span className={clsx(
         'inline-block w-2 h-2 rounded-full',
-        variant === 'success' && 'bg-emerald-500',
-        variant === 'warning' && 'bg-amber-500',
-        variant === 'danger' && 'bg-red-500',
-        variant === 'info' && 'bg-blue-500',
-        (variant === 'default' || variant === 'neutral') && 'bg-slate-500',
+        variant === 'success' && 'bg-ok',
+        variant === 'warning' && 'bg-brand',
+        variant === 'danger' && 'bg-bad',
+        variant === 'info' && 'bg-sand',
+        (variant === 'default' || variant === 'neutral') && 'bg-mist',
         className
       )} />
     );

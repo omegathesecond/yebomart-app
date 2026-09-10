@@ -157,8 +157,8 @@ export function Staff() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Staff Management</h1>
-          <p className="text-slate-400 mt-1">Manage your team members and permissions</p>
+          <h1 className="text-2xl font-bold text-ink">Staff Management</h1>
+          <p className="text-mute mt-1">Manage your team members and permissions</p>
         </div>
         <Button variant="primary" leftIcon={<UserPlusIcon className="w-5 h-5" />} onClick={openAddModal}>
           Add Staff
@@ -170,14 +170,14 @@ export function Staff() {
         {staff.map((member) => (
           <Card key={member.id} className="relative">
             <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
-                <span className="text-xl font-bold text-white">
+              <div className="w-12 h-12 rounded-full bg-brand flex items-center justify-center">
+                <span className="text-xl font-bold text-ink">
                   {member.name.charAt(0).toUpperCase()}
                 </span>
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold text-white">{member.name}</h3>
-                <div className="flex items-center gap-2 text-sm text-slate-400 mt-1">
+                <h3 className="font-semibold text-ink">{member.name}</h3>
+                <div className="flex items-center gap-2 text-sm text-mute mt-1">
                   <PhoneIcon className="w-4 h-4" />
                   {member.phone}
                 </div>
@@ -187,7 +187,7 @@ export function Staff() {
               </div>
             </div>
             
-            <div className="flex gap-2 mt-4 pt-4 border-t border-slate-700">
+            <div className="flex gap-2 mt-4 pt-4 border-t border-line">
               <Button
                 variant="primary"
                 size="sm"
@@ -220,9 +220,9 @@ export function Staff() {
         {staff.length === 0 && (
           <Card className="md:col-span-2 lg:col-span-3">
             <div className="text-center py-8">
-              <UserCircleIcon className="w-16 h-16 mx-auto text-slate-600 mb-4" />
-              <h3 className="text-lg font-medium text-white mb-2">No staff members yet</h3>
-              <p className="text-slate-400 mb-4">Add your team members to manage your shop together</p>
+              <UserCircleIcon className="w-16 h-16 mx-auto text-mist mb-4" />
+              <h3 className="text-lg font-medium text-ink mb-2">No staff members yet</h3>
+              <p className="text-mute mb-4">Add your team members to manage your shop together</p>
               <Button variant="primary" onClick={openAddModal}>
                 <UserPlusIcon className="w-5 h-5" />
                 Add First Staff
@@ -234,32 +234,32 @@ export function Staff() {
 
       {/* Permissions Info */}
       <Card>
-        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-          <ShieldCheckIcon className="w-5 h-5 text-amber-500" />
+        <h3 className="text-lg font-semibold text-ink mb-4 flex items-center gap-2">
+          <ShieldCheckIcon className="w-5 h-5 text-brick" />
           Role Permissions
         </h3>
         <div className="grid md:grid-cols-3 gap-4">
-          <div className="p-4 bg-slate-700/30 rounded-lg">
-            <h4 className="font-medium text-emerald-400 mb-2">Owner</h4>
-            <ul className="text-sm text-slate-400 space-y-1">
+          <div className="p-4 bg-shade/30 rounded-sharp">
+            <h4 className="font-medium text-ok mb-2">Owner</h4>
+            <ul className="text-sm text-mute space-y-1">
               <li>✓ Full access to everything</li>
               <li>✓ Manage staff & permissions</li>
               <li>✓ View reports & analytics</li>
               <li>✓ Manage billing</li>
             </ul>
           </div>
-          <div className="p-4 bg-slate-700/30 rounded-lg">
-            <h4 className="font-medium text-amber-400 mb-2">Manager</h4>
-            <ul className="text-sm text-slate-400 space-y-1">
+          <div className="p-4 bg-shade/30 rounded-sharp">
+            <h4 className="font-medium text-brick mb-2">Manager</h4>
+            <ul className="text-sm text-mute space-y-1">
               <li>✓ POS & sales</li>
               <li>✓ Manage products & stock</li>
               <li>✓ View reports</li>
               <li>✗ Manage billing</li>
             </ul>
           </div>
-          <div className="p-4 bg-slate-700/30 rounded-lg">
-            <h4 className="font-medium text-slate-400 mb-2">Cashier</h4>
-            <ul className="text-sm text-slate-400 space-y-1">
+          <div className="p-4 bg-shade/30 rounded-sharp">
+            <h4 className="font-medium text-mute mb-2">Cashier</h4>
+            <ul className="text-sm text-mute space-y-1">
               <li>✓ POS & sales only</li>
               <li>✓ View products</li>
               <li>✗ Manage stock</li>
@@ -278,7 +278,7 @@ export function Staff() {
       >
         <div className="space-y-4">
           {errors._form && (
-            <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm">
+            <div className="p-3 bg-bad/10 border border-bad/30 rounded-sharp text-bad text-sm">
               {errors._form}
             </div>
           )}
@@ -319,11 +319,11 @@ export function Staff() {
           />
           
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">Role</label>
+            <label className="block text-sm font-medium text-body mb-2">Role</label>
             <select
               value={formData.role}
               onChange={(e) => setFormData({ ...formData, role: e.target.value as any })}
-              className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white"
+              className="w-full px-4 py-3 bg-shade border border-line-strong rounded-sharp text-ink"
             >
               <option value="cashier">Cashier</option>
               <option value="manager">Manager</option>

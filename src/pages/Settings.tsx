@@ -194,8 +194,8 @@ export function Settings() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-white">Settings</h1>
-        <p className="text-slate-400 mt-1">Manage your shop and account settings</p>
+        <h1 className="text-2xl font-bold text-ink">Settings</h1>
+        <p className="text-mute mt-1">Manage your shop and account settings</p>
       </div>
 
       <div className="flex flex-col md:flex-row gap-6">
@@ -207,16 +207,16 @@ export function Settings() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-sharp transition-all ${
                     activeTab === tab.id
-                      ? 'bg-amber-500/20 text-amber-400'
-                      : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                      ? 'bg-wash text-brick'
+                      : 'text-mute hover:text-ink hover:bg-sand'
                   }`}
                 >
                   <tab.icon className="w-5 h-5" />
                   <span className="font-medium flex-1 text-left">{tab.label}</span>
                   {tab.badge && (
-                    <span className="px-2 py-0.5 text-xs bg-amber-500/20 text-amber-400 rounded-full">
+                    <span className="px-2 py-0.5 text-xs bg-wash text-brick rounded-full">
                       {tab.badge}
                     </span>
                   )}
@@ -233,24 +233,24 @@ export function Settings() {
               <CardHeader title="Shop Information" subtitle="Basic details about your shop" />
               <div className="space-y-4">
                 {saveSuccess && (
-                  <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg text-green-400 text-sm">
+                  <div className="p-3 bg-ok/10 border border-ok/30 rounded-sharp text-ok text-sm">
                     Settings saved successfully!
                   </div>
                 )}
                 
                 {/* Business Type Display */}
                 {shop?.businessType && (
-                  <div className="p-4 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 rounded-xl">
+                  <div className="p-4 bg-brand border border-ink/30 rounded-sharp">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center">
-                        <TagIcon className="w-6 h-6 text-amber-400" />
+                      <div className="w-12 h-12 rounded-sharp bg-wash flex items-center justify-center">
+                        <TagIcon className="w-6 h-6 text-brick" />
                       </div>
                       <div>
-                        <p className="text-sm text-slate-400">Business Type</p>
-                        <h3 className="text-lg font-semibold text-white">
+                        <p className="text-sm text-mute">Business Type</p>
+                        <h3 className="text-lg font-semibold text-ink">
                           {getShopType(shop.businessType)?.name || shop.businessType}
                         </h3>
-                        <p className="text-sm text-slate-500">
+                        <p className="text-sm text-mist">
                           {getShopType(shop.businessType)?.description}
                         </p>
                       </div>
@@ -301,14 +301,14 @@ export function Settings() {
             <Card>
               <CardHeader title="Your Profile" subtitle="Your account details" />
               <div className="space-y-4">
-                <div className="p-4 bg-slate-700/30 rounded-xl">
+                <div className="p-4 bg-shade/30 rounded-sharp">
                   <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 rounded-full bg-amber-500/20 flex items-center justify-center">
-                      <UserIcon className="w-8 h-8 text-amber-400" />
+                    <div className="w-16 h-16 rounded-full bg-wash flex items-center justify-center">
+                      <UserIcon className="w-8 h-8 text-brick" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-white">{user?.name}</h3>
-                      <p className="text-slate-400">{user?.phone}</p>
+                      <h3 className="text-lg font-semibold text-ink">{user?.name}</h3>
+                      <p className="text-mute">{user?.phone}</p>
                       <Badge variant="success" className="mt-1">{user?.role}</Badge>
                     </div>
                   </div>
@@ -316,20 +316,20 @@ export function Settings() {
                 
                 {/* Shop Info */}
                 {shop && (
-                  <div className="p-4 bg-slate-700/30 rounded-xl">
+                  <div className="p-4 bg-shade/30 rounded-sharp">
                     <div className="flex items-center gap-4">
-                      <div className="w-16 h-16 rounded-full bg-slate-600/50 flex items-center justify-center">
-                        <BuildingOfficeIcon className="w-8 h-8 text-slate-400" />
+                      <div className="w-16 h-16 rounded-full bg-shade/50 flex items-center justify-center">
+                        <BuildingOfficeIcon className="w-8 h-8 text-mute" />
                       </div>
                       <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-white">{shop.name}</h3>
+                        <h3 className="text-lg font-semibold text-ink">{shop.name}</h3>
                         {shop.businessType && (
-                          <p className="text-amber-400">
+                          <p className="text-brick">
                             {getShopType(shop.businessType)?.name || shop.businessType}
                           </p>
                         )}
                         {shop.address && (
-                          <p className="text-sm text-slate-500">{shop.address}</p>
+                          <p className="text-sm text-mist">{shop.address}</p>
                         )}
                       </div>
                     </div>
@@ -357,7 +357,7 @@ export function Settings() {
                     title={t('settings.language') || 'Language'} 
                     subtitle="Your country only supports one language"
                   />
-                  <div className="p-4 text-slate-400 text-sm">
+                  <div className="p-4 text-mute text-sm">
                     {country?.languages[0] === 'fr' ? 'Français' : 'English'} is the default language for your region.
                   </div>
                 </Card>
@@ -376,14 +376,14 @@ export function Settings() {
                   placeholder="Yebo"
                   hint="This is how your AI assistant introduces itself"
                 />
-                <div className="p-4 bg-slate-700/30 rounded-xl">
+                <div className="p-4 bg-shade/30 rounded-sharp">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
-                      <SparklesIcon className="w-6 h-6 text-white" />
+                    <div className="w-12 h-12 rounded-full bg-brand flex items-center justify-center">
+                      <SparklesIcon className="w-6 h-6 text-ink" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-white">{assistantName}</h3>
-                      <p className="text-sm text-slate-400">
+                      <h3 className="font-semibold text-ink">{assistantName}</h3>
+                      <p className="text-sm text-mute">
                         "Hello! I'm {assistantName}, your AI shop assistant!"
                       </p>
                     </div>
@@ -400,18 +400,18 @@ export function Settings() {
             <Card>
               <CardHeader title={t('settings.notifications')} subtitle="Configure alerts and reports" />
               {notifLoading && !notif ? (
-                <p className="text-slate-400 text-sm">Loading…</p>
+                <p className="text-mute text-sm">Loading…</p>
               ) : !notif ? (
-                <p className="text-red-400 text-sm">Couldn't load notification settings.</p>
+                <p className="text-bad text-sm">Couldn't load notification settings.</p>
               ) : (
                 <div className="space-y-4">
                   {/* WhatsApp daily reports */}
-                  <div className="flex items-center justify-between p-4 bg-slate-700/30 rounded-xl">
+                  <div className="flex items-center justify-between p-4 bg-shade/30 rounded-sharp">
                     <div className="flex items-center gap-3">
-                      <DevicePhoneMobileIcon className="w-6 h-6 text-amber-400" />
+                      <DevicePhoneMobileIcon className="w-6 h-6 text-brick" />
                       <div>
-                        <h3 className="font-medium text-white">{t('settings.whatsappReports')}</h3>
-                        <p className="text-sm text-slate-400">Daily sales summary to your WhatsApp</p>
+                        <h3 className="font-medium text-ink">{t('settings.whatsappReports')}</h3>
+                        <p className="text-sm text-mute">Daily sales summary to your WhatsApp</p>
                       </div>
                     </div>
                     <Toggle
@@ -423,12 +423,12 @@ export function Settings() {
                   </div>
 
                   {/* Low stock alerts */}
-                  <div className="flex items-center justify-between p-4 bg-slate-700/30 rounded-xl">
+                  <div className="flex items-center justify-between p-4 bg-shade/30 rounded-sharp">
                     <div className="flex items-center gap-3">
-                      <BellIcon className="w-6 h-6 text-amber-400" />
+                      <BellIcon className="w-6 h-6 text-brick" />
                       <div>
-                        <h3 className="font-medium text-white">{t('settings.lowStockAlerts')}</h3>
-                        <p className="text-sm text-slate-400">Get notified when products run low</p>
+                        <h3 className="font-medium text-ink">{t('settings.lowStockAlerts')}</h3>
+                        <p className="text-sm text-mute">Get notified when products run low</p>
                       </div>
                     </div>
                     <Toggle
@@ -440,8 +440,8 @@ export function Settings() {
                   </div>
 
                   {/* Recipient phone — where the messages actually go. */}
-                  <p className="text-sm text-slate-400 px-1">
-                    Sent to <span className="font-medium text-slate-200">{notif.recipientPhone}</span>
+                  <p className="text-sm text-mute px-1">
+                    Sent to <span className="font-medium text-ink">{notif.recipientPhone}</span>
                     {notif.notifyPhone ? '' : ' (your account phone)'}
                   </p>
                 </div>
@@ -453,7 +453,7 @@ export function Settings() {
             <Card>
               <CardHeader title="Tax / VAT" subtitle="Charge VAT on sales and print it on receipts" />
               {taxLoading && !tax ? (
-                <p className="text-slate-400 text-sm">Loading…</p>
+                <p className="text-mute text-sm">Loading…</p>
               ) : (
                 <div className="space-y-4">
                   <Input
@@ -469,12 +469,12 @@ export function Settings() {
                   />
 
                   {/* Inclusive vs exclusive */}
-                  <div className="flex items-center justify-between p-4 bg-slate-700/30 rounded-xl">
+                  <div className="flex items-center justify-between p-4 bg-shade/30 rounded-sharp">
                     <div className="flex items-center gap-3">
-                      <ReceiptPercentIcon className="w-6 h-6 text-amber-400" />
+                      <ReceiptPercentIcon className="w-6 h-6 text-brick" />
                       <div>
-                        <h3 className="font-medium text-white">Prices include VAT</h3>
-                        <p className="text-sm text-slate-400">
+                        <h3 className="font-medium text-ink">Prices include VAT</h3>
+                        <p className="text-sm text-mute">
                           {taxInclusive
                             ? 'Sell prices already include VAT — the tax is extracted from the price.'
                             : 'VAT is added on top of the sell price at checkout.'}
@@ -508,7 +508,7 @@ export function Settings() {
             <Card>
               <CardHeader title="Appearance" subtitle="Customize how YeboMart looks" />
               <div className="space-y-4">
-                <p className="text-slate-400">Coming soon! You'll be able to customize themes and colors.</p>
+                <p className="text-mute">Coming soon! You'll be able to customize themes and colors.</p>
               </div>
             </Card>
           )}
@@ -544,11 +544,11 @@ function Toggle({
       disabled={busy}
       onClick={onClick}
       className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${
-        on ? 'bg-green-500' : 'bg-slate-600'
+        on ? 'bg-ok' : 'bg-shade'
       }`}
     >
       <span
-        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+        className={`inline-block h-5 w-5 transform rounded-full bg-cream shadow transition-transform ${
           on ? 'translate-x-6' : 'translate-x-1'
         }`}
       />

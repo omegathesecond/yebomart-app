@@ -55,7 +55,7 @@ export { queryClient };
 function PageLoader() {
   return (
     <div className="min-h-[50vh] flex items-center justify-center">
-      <div className="w-10 h-10 border-3 border-amber-500 border-t-transparent rounded-full animate-spin" />
+      <div className="w-10 h-10 border-3 border-ink border-t-transparent rounded-full animate-spin" />
     </div>
   );
 }
@@ -63,10 +63,10 @@ function PageLoader() {
 // Full-screen loader for initial app load
 function AppLoader() {
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+    <div className="min-h-screen bg-cream flex items-center justify-center">
       <div className="text-center">
-        <div className="w-16 h-16 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-        <p className="text-slate-400">Loading...</p>
+        <div className="w-16 h-16 border-4 border-ink border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        <p className="text-mute">Loading...</p>
       </div>
     </div>
   );

@@ -57,8 +57,8 @@ export function Products() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Products</h1>
-          <p className="text-slate-400 mt-1">
+          <h1 className="text-2xl font-bold text-ink">Products</h1>
+          <p className="text-mute mt-1">
             {products.length} product{products.length !== 1 ? 's' : ''} in catalog
           </p>
         </div>
@@ -105,7 +105,7 @@ export function Products() {
                 <div className="flex items-start gap-3 mb-3">
                   {/* Product thumbnail */}
                   {product.imageUrl && (
-                    <div className="w-12 h-12 rounded-lg overflow-hidden bg-slate-700 flex-shrink-0">
+                    <div className="w-12 h-12 rounded-sharp overflow-hidden bg-shade flex-shrink-0">
                       <img 
                         src={product.imageUrl} 
                         alt={product.name}
@@ -115,7 +115,7 @@ export function Products() {
                   )}
                   <div className="flex items-start justify-between gap-2 flex-1 min-w-0">
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-white truncate">{product.name}</h3>
+                      <h3 className="font-semibold text-ink truncate">{product.name}</h3>
                       {product.category && (
                         <Badge variant="default" size="sm" className="mt-1">
                           {product.category}
@@ -123,33 +123,33 @@ export function Products() {
                       )}
                     </div>
                     {product.barcode && (
-                      <QrCodeIcon className="w-5 h-5 text-slate-500 flex-shrink-0" />
+                      <QrCodeIcon className="w-5 h-5 text-mist flex-shrink-0" />
                     )}
                   </div>
                 </div>
                 
                 <div className="flex-1">
                   <div className="flex justify-between items-baseline mb-2">
-                    <span className="text-sm text-slate-400">Sell Price</span>
-                    <span className="text-xl font-bold text-amber-400">
+                    <span className="text-sm text-mute">Sell Price</span>
+                    <span className="text-xl font-bold text-brick">
                       {formatCurrency(product.sellPrice)}
                     </span>
                   </div>
                   <div className="flex justify-between items-baseline text-sm">
-                    <span className="text-slate-400">Cost</span>
-                    <span className="text-slate-300">{formatCurrency(product.costPrice)}</span>
+                    <span className="text-mute">Cost</span>
+                    <span className="text-body">{formatCurrency(product.costPrice)}</span>
                   </div>
                   <div className="flex justify-between items-baseline text-sm mt-1">
-                    <span className="text-slate-400">Margin</span>
-                    <span className="text-emerald-400">
+                    <span className="text-mute">Margin</span>
+                    <span className="text-ok">
                       {((product.sellPrice - product.costPrice) / product.sellPrice * 100).toFixed(0)}%
                     </span>
                   </div>
                 </div>
 
-                <div className="mt-4 pt-4 border-t border-slate-700">
+                <div className="mt-4 pt-4 border-t border-line">
                   <div className="flex items-center justify-between mb-3">
-                    <span className="text-sm text-slate-400">In Stock</span>
+                    <span className="text-sm text-mute">In Stock</span>
                     <Badge 
                       variant={isOutOfStock ? 'danger' : isLowStock ? 'warning' : 'success'}
                     >
@@ -167,7 +167,7 @@ export function Products() {
                       variant="ghost" 
                       size="sm"
                       onClick={() => setDeleteId(product.id)}
-                      className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                      className="text-bad hover:text-bad hover:bg-bad/10"
                     >
                       <TrashIcon className="w-4 h-4" />
                     </Button>
@@ -179,17 +179,17 @@ export function Products() {
         </div>
       ) : (
         <Card className="py-12 text-center">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-700/50 flex items-center justify-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-shade/50 flex items-center justify-center">
             {searchQuery || categoryFilter ? (
-              <MagnifyingGlassIcon className="w-8 h-8 text-slate-500" />
+              <MagnifyingGlassIcon className="w-8 h-8 text-mist" />
             ) : (
-              <PlusIcon className="w-8 h-8 text-slate-500" />
+              <PlusIcon className="w-8 h-8 text-mist" />
             )}
           </div>
-          <h3 className="text-lg font-semibold text-white mb-2">
+          <h3 className="text-lg font-semibold text-ink mb-2">
             {searchQuery || categoryFilter ? 'No products found' : 'No products yet'}
           </h3>
-          <p className="text-slate-400 mb-4">
+          <p className="text-mute mb-4">
             {searchQuery || categoryFilter 
               ? 'Try adjusting your search or filters'
               : 'Add your first product to get started'

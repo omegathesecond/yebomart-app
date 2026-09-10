@@ -202,11 +202,11 @@ export function Customers() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Customers</h1>
-          <p className="text-slate-400 mt-1">
+          <h1 className="text-2xl font-bold text-ink">Customers</h1>
+          <p className="text-mute mt-1">
             {customers.length} customer{customers.length !== 1 ? 's' : ''}
             {totalOwed > 0 && (
-              <span className="ml-2 text-red-400">
+              <span className="ml-2 text-bad">
                 · {formatCurrency(totalOwed)} owed
               </span>
             )}
@@ -232,13 +232,13 @@ export function Customers() {
       {/* List */}
       {loading ? (
         <div className="text-center py-12">
-          <ArrowPathIcon className="w-8 h-8 animate-spin mx-auto text-slate-400" />
-          <p className="text-slate-400 mt-2">Loading customers...</p>
+          <ArrowPathIcon className="w-8 h-8 animate-spin mx-auto text-mute" />
+          <p className="text-mute mt-2">Loading customers...</p>
         </div>
       ) : customers.length === 0 ? (
         <Card className="text-center py-12">
-          <UserGroupIcon className="w-12 h-12 mx-auto text-slate-500 mb-3" />
-          <p className="text-slate-400 mb-4">No customers found</p>
+          <UserGroupIcon className="w-12 h-12 mx-auto text-mist mb-3" />
+          <p className="text-mute mb-4">No customers found</p>
           <Button variant="primary" onClick={openCreate}>
             Add Your First Customer
           </Button>
@@ -248,7 +248,7 @@ export function Customers() {
           {customers.map((c) => (
             <Card
               key={c.id}
-              className="relative cursor-pointer hover:bg-slate-800/50 transition-colors"
+              className="relative cursor-pointer hover:bg-sand/50 transition-colors"
               onClick={() => openDetail(c.id)}
             >
               <button
@@ -256,7 +256,7 @@ export function Customers() {
                   e.stopPropagation();
                   openEdit(c);
                 }}
-                className="absolute top-3 right-3 p-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300"
+                className="absolute top-3 right-3 p-1.5 rounded-sharp bg-shade hover:bg-shade text-body"
                 title="Edit"
               >
                 <PencilIcon className="w-4 h-4" />
@@ -264,15 +264,15 @@ export function Customers() {
 
               <div className="pr-10">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center">
-                    <span className="text-white font-semibold">
+                  <div className="w-10 h-10 bg-brand rounded-sharp flex items-center justify-center">
+                    <span className="text-ink font-semibold">
                       {c.name.charAt(0).toUpperCase()}
                     </span>
                   </div>
                   <div className="min-w-0">
-                    <h3 className="font-semibold text-white truncate">{c.name}</h3>
+                    <h3 className="font-semibold text-ink truncate">{c.name}</h3>
                     {c._count && (
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-mist">
                         {c._count.sales} sale{c._count.sales !== 1 ? 's' : ''}
                       </p>
                     )}
@@ -281,13 +281,13 @@ export function Customers() {
 
                 <div className="space-y-2 text-sm">
                   {c.phone && (
-                    <div className="flex items-center gap-2 text-slate-400">
+                    <div className="flex items-center gap-2 text-mute">
                       <PhoneIcon className="w-4 h-4" />
                       <span>{c.phone}</span>
                     </div>
                   )}
                   {c.email && (
-                    <div className="flex items-center gap-2 text-slate-400">
+                    <div className="flex items-center gap-2 text-mute">
                       <EnvelopeIcon className="w-4 h-4" />
                       <span className="truncate">{c.email}</span>
                     </div>
@@ -386,31 +386,31 @@ export function Customers() {
       >
         {detailLoading ? (
           <div className="text-center py-10">
-            <ArrowPathIcon className="w-8 h-8 animate-spin mx-auto text-slate-400" />
+            <ArrowPathIcon className="w-8 h-8 animate-spin mx-auto text-mute" />
           </div>
         ) : detail ? (
           <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-1">
             {/* Contact */}
             <div className="space-y-2 text-sm">
               {detail.phone && (
-                <div className="flex items-center gap-2 text-slate-300">
-                  <PhoneIcon className="w-4 h-4 text-slate-500" />
-                  <a href={`tel:${detail.phone}`} className="hover:text-amber-400">
+                <div className="flex items-center gap-2 text-body">
+                  <PhoneIcon className="w-4 h-4 text-mist" />
+                  <a href={`tel:${detail.phone}`} className="hover:text-brick">
                     {detail.phone}
                   </a>
                 </div>
               )}
               {detail.email && (
-                <div className="flex items-center gap-2 text-slate-300">
-                  <EnvelopeIcon className="w-4 h-4 text-slate-500" />
-                  <a href={`mailto:${detail.email}`} className="hover:text-amber-400">
+                <div className="flex items-center gap-2 text-body">
+                  <EnvelopeIcon className="w-4 h-4 text-mist" />
+                  <a href={`mailto:${detail.email}`} className="hover:text-brick">
                     {detail.email}
                   </a>
                 </div>
               )}
               {detail.address && (
-                <div className="flex items-center gap-2 text-slate-300">
-                  <MapPinIcon className="w-4 h-4 text-slate-500" />
+                <div className="flex items-center gap-2 text-body">
+                  <MapPinIcon className="w-4 h-4 text-mist" />
                   <span>{detail.address}</span>
                 </div>
               )}
@@ -418,27 +418,27 @@ export function Customers() {
 
             {/* Stats */}
             <div className="grid grid-cols-3 gap-3">
-              <div className="bg-slate-800 rounded-xl p-3 text-center">
-                <p className="text-xs text-slate-400">Balance</p>
+              <div className="bg-sand rounded-sharp p-3 text-center">
+                <p className="text-xs text-mute">Balance</p>
                 <p
                   className={`text-lg font-bold ${
                     detail.balance > 0
-                      ? 'text-red-400'
+                      ? 'text-bad'
                       : detail.balance < 0
-                        ? 'text-emerald-400'
-                        : 'text-white'
+                        ? 'text-ok'
+                        : 'text-ink'
                   }`}
                 >
                   {formatCurrency(detail.balance)}
                 </p>
               </div>
-              <div className="bg-slate-800 rounded-xl p-3 text-center">
-                <p className="text-xs text-slate-400">Recent Spent</p>
-                <p className="text-lg font-bold text-white">{formatCurrency(recentSpent)}</p>
+              <div className="bg-sand rounded-sharp p-3 text-center">
+                <p className="text-xs text-mute">Recent Spent</p>
+                <p className="text-lg font-bold text-ink">{formatCurrency(recentSpent)}</p>
               </div>
-              <div className="bg-slate-800 rounded-xl p-3 text-center">
-                <p className="text-xs text-slate-400">Credit Limit</p>
-                <p className="text-lg font-bold text-white">
+              <div className="bg-sand rounded-sharp p-3 text-center">
+                <p className="text-xs text-mute">Credit Limit</p>
+                <p className="text-lg font-bold text-ink">
                   {formatCurrency(detail.creditLimit)}
                 </p>
               </div>
@@ -461,29 +461,29 @@ export function Customers() {
 
             {/* Purchase history */}
             <div>
-              <p className="text-sm font-medium text-white mb-2 flex items-center gap-2">
-                <ShoppingBagIcon className="w-5 h-5 text-amber-400" />
+              <p className="text-sm font-medium text-ink mb-2 flex items-center gap-2">
+                <ShoppingBagIcon className="w-5 h-5 text-brick" />
                 Purchase History
               </p>
               {detail.sales.length === 0 ? (
-                <p className="text-sm text-slate-500 py-3">No purchases yet.</p>
+                <p className="text-sm text-mist py-3">No purchases yet.</p>
               ) : (
                 <div className="space-y-2">
                   {detail.sales.map((s) => (
                     <div
                       key={s.id}
-                      className="flex justify-between items-center bg-slate-800 rounded-lg p-3"
+                      className="flex justify-between items-center bg-sand rounded-sharp p-3"
                     >
                       <div>
-                        <p className="text-sm font-mono text-amber-400">
+                        <p className="text-sm font-mono text-brick">
                           {s.receiptNumber || s.id.slice(-8).toUpperCase()}
                         </p>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-mist">
                           {new Date(s.createdAt).toLocaleString()} ·{' '}
                           {s.paymentMethod}
                         </p>
                       </div>
-                      <p className="font-semibold text-white">
+                      <p className="font-semibold text-ink">
                         {formatCurrency(s.totalAmount)}
                       </p>
                     </div>
@@ -495,21 +495,21 @@ export function Customers() {
             {/* Credit ledger */}
             {detail.credits.length > 0 && (
               <div>
-                <p className="text-sm font-medium text-white mb-2 flex items-center gap-2">
-                  <ReceiptPercentIcon className="w-5 h-5 text-violet-400" />
+                <p className="text-sm font-medium text-ink mb-2 flex items-center gap-2">
+                  <ReceiptPercentIcon className="w-5 h-5 text-brick" />
                   Account Ledger
                 </p>
                 <div className="space-y-2">
                   {detail.credits.map((cr) => (
                     <div
                       key={cr.id}
-                      className="flex justify-between items-center bg-slate-800 rounded-lg p-3"
+                      className="flex justify-between items-center bg-sand rounded-sharp p-3"
                     >
                       <div>
-                        <p className="text-sm text-white">
+                        <p className="text-sm text-ink">
                           {CREDIT_TYPE_LABEL[cr.type] || cr.type}
                         </p>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-mist">
                           {new Date(cr.createdAt).toLocaleDateString()}
                           {cr.note ? ` · ${cr.note}` : ''}
                         </p>
@@ -517,8 +517,8 @@ export function Customers() {
                       <p
                         className={`font-semibold ${
                           cr.type === 'PAYMENT' || cr.type === 'REFUND'
-                            ? 'text-emerald-400'
-                            : 'text-slate-300'
+                            ? 'text-ok'
+                            : 'text-body'
                         }`}
                       >
                         {formatCurrency(cr.amount)}
@@ -590,15 +590,15 @@ export function Customers() {
       >
         {detail && (
           <div className="space-y-4">
-            <div className="bg-slate-800 rounded-xl p-3 flex items-center justify-between">
-              <span className="text-sm text-slate-400">{detail.name}'s balance</span>
+            <div className="bg-sand rounded-sharp p-3 flex items-center justify-between">
+              <span className="text-sm text-mute">{detail.name}'s balance</span>
               <span
                 className={`font-bold ${
                   detail.balance > 0
-                    ? 'text-red-400'
+                    ? 'text-bad'
                     : detail.balance < 0
-                      ? 'text-emerald-400'
-                      : 'text-white'
+                      ? 'text-ok'
+                      : 'text-ink'
                 }`}
               >
                 {formatCurrency(detail.balance)}
@@ -633,9 +633,9 @@ export function Customers() {
             />
 
             {isPaymentAmountValid() && (
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-mute">
                 New balance:{' '}
-                <span className="font-semibold text-slate-200">
+                <span className="font-semibold text-ink">
                   {formatCurrency(
                     detail.balance +
                       (paymentType === 'ADJUSTMENT'

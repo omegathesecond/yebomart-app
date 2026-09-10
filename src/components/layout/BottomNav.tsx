@@ -50,18 +50,18 @@ const navItems = [
 
 export function BottomNav() {
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-xl border-t border-slate-800 z-50 safe-area-bottom">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-cream/95 border-t border-line z-50 safe-area-bottom">
       <div className="flex items-center justify-around px-2 py-2">
         {navItems.map((item) => (
           <NavLink
             key={item.name}
             to={item.href}
             className={({ isActive }) => `
-              flex flex-col items-center justify-center min-w-[56px] py-2 px-3 rounded-xl transition-all duration-200
-              ${item.primary && !isActive ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-lg shadow-amber-600/30 -mt-4' : ''}
-              ${item.primary && isActive ? 'bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-lg shadow-amber-600/40 -mt-4 scale-105' : ''}
-              ${!item.primary && isActive ? 'text-amber-400' : ''}
-              ${!item.primary && !isActive ? 'text-slate-500' : ''}
+              flex flex-col items-center justify-center min-w-[56px] py-2 px-3 rounded-sharp transition-all duration-200
+              ${item.primary && !isActive ? 'bg-brand text-ink shadow-lg -mt-4' : ''}
+              ${item.primary && isActive ? 'bg-brand text-ink shadow-lg -mt-4 scale-105' : ''}
+              ${!item.primary && isActive ? 'text-brick' : ''}
+              ${!item.primary && !isActive ? 'text-mist' : ''}
             `}
           >
             {({ isActive }) => (
@@ -71,7 +71,7 @@ export function BottomNav() {
                 ) : (
                   <item.icon className={`${item.primary ? 'w-6 h-6' : 'w-5 h-5'}`} />
                 )}
-                <span className={`text-[10px] font-medium mt-0.5 ${item.primary ? 'text-white' : ''}`}>
+                <span className={`text-[10px] font-medium mt-0.5 ${item.primary ? 'text-ink' : ''}`}>
                   {item.name}
                 </span>
               </>

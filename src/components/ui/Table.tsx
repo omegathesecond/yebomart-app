@@ -28,14 +28,14 @@ export function Table<T extends Record<string, unknown>>({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-500 border-t-transparent" />
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-line-strong border-t-transparent" />
       </div>
     );
   }
 
   if (data.length === 0) {
     return (
-      <div className="text-center py-12 text-slate-500">
+      <div className="text-center py-12 text-mist">
         {emptyMessage}
       </div>
     );
@@ -45,12 +45,12 @@ export function Table<T extends Record<string, unknown>>({
     <div className="overflow-x-auto">
       <table className="w-full">
         <thead>
-          <tr className="border-b border-slate-700">
+          <tr className="border-b border-line">
             {columns.map((col) => (
               <th
                 key={col.key}
                 className={clsx(
-                  'px-4 py-3 text-left text-sm font-medium text-slate-400 uppercase tracking-wider',
+                  'px-4 py-3 text-left text-sm font-medium text-mute uppercase tracking-wider',
                   col.className
                 )}
               >
@@ -59,7 +59,7 @@ export function Table<T extends Record<string, unknown>>({
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-700/50">
+        <tbody className="divide-y divide-line/50">
           {data.map((item) => (
             <tr
               key={String(item[keyField])}
@@ -72,7 +72,7 @@ export function Table<T extends Record<string, unknown>>({
               {columns.map((col) => (
                 <td
                   key={col.key}
-                  className={clsx('px-4 py-4 text-sm text-slate-300', col.className)}
+                  className={clsx('px-4 py-4 text-sm text-body', col.className)}
                 >
                   {col.render ? col.render(item) : String(item[col.key] ?? '')}
                 </td>

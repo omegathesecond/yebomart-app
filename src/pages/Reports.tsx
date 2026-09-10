@@ -319,8 +319,8 @@ export function Reports() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">{t('reports.title')}</h1>
-          <p className="text-slate-400 mt-1">Track your business performance</p>
+          <h1 className="text-2xl font-bold text-ink">{t('reports.title')}</h1>
+          <p className="text-mute mt-1">Track your business performance</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant={period === 'today' ? 'primary' : 'secondary'} size="sm" onClick={() => setPeriod('today')}>
@@ -366,7 +366,7 @@ export function Reports() {
           {/* Offline / cached banner — only when figures come from the local
               cache because the device is offline. Never silent. */}
           {usingCache && m && (
-            <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300">
+            <div className="flex items-center gap-3 p-3 rounded-sharp bg-wash border border-ink/30 text-brick">
               <WifiIcon className="w-5 h-5 flex-shrink-0" />
               <p className="text-sm">
                 You're offline — showing cached figures from this device. These may be
@@ -380,7 +380,7 @@ export function Reports() {
 
           {/* Loading state */}
           {summaryLoading && !m && (
-            <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+            <div className="flex flex-col items-center justify-center py-20 text-mute">
               <ArrowPathIcon className="w-10 h-10 animate-spin mb-3" />
               <p>Loading report…</p>
             </div>
@@ -390,9 +390,9 @@ export function Reports() {
           {!summaryLoading && summaryError && !m && (
             <Card>
               <div className="flex flex-col items-center justify-center py-12 text-center">
-                <ExclamationTriangleIcon className="w-12 h-12 text-red-400 mb-3" />
-                <h3 className="text-lg font-semibold text-white mb-1">Couldn't load report</h3>
-                <p className="text-slate-400 mb-4 max-w-sm">{summaryError}</p>
+                <ExclamationTriangleIcon className="w-12 h-12 text-bad mb-3" />
+                <h3 className="text-lg font-semibold text-ink mb-1">Couldn't load report</h3>
+                <p className="text-mute mb-4 max-w-sm">{summaryError}</p>
                 <Button variant="primary" size="sm" onClick={loadSummary}>
                   <ArrowPathIcon className="w-4 h-4 mr-1" />
                   Try again
@@ -406,48 +406,48 @@ export function Reports() {
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <Card gradient="emerald">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-emerald-500/20 rounded-lg">
-                      <BanknotesIcon className="w-6 h-6 text-emerald-400" />
+                    <div className="p-2 bg-ok/20 rounded-sharp">
+                      <BanknotesIcon className="w-6 h-6 text-ok" />
                     </div>
                     <div>
-                      <p className="text-sm text-slate-400">{t('reports.revenue')}</p>
-                      <p className="text-2xl font-bold text-white">{formatCurrency(m.totalRevenue)}</p>
+                      <p className="text-sm text-mute">{t('reports.revenue')}</p>
+                      <p className="text-2xl font-bold text-ink">{formatCurrency(m.totalRevenue)}</p>
                     </div>
                   </div>
                 </Card>
 
                 <Card gradient="blue">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-500/20 rounded-lg">
-                      <ArrowTrendingUpIcon className="w-6 h-6 text-blue-400" />
+                    <div className="p-2 bg-sand/20 rounded-sharp">
+                      <ArrowTrendingUpIcon className="w-6 h-6 text-body" />
                     </div>
                     <div>
-                      <p className="text-sm text-slate-400">Net Profit</p>
-                      <p className="text-2xl font-bold text-white">{formatCurrency(m.netProfit)}</p>
+                      <p className="text-sm text-mute">Net Profit</p>
+                      <p className="text-2xl font-bold text-ink">{formatCurrency(m.netProfit)}</p>
                     </div>
                   </div>
                 </Card>
 
                 <Card gradient="amber">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-amber-500/20 rounded-lg">
-                      <ShoppingCartIcon className="w-6 h-6 text-amber-400" />
+                    <div className="p-2 bg-wash rounded-sharp">
+                      <ShoppingCartIcon className="w-6 h-6 text-brick" />
                     </div>
                     <div>
-                      <p className="text-sm text-slate-400">Transactions</p>
-                      <p className="text-2xl font-bold text-white">{m.totalTransactions}</p>
+                      <p className="text-sm text-mute">Transactions</p>
+                      <p className="text-2xl font-bold text-ink">{m.totalTransactions}</p>
                     </div>
                   </div>
                 </Card>
 
                 <Card gradient="purple">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-purple-500/20 rounded-lg">
-                      <ChartBarIcon className="w-6 h-6 text-purple-400" />
+                    <div className="p-2 bg-ink/20 rounded-sharp">
+                      <ChartBarIcon className="w-6 h-6 text-brick" />
                     </div>
                     <div>
-                      <p className="text-sm text-slate-400">{t('reports.averageSale')}</p>
-                      <p className="text-2xl font-bold text-white">{formatCurrency(m.avgBasket)}</p>
+                      <p className="text-sm text-mute">{t('reports.averageSale')}</p>
+                      <p className="text-2xl font-bold text-ink">{formatCurrency(m.avgBasket)}</p>
                     </div>
                   </div>
                 </Card>
@@ -455,26 +455,26 @@ export function Reports() {
 
               <div className="grid lg:grid-cols-2 gap-6">
                 <Card>
-                  <h3 className="text-lg font-semibold text-white mb-4">🏆 {t('reports.topSelling')}</h3>
+                  <h3 className="text-lg font-semibold text-ink mb-4">🏆 {t('reports.topSelling')}</h3>
                   {m.topProducts.length > 0 ? (
                     <div className="space-y-3">
                       {m.topProducts.map((product, idx) => (
-                        <div key={idx} className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg">
+                        <div key={idx} className="flex items-center justify-between p-3 bg-shade/30 rounded-sharp">
                           <div className="flex items-center gap-3">
-                            <span className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-sm font-bold">
+                            <span className="w-6 h-6 rounded-full bg-wash text-brick flex items-center justify-center text-sm font-bold">
                               {idx + 1}
                             </span>
                             <div>
-                              <p className="font-medium text-white">{product.name}</p>
-                              <p className="text-sm text-slate-400">{product.qty} sold</p>
+                              <p className="font-medium text-ink">{product.name}</p>
+                              <p className="text-sm text-mute">{product.qty} sold</p>
                             </div>
                           </div>
-                          <p className="font-semibold text-emerald-400">{formatCurrency(product.revenue)}</p>
+                          <p className="font-semibold text-ok">{formatCurrency(product.revenue)}</p>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center py-8 text-slate-400">
+                    <div className="text-center py-8 text-mute">
                       <ChartBarIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />
                       <p>No sales data yet</p>
                     </div>
@@ -482,67 +482,67 @@ export function Reports() {
                 </Card>
 
                 <Card>
-                  <h3 className="text-lg font-semibold text-white mb-4">📦 {t('reports.stockReport')}</h3>
+                  <h3 className="text-lg font-semibold text-ink mb-4">📦 {t('reports.stockReport')}</h3>
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between p-4 bg-slate-700/30 rounded-lg">
+                    <div className="flex items-center justify-between p-4 bg-shade/30 rounded-sharp">
                       <div className="flex items-center gap-3">
-                        <CubeIcon className="w-6 h-6 text-blue-400" />
-                        <span className="text-slate-300">Total Products</span>
+                        <CubeIcon className="w-6 h-6 text-body" />
+                        <span className="text-body">Total Products</span>
                       </div>
-                      <span className="text-xl font-bold text-white">{m.totalProducts}</span>
+                      <span className="text-xl font-bold text-ink">{m.totalProducts}</span>
                     </div>
 
-                    <div className="flex items-center justify-between p-4 bg-slate-700/30 rounded-lg">
+                    <div className="flex items-center justify-between p-4 bg-shade/30 rounded-sharp">
                       <div className="flex items-center gap-3">
-                        <BanknotesIcon className="w-6 h-6 text-emerald-400" />
-                        <span className="text-slate-300">Stock Value</span>
+                        <BanknotesIcon className="w-6 h-6 text-ok" />
+                        <span className="text-body">Stock Value</span>
                       </div>
-                      <span className="text-xl font-bold text-emerald-400">{formatCurrency(m.stockValue)}</span>
+                      <span className="text-xl font-bold text-ok">{formatCurrency(m.stockValue)}</span>
                     </div>
 
-                    <div className="flex items-center justify-between p-4 bg-slate-700/30 rounded-lg">
+                    <div className="flex items-center justify-between p-4 bg-shade/30 rounded-sharp">
                       <div className="flex items-center gap-3">
-                        <ArrowTrendingDownIcon className="w-6 h-6 text-red-400" />
-                        <span className="text-slate-300">Low Stock Items</span>
+                        <ArrowTrendingDownIcon className="w-6 h-6 text-bad" />
+                        <span className="text-body">Low Stock Items</span>
                       </div>
-                      <span className="text-xl font-bold text-red-400">{m.lowStockCount}</span>
+                      <span className="text-xl font-bold text-bad">{m.lowStockCount}</span>
                     </div>
                   </div>
                 </Card>
               </div>
 
               <Card>
-                <h3 className="text-lg font-semibold text-white mb-4">💰 {t('reports.profitReport')}</h3>
+                <h3 className="text-lg font-semibold text-ink mb-4">💰 {t('reports.profitReport')}</h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-                  <div className="text-center p-4 bg-slate-700/30 rounded-lg">
-                    <p className="text-sm text-slate-400">{t('reports.revenue')}{m.totalTax > 0 ? ' (net)' : ''}</p>
-                    <p className="text-xl font-bold text-white">{formatCurrency(m.totalRevenue)}</p>
+                  <div className="text-center p-4 bg-shade/30 rounded-sharp">
+                    <p className="text-sm text-mute">{t('reports.revenue')}{m.totalTax > 0 ? ' (net)' : ''}</p>
+                    <p className="text-xl font-bold text-ink">{formatCurrency(m.totalRevenue)}</p>
                   </div>
                   {m.totalTax > 0 && (
-                    <div className="text-center p-4 bg-slate-700/30 rounded-lg">
-                      <p className="text-sm text-slate-400">VAT Collected</p>
-                      <p className="text-xl font-bold text-sky-400">{formatCurrency(m.totalTax)}</p>
+                    <div className="text-center p-4 bg-shade/30 rounded-sharp">
+                      <p className="text-sm text-mute">VAT Collected</p>
+                      <p className="text-xl font-bold text-body">{formatCurrency(m.totalTax)}</p>
                     </div>
                   )}
-                  <div className="text-center p-4 bg-slate-700/30 rounded-lg">
-                    <p className="text-sm text-slate-400">Cost of Goods</p>
-                    <p className="text-xl font-bold text-red-400">{formatCurrency(m.totalCost)}</p>
+                  <div className="text-center p-4 bg-shade/30 rounded-sharp">
+                    <p className="text-sm text-mute">Cost of Goods</p>
+                    <p className="text-xl font-bold text-bad">{formatCurrency(m.totalCost)}</p>
                   </div>
-                  <div className="text-center p-4 bg-slate-700/30 rounded-lg">
-                    <p className="text-sm text-slate-400">Gross Profit</p>
-                    <p className="text-xl font-bold text-white">{formatCurrency(m.grossProfit)}</p>
+                  <div className="text-center p-4 bg-shade/30 rounded-sharp">
+                    <p className="text-sm text-mute">Gross Profit</p>
+                    <p className="text-xl font-bold text-ink">{formatCurrency(m.grossProfit)}</p>
                   </div>
-                  <div className="text-center p-4 bg-slate-700/30 rounded-lg">
-                    <p className="text-sm text-slate-400">Expenses</p>
-                    <p className="text-xl font-bold text-orange-400">{formatCurrency(m.periodExpenses)}</p>
+                  <div className="text-center p-4 bg-shade/30 rounded-sharp">
+                    <p className="text-sm text-mute">Expenses</p>
+                    <p className="text-xl font-bold text-brick">{formatCurrency(m.periodExpenses)}</p>
                   </div>
-                  <div className="text-center p-4 bg-slate-700/30 rounded-lg">
-                    <p className="text-sm text-slate-400">Net Profit</p>
-                    <p className={`text-xl font-bold ${m.netProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                  <div className="text-center p-4 bg-shade/30 rounded-sharp">
+                    <p className="text-sm text-mute">Net Profit</p>
+                    <p className={`text-xl font-bold ${m.netProfit >= 0 ? 'text-ok' : 'text-bad'}`}>
                       {formatCurrency(m.netProfit)}
                     </p>
                     {m.totalRevenue > 0 && (
-                      <p className="text-xs text-slate-400">
+                      <p className="text-xs text-mute">
                         {((m.netProfit / m.totalRevenue) * 100).toFixed(1)}% {t('reports.margin').toLowerCase()}
                       </p>
                     )}
@@ -558,20 +558,20 @@ export function Reports() {
       {tab === 'products' && (
         <Card>
           <div className="flex items-center gap-2 mb-4">
-            <CubeIcon className="w-5 h-5 text-blue-400" />
-            <h3 className="text-lg font-semibold text-white">Product Performance</h3>
-            <span className="text-xs text-slate-500 ml-auto">{periodLabel}</span>
+            <CubeIcon className="w-5 h-5 text-body" />
+            <h3 className="text-lg font-semibold text-ink">Product Performance</h3>
+            <span className="text-xs text-mist ml-auto">{periodLabel}</span>
           </div>
           {serverLoading ? (
-            <p className="text-center py-8 text-slate-400">Loading…</p>
+            <p className="text-center py-8 text-mute">Loading…</p>
           ) : productError ? (
-            <div className="text-center py-8 text-red-400">
+            <div className="text-center py-8 text-bad">
               <p className="font-medium">Couldn't load product report</p>
-              <p className="text-sm text-slate-400 mt-1">{productError}</p>
+              <p className="text-sm text-mute mt-1">{productError}</p>
               <Button variant="secondary" size="sm" className="mt-3" onClick={loadServerReports}>Retry</Button>
             </div>
           ) : !productReport || productReport.products.length === 0 ? (
-            <div className="text-center py-8 text-slate-400">
+            <div className="text-center py-8 text-mute">
               <ChartBarIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />
               <p>No product sales in this period</p>
             </div>
@@ -579,7 +579,7 @@ export function Reports() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-slate-400 border-b border-slate-700">
+                  <tr className="text-left text-mute border-b border-line">
                     <th className="py-2 pr-4 font-medium">Product</th>
                     <th className="py-2 px-4 font-medium">Category</th>
                     <th className="py-2 px-4 font-medium text-right">Qty</th>
@@ -590,13 +590,13 @@ export function Reports() {
                 </thead>
                 <tbody>
                   {productReport.products.map(p => (
-                    <tr key={p.id} className="border-b border-slate-800">
-                      <td className="py-2 pr-4 text-white">{p.name}</td>
-                      <td className="py-2 px-4 text-slate-400">{p.category}</td>
-                      <td className="py-2 px-4 text-right text-slate-300">{p.quantitySold}</td>
-                      <td className="py-2 px-4 text-right text-emerald-400">{formatCurrency(p.revenue)}</td>
-                      <td className={`py-2 px-4 text-right ${p.profit >= 0 ? 'text-white' : 'text-red-400'}`}>{formatCurrency(p.profit)}</td>
-                      <td className="py-2 pl-4 text-right text-slate-300">{p.margin.toFixed(1)}%</td>
+                    <tr key={p.id} className="border-b border-line">
+                      <td className="py-2 pr-4 text-ink">{p.name}</td>
+                      <td className="py-2 px-4 text-mute">{p.category}</td>
+                      <td className="py-2 px-4 text-right text-body">{p.quantitySold}</td>
+                      <td className="py-2 px-4 text-right text-ok">{formatCurrency(p.revenue)}</td>
+                      <td className={`py-2 px-4 text-right ${p.profit >= 0 ? 'text-ink' : 'text-bad'}`}>{formatCurrency(p.profit)}</td>
+                      <td className="py-2 pl-4 text-right text-body">{p.margin.toFixed(1)}%</td>
                     </tr>
                   ))}
                 </tbody>
@@ -610,20 +610,20 @@ export function Reports() {
       {tab === 'staff' && (
         <Card>
           <div className="flex items-center gap-2 mb-4">
-            <UsersIcon className="w-5 h-5 text-purple-400" />
-            <h3 className="text-lg font-semibold text-white">Staff Performance</h3>
-            <span className="text-xs text-slate-500 ml-auto">{periodLabel}</span>
+            <UsersIcon className="w-5 h-5 text-brick" />
+            <h3 className="text-lg font-semibold text-ink">Staff Performance</h3>
+            <span className="text-xs text-mist ml-auto">{periodLabel}</span>
           </div>
           {serverLoading ? (
-            <p className="text-center py-8 text-slate-400">Loading…</p>
+            <p className="text-center py-8 text-mute">Loading…</p>
           ) : staffError ? (
-            <div className="text-center py-8 text-red-400">
+            <div className="text-center py-8 text-bad">
               <p className="font-medium">Couldn't load staff report</p>
-              <p className="text-sm text-slate-400 mt-1">{staffError}</p>
+              <p className="text-sm text-mute mt-1">{staffError}</p>
               <Button variant="secondary" size="sm" className="mt-3" onClick={loadServerReports}>Retry</Button>
             </div>
           ) : !staffReport || staffReport.staff.length === 0 ? (
-            <div className="text-center py-8 text-slate-400">
+            <div className="text-center py-8 text-mute">
               <UsersIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />
               <p>No staff activity in this period</p>
             </div>
@@ -631,7 +631,7 @@ export function Reports() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-slate-400 border-b border-slate-700">
+                  <tr className="text-left text-mute border-b border-line">
                     <th className="py-2 pr-4 font-medium">Staff</th>
                     <th className="py-2 px-4 font-medium">Role</th>
                     <th className="py-2 px-4 font-medium text-right">Sales</th>
@@ -642,13 +642,13 @@ export function Reports() {
                 </thead>
                 <tbody>
                   {staffReport.staff.map(s => (
-                    <tr key={s.id} className="border-b border-slate-800">
-                      <td className="py-2 pr-4 text-white">{s.name}</td>
-                      <td className="py-2 px-4 text-slate-400 capitalize">{s.role.toLowerCase()}</td>
-                      <td className="py-2 px-4 text-right text-emerald-400">{formatCurrency(s.totalSales)}</td>
-                      <td className="py-2 px-4 text-right text-slate-300">{s.transactionCount}</td>
-                      <td className="py-2 px-4 text-right text-slate-300">{formatCurrency(s.averageTransaction)}</td>
-                      <td className={`py-2 pl-4 text-right ${s.voidCount > 0 ? 'text-red-400' : 'text-slate-300'}`}>{s.voidCount}</td>
+                    <tr key={s.id} className="border-b border-line">
+                      <td className="py-2 pr-4 text-ink">{s.name}</td>
+                      <td className="py-2 px-4 text-mute capitalize">{s.role.toLowerCase()}</td>
+                      <td className="py-2 px-4 text-right text-ok">{formatCurrency(s.totalSales)}</td>
+                      <td className="py-2 px-4 text-right text-body">{s.transactionCount}</td>
+                      <td className="py-2 px-4 text-right text-body">{formatCurrency(s.averageTransaction)}</td>
+                      <td className={`py-2 pl-4 text-right ${s.voidCount > 0 ? 'text-bad' : 'text-body'}`}>{s.voidCount}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -708,15 +708,15 @@ function PrintableReport({
   staffReport: StaffReport | null;
 }) {
   const title = tab === 'summary' ? 'Sales & Profit Summary' : tab === 'products' ? 'Product Performance' : 'Staff Performance';
-  const th = 'text-left border-b border-gray-400 py-1 px-2 font-semibold';
-  const td = 'border-b border-gray-200 py-1 px-2';
+  const th = 'text-left border-b border-line-strong py-1 px-2 font-semibold';
+  const td = 'border-b border-line py-1 px-2';
 
   return (
-    <div id="report-print" className="hidden print:block bg-white text-black p-6 text-sm">
+    <div id="report-print" className="hidden print:block bg-cream text-black p-6 text-sm">
       <div className="mb-4">
         <h1 className="text-xl font-bold">{shopName}</h1>
         <p className="text-base font-semibold">{title}</p>
-        <p className="text-xs text-gray-600">Period: {periodLabel} · Generated {new Date().toLocaleString()}</p>
+        <p className="text-xs text-mist">Period: {periodLabel} · Generated {new Date().toLocaleString()}</p>
       </div>
 
       {tab === 'summary' && summary && (

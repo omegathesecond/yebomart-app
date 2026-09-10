@@ -131,16 +131,16 @@ export function StaffDetail() {
 
   const getInsightIcon = (type: string) => {
     switch (type) {
-      case 'positive': return <CheckCircleIcon className="w-5 h-5 text-emerald-400" />;
-      case 'warning': return <ExclamationTriangleIcon className="w-5 h-5 text-amber-400" />;
-      default: return <InformationCircleIcon className="w-5 h-5 text-blue-400" />;
+      case 'positive': return <CheckCircleIcon className="w-5 h-5 text-ok" />;
+      case 'warning': return <ExclamationTriangleIcon className="w-5 h-5 text-brick" />;
+      default: return <InformationCircleIcon className="w-5 h-5 text-body" />;
     }
   };
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-4 border-ink border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -148,8 +148,8 @@ export function StaffDetail() {
   if (!data) {
     return (
       <div className="text-center py-12">
-        <UserCircleIcon className="w-16 h-16 mx-auto text-slate-600 mb-4" />
-        <h2 className="text-xl font-semibold text-white mb-2">Staff member not found</h2>
+        <UserCircleIcon className="w-16 h-16 mx-auto text-mist mb-4" />
+        <h2 className="text-xl font-semibold text-ink mb-2">Staff member not found</h2>
         <Button variant="secondary" onClick={() => navigate('/staff')}>
           ← Back to Staff
         </Button>
@@ -165,19 +165,19 @@ export function StaffDetail() {
       <div className="flex items-center gap-4">
         <button
           onClick={() => navigate('/staff')}
-          className="p-2 hover:bg-slate-700 rounded-xl transition-colors"
+          className="p-2 hover:bg-shade rounded-sharp transition-colors"
         >
-          <ArrowLeftIcon className="w-5 h-5 text-slate-400" />
+          <ArrowLeftIcon className="w-5 h-5 text-mute" />
         </button>
         <div className="flex-1">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-600 rounded-full flex items-center justify-center">
-              <span className="text-xl font-bold text-white">
+            <div className="w-12 h-12 bg-brand rounded-full flex items-center justify-center">
+              <span className="text-xl font-bold text-ink">
                 {user.name.charAt(0).toUpperCase()}
               </span>
             </div>
             <div>
-              <h1 className="text-xl font-bold text-white flex items-center gap-2">
+              <h1 className="text-xl font-bold text-ink flex items-center gap-2">
                 {user.name}
                 {getRoleBadge(user.role)}
               </h1>
@@ -193,10 +193,10 @@ export function StaffDetail() {
           <button
             key={days}
             onClick={() => setPeriod(days)}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+            className={`px-4 py-2 rounded-sharp text-sm font-medium transition-colors ${
               period === days
-                ? 'bg-amber-500 text-white'
-                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                ? 'bg-brand text-ink'
+                : 'bg-shade text-body hover:bg-shade'
             }`}
           >
             {days} days
@@ -207,23 +207,23 @@ export function StaffDetail() {
       {/* Contact Info */}
       <Card className="p-4">
         <div className="grid grid-cols-2 gap-4">
-          <div className="flex items-center gap-2 text-slate-300">
-            <PhoneIcon className="w-4 h-4 text-slate-500" />
+          <div className="flex items-center gap-2 text-body">
+            <PhoneIcon className="w-4 h-4 text-mist" />
             <span className="text-sm">{user.phone}</span>
           </div>
           {user.email && (
-            <div className="flex items-center gap-2 text-slate-300">
-              <EnvelopeIcon className="w-4 h-4 text-slate-500" />
+            <div className="flex items-center gap-2 text-body">
+              <EnvelopeIcon className="w-4 h-4 text-mist" />
               <span className="text-sm">{user.email}</span>
             </div>
           )}
-          <div className="flex items-center gap-2 text-slate-300">
-            <CalendarIcon className="w-4 h-4 text-slate-500" />
+          <div className="flex items-center gap-2 text-body">
+            <CalendarIcon className="w-4 h-4 text-mist" />
             <span className="text-sm">Joined {formatDate(user.createdAt)}</span>
           </div>
           {user.lastLoginAt && (
-            <div className="flex items-center gap-2 text-slate-300">
-              <ClockIcon className="w-4 h-4 text-slate-500" />
+            <div className="flex items-center gap-2 text-body">
+              <ClockIcon className="w-4 h-4 text-mist" />
               <span className="text-sm">Last active {formatDateTime(user.lastLoginAt)}</span>
             </div>
           )}
@@ -234,45 +234,45 @@ export function StaffDetail() {
       <div className="grid grid-cols-2 gap-4">
         <Card className="p-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-emerald-500/20 rounded-xl">
-              <CurrencyDollarIcon className="w-5 h-5 text-emerald-400" />
+            <div className="p-2 bg-ok/20 rounded-sharp">
+              <CurrencyDollarIcon className="w-5 h-5 text-ok" />
             </div>
             <div>
-              <p className="text-xs text-slate-400">Revenue</p>
-              <p className="text-lg font-bold text-white">{formatCurrency(stats.totalRevenue)}</p>
+              <p className="text-xs text-mute">Revenue</p>
+              <p className="text-lg font-bold text-ink">{formatCurrency(stats.totalRevenue)}</p>
             </div>
           </div>
         </Card>
         <Card className="p-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-500/20 rounded-xl">
-              <ShoppingCartIcon className="w-5 h-5 text-blue-400" />
+            <div className="p-2 bg-sand/20 rounded-sharp">
+              <ShoppingCartIcon className="w-5 h-5 text-body" />
             </div>
             <div>
-              <p className="text-xs text-slate-400">Sales</p>
-              <p className="text-lg font-bold text-white">{stats.transactionCount}</p>
+              <p className="text-xs text-mute">Sales</p>
+              <p className="text-lg font-bold text-ink">{stats.transactionCount}</p>
             </div>
           </div>
         </Card>
         <Card className="p-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-amber-500/20 rounded-xl">
-              <ChartBarIcon className="w-5 h-5 text-amber-400" />
+            <div className="p-2 bg-wash rounded-sharp">
+              <ChartBarIcon className="w-5 h-5 text-brick" />
             </div>
             <div>
-              <p className="text-xs text-slate-400">Avg Sale</p>
-              <p className="text-lg font-bold text-white">{formatCurrency(stats.averageTransaction)}</p>
+              <p className="text-xs text-mute">Avg Sale</p>
+              <p className="text-lg font-bold text-ink">{formatCurrency(stats.averageTransaction)}</p>
             </div>
           </div>
         </Card>
         <Card className="p-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-red-500/20 rounded-xl">
-              <XCircleIcon className="w-5 h-5 text-red-400" />
+            <div className="p-2 bg-bad/20 rounded-sharp">
+              <XCircleIcon className="w-5 h-5 text-bad" />
             </div>
             <div>
-              <p className="text-xs text-slate-400">Void Rate</p>
-              <p className="text-lg font-bold text-white">{stats.voidRate.toFixed(1)}%</p>
+              <p className="text-xs text-mute">Void Rate</p>
+              <p className="text-lg font-bold text-ink">{stats.voidRate.toFixed(1)}%</p>
             </div>
           </div>
         </Card>
@@ -281,15 +281,15 @@ export function StaffDetail() {
       {/* AI Insights */}
       {insights.length > 0 && (
         <Card className="p-4">
-          <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-            <SparklesIcon className="w-4 h-4 text-amber-500" />
+          <h3 className="text-sm font-semibold text-ink mb-3 flex items-center gap-2">
+            <SparklesIcon className="w-4 h-4 text-brick" />
             AI Insights
           </h3>
           <div className="space-y-2">
             {insights.map((insight, index) => (
-              <div key={index} className="flex items-start gap-2 p-2 bg-slate-700/50 rounded-lg">
+              <div key={index} className="flex items-start gap-2 p-2 bg-shade/50 rounded-sharp">
                 {getInsightIcon(insight.type)}
-                <p className="text-sm text-slate-300">{insight.text}</p>
+                <p className="text-sm text-body">{insight.text}</p>
               </div>
             ))}
           </div>
@@ -298,7 +298,7 @@ export function StaffDetail() {
 
       {/* Revenue Chart */}
       <Card className="p-4">
-        <h3 className="text-sm font-semibold text-white mb-4">Revenue Trend</h3>
+        <h3 className="text-sm font-semibold text-ink mb-4">Revenue Trend</h3>
         {dailySales.length > 0 ? (
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={dailySales}>
@@ -324,7 +324,7 @@ export function StaffDetail() {
             </LineChart>
           </ResponsiveContainer>
         ) : (
-          <div className="h-[200px] flex items-center justify-center text-slate-500 text-sm">
+          <div className="h-[200px] flex items-center justify-center text-mist text-sm">
             No sales data for this period
           </div>
         )}
@@ -332,7 +332,7 @@ export function StaffDetail() {
 
       {/* Daily Transactions Chart */}
       <Card className="p-4">
-        <h3 className="text-sm font-semibold text-white mb-4">Daily Transactions</h3>
+        <h3 className="text-sm font-semibold text-ink mb-4">Daily Transactions</h3>
         {dailySales.length > 0 ? (
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={dailySales}>
@@ -354,7 +354,7 @@ export function StaffDetail() {
             </BarChart>
           </ResponsiveContainer>
         ) : (
-          <div className="h-[200px] flex items-center justify-center text-slate-500 text-sm">
+          <div className="h-[200px] flex items-center justify-center text-mist text-sm">
             No transaction data for this period
           </div>
         )}
@@ -362,24 +362,24 @@ export function StaffDetail() {
 
       {/* Recent Transactions */}
       <Card className="p-4">
-        <h3 className="text-sm font-semibold text-white mb-4">Recent Sales</h3>
+        <h3 className="text-sm font-semibold text-ink mb-4">Recent Sales</h3>
         {recentSales.length > 0 ? (
           <div className="space-y-2">
             {recentSales.slice(0, 10).map((sale) => (
-              <div key={sale.id} className="flex items-center justify-between p-3 bg-slate-700/50 rounded-lg">
+              <div key={sale.id} className="flex items-center justify-between p-3 bg-shade/50 rounded-sharp">
                 <div>
-                  <p className="text-sm font-medium text-white">{formatCurrency(sale.totalAmount)}</p>
-                  <p className="text-xs text-slate-400">{sale.itemCount} items • {sale.paymentMethod}</p>
+                  <p className="text-sm font-medium text-ink">{formatCurrency(sale.totalAmount)}</p>
+                  <p className="text-xs text-mute">{sale.itemCount} items • {sale.paymentMethod}</p>
                 </div>
                 <div className="text-right">
                   {getStatusBadge(sale.status)}
-                  <p className="text-xs text-slate-500 mt-1">{formatDateTime(sale.createdAt)}</p>
+                  <p className="text-xs text-mist mt-1">{formatDateTime(sale.createdAt)}</p>
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <div className="text-center py-8 text-slate-500 text-sm">
+          <div className="text-center py-8 text-mist text-sm">
             No recent sales
           </div>
         )}

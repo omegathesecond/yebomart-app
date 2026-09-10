@@ -121,8 +121,8 @@ export function PlanSection({ onNotify }: { onNotify: (msg: string, kind: 'succe
   if (loading) {
     return (
       <div className="text-center py-12">
-        <ArrowPathIcon className="w-8 h-8 animate-spin mx-auto text-slate-400" />
-        <p className="text-slate-400 mt-2">Loading your plan…</p>
+        <ArrowPathIcon className="w-8 h-8 animate-spin mx-auto text-mute" />
+        <p className="text-mute mt-2">Loading your plan…</p>
       </div>
     );
   }
@@ -130,8 +130,8 @@ export function PlanSection({ onNotify }: { onNotify: (msg: string, kind: 'succe
   if (error) {
     return (
       <Card className="text-center py-10">
-        <ExclamationTriangleIcon className="w-10 h-10 mx-auto text-red-400 mb-3" />
-        <p className="text-red-300 mb-4">{error}</p>
+        <ExclamationTriangleIcon className="w-10 h-10 mx-auto text-bad mb-3" />
+        <p className="text-bad mb-4">{error}</p>
         <Button variant="secondary" onClick={load}>
           Retry
         </Button>
@@ -145,9 +145,9 @@ export function PlanSection({ onNotify }: { onNotify: (msg: string, kind: 'succe
     <div className="space-y-6">
       {/* Unpaid cycle — the single most useful thing to surface. */}
       {sub && sub.pay_url && (sub.status === 'PENDING' || sub.status === 'PAST_DUE') && (
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30">
-          <ExclamationTriangleIcon className="w-5 h-5 text-amber-400 shrink-0" />
-          <p className="text-sm text-amber-100 flex-1">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-sharp bg-wash border border-ink/30">
+          <ExclamationTriangleIcon className="w-5 h-5 text-brick shrink-0" />
+          <p className="text-sm text-brick flex-1">
             {sub.status === 'PENDING'
               ? `Your ${sub.plan_code === 'BUSY' ? 'Busy' : 'Shop'} plan starts once invoice ${sub.invoice_number ?? ''} is paid.`
               : `Invoice ${sub.invoice_number ?? ''} went unpaid, so you're back on the free Till plan for now.`}
@@ -162,8 +162,8 @@ export function PlanSection({ onNotify }: { onNotify: (msg: string, kind: 'succe
       <Card gradient={entitledPlan === 'TILL' ? undefined : 'emerald'}>
         <div className="flex items-start justify-between gap-4 mb-4">
           <div>
-            <p className="text-sm text-slate-400">Your plan</p>
-            <p className="text-2xl font-bold text-white mt-1">
+            <p className="text-sm text-mute">Your plan</p>
+            <p className="text-2xl font-bold text-ink mt-1">
               {plans.find((p) => p.code === entitledPlan)?.name ?? 'Till'}
             </p>
           </div>
@@ -171,7 +171,7 @@ export function PlanSection({ onNotify }: { onNotify: (msg: string, kind: 'succe
         </div>
 
         {sub?.status === 'ACTIVE' && (
-          <p className="text-sm text-slate-400 mb-4">
+          <p className="text-sm text-mute mb-4">
             {sub.cancel_at_period_end
               ? `Ends ${formatDate(sub.current_period_end)}. You keep everything until then.`
               : `Renews ${formatDate(sub.current_period_end)}.`}
@@ -187,26 +187,26 @@ export function PlanSection({ onNotify }: { onNotify: (msg: string, kind: 'succe
               return (
                 <div key={a.action}>
                   <div className="flex justify-between text-sm mb-1">
-                    <span className="text-slate-300">{ACTION_LABELS[a.action] ?? a.action}</span>
-                    <span className={spent ? 'text-amber-400' : 'text-slate-400'}>
+                    <span className="text-body">{ACTION_LABELS[a.action] ?? a.action}</span>
+                    <span className={spent ? 'text-brick' : 'text-mute'}>
                       {a.used} / {allowance}
                     </span>
                   </div>
-                  <div className="h-1.5 rounded-full bg-slate-700 overflow-hidden">
+                  <div className="h-1.5 rounded-full bg-shade overflow-hidden">
                     <div
-                      className={`h-full rounded-full ${spent ? 'bg-amber-500' : 'bg-emerald-500'}`}
+                      className={`h-full rounded-full ${spent ? 'bg-brand' : 'bg-ok'}`}
                       style={{ width: `${pct}%` }}
                     />
                   </div>
                 </div>
               );
             })}
-            <p className="text-xs text-slate-500 pt-1">
+            <p className="text-xs text-mist pt-1">
               Anything beyond your allowance uses credits, so nothing stops working.
             </p>
           </div>
         ) : (
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-mute">
             Everything you use is on credits. A plan below covers the day-to-day and works out cheaper.
           </p>
         )}
@@ -214,7 +214,7 @@ export function PlanSection({ onNotify }: { onNotify: (msg: string, kind: 'succe
 
       {/* The plans themselves. */}
       <div>
-        <h2 className="text-lg font-semibold text-white mb-3">Plans</h2>
+        <h2 className="text-lg font-semibold text-ink mb-3">Plans</h2>
         <div className="grid gap-4 sm:grid-cols-3">
           {plans.map((plan) => {
             const isCurrent = plan.code === entitledPlan;
@@ -226,22 +226,22 @@ export function PlanSection({ onNotify }: { onNotify: (msg: string, kind: 'succe
                 className="flex flex-col"
               >
                 <div className="flex items-center justify-between mb-1">
-                  <h3 className="font-semibold text-white">{plan.name}</h3>
+                  <h3 className="font-semibold text-ink">{plan.name}</h3>
                   {isCurrent && <Badge variant="success">Current</Badge>}
                 </div>
-                <p className="text-sm text-slate-400 mb-3">{plan.tagline}</p>
+                <p className="text-sm text-mute mb-3">{plan.tagline}</p>
 
                 <p className="mb-4">
-                  <span className="text-3xl font-bold text-white">
+                  <span className="text-3xl font-bold text-ink">
                     {isFree ? 'Free' : szl(plan.price_szl)}
                   </span>
-                  {!isFree && <span className="text-slate-400 text-sm"> /month</span>}
+                  {!isFree && <span className="text-mute text-sm"> /month</span>}
                 </p>
 
                 <ul className="space-y-2 flex-1">
                   {plan.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2 text-sm text-slate-300">
-                      <CheckIcon className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                    <li key={f} className="flex items-start gap-2 text-sm text-body">
+                      <CheckIcon className="w-4 h-4 text-ok shrink-0 mt-0.5" />
                       {f}
                     </li>
                   ))}
@@ -285,7 +285,7 @@ export function PlanSection({ onNotify }: { onNotify: (msg: string, kind: 'succe
             );
           })}
         </div>
-        <p className="text-xs text-slate-500 mt-3">
+        <p className="text-xs text-mist mt-3">
           Plans are billed by invoice, so you can pay however you like. We email it too, and your
           plan starts the moment it is paid.
         </p>

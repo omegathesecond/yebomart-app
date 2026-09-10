@@ -231,8 +231,8 @@ export function Expenses() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Expenses</h1>
-          <p className="text-slate-400 mt-1">
+          <h1 className="text-2xl font-bold text-ink">Expenses</h1>
+          <p className="text-mute mt-1">
             Track what your shop spends so profit reflects reality
           </p>
         </div>
@@ -251,12 +251,12 @@ export function Expenses() {
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
         <Card gradient="amber">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-amber-500/20 rounded-lg">
-              <BanknotesIcon className="w-6 h-6 text-amber-400" />
+            <div className="p-2 bg-wash rounded-sharp">
+              <BanknotesIcon className="w-6 h-6 text-brick" />
             </div>
             <div>
-              <p className="text-sm text-slate-400">This Month</p>
-              <p className="text-2xl font-bold text-white">
+              <p className="text-sm text-mute">This Month</p>
+              <p className="text-2xl font-bold text-ink">
                 {formatCurrency(summary?.thisMonth || 0)}
               </p>
             </div>
@@ -264,12 +264,12 @@ export function Expenses() {
         </Card>
         <Card>
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-slate-500/20 rounded-lg">
-              <CalendarIcon className="w-6 h-6 text-slate-400" />
+            <div className="p-2 bg-mist/20 rounded-sharp">
+              <CalendarIcon className="w-6 h-6 text-mute" />
             </div>
             <div>
-              <p className="text-sm text-slate-400">Last Month</p>
-              <p className="text-2xl font-bold text-white">
+              <p className="text-sm text-mute">Last Month</p>
+              <p className="text-2xl font-bold text-ink">
                 {formatCurrency(summary?.lastMonth || 0)}
               </p>
             </div>
@@ -277,12 +277,12 @@ export function Expenses() {
         </Card>
         <Card>
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-500/20 rounded-lg">
-              <ReceiptPercentIcon className="w-6 h-6 text-blue-400" />
+            <div className="p-2 bg-sand/20 rounded-sharp">
+              <ReceiptPercentIcon className="w-6 h-6 text-body" />
             </div>
             <div>
-              <p className="text-sm text-slate-400">Entries (Month)</p>
-              <p className="text-2xl font-bold text-white">{summary?.count || 0}</p>
+              <p className="text-sm text-mute">Entries (Month)</p>
+              <p className="text-2xl font-bold text-ink">{summary?.count || 0}</p>
             </div>
           </div>
         </Card>
@@ -291,13 +291,13 @@ export function Expenses() {
       {/* List */}
       {loading ? (
         <div className="text-center py-12">
-          <ArrowPathIcon className="w-8 h-8 animate-spin mx-auto text-slate-400" />
-          <p className="text-slate-400 mt-2">Loading expenses...</p>
+          <ArrowPathIcon className="w-8 h-8 animate-spin mx-auto text-mute" />
+          <p className="text-mute mt-2">Loading expenses...</p>
         </div>
       ) : sortedExpenses.length === 0 ? (
         <Card className="text-center py-12">
-          <ReceiptPercentIcon className="w-12 h-12 mx-auto text-slate-500 mb-3" />
-          <p className="text-slate-400 mb-4">No expenses recorded yet</p>
+          <ReceiptPercentIcon className="w-12 h-12 mx-auto text-mist mb-3" />
+          <p className="text-mute mb-4">No expenses recorded yet</p>
           {canManage && (
             <Button variant="primary" onClick={openCreate}>
               Record Your First Expense
@@ -306,11 +306,11 @@ export function Expenses() {
         </Card>
       ) : (
         <Card className="p-0 overflow-hidden">
-          <div className="divide-y divide-slate-700/50">
+          <div className="divide-y divide-line/50">
             {sortedExpenses.map((e) => (
               <div
                 key={e.id}
-                className="flex items-center justify-between gap-3 p-4 hover:bg-slate-800/40 transition-colors"
+                className="flex items-center justify-between gap-3 p-4 hover:bg-sand/40 transition-colors"
               >
                 <div className="flex items-center gap-3 min-w-0">
                   {e.receiptUrl && (
@@ -319,7 +319,7 @@ export function Expenses() {
                       target="_blank"
                       rel="noopener noreferrer"
                       title="View receipt"
-                      className="shrink-0 w-11 h-11 rounded-lg overflow-hidden border border-slate-600 hover:border-orange-500 transition-colors"
+                      className="shrink-0 w-11 h-11 rounded-sharp overflow-hidden border border-line-strong hover:border-ink transition-colors"
                     >
                       <img
                         src={e.receiptUrl}
@@ -333,23 +333,23 @@ export function Expenses() {
                       <Badge variant="warning" size="sm">
                         {CATEGORY_LABEL[e.category] || e.category}
                       </Badge>
-                      <span className="text-xs text-slate-500">{formatDate(e.date)}</span>
+                      <span className="text-xs text-mist">{formatDate(e.date)}</span>
                     </div>
                     {e.description && (
-                      <p className="text-sm text-slate-300 mt-1 truncate">
+                      <p className="text-sm text-body mt-1 truncate">
                         {e.description}
                       </p>
                     )}
                   </div>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
-                  <span className="text-lg font-semibold text-orange-400">
+                  <span className="text-lg font-semibold text-brick">
                     {formatCurrency(e.amount)}
                   </span>
                   {canManage && (
                     <button
                       onClick={() => openEdit(e)}
-                      className="p-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white transition-colors"
+                      className="p-1.5 rounded-sharp bg-shade hover:bg-shade text-body hover:text-ink transition-colors"
                       title={e.receiptUrl ? 'Edit expense' : 'Edit expense / attach receipt'}
                       aria-label={`Edit ${CATEGORY_LABEL[e.category] || e.category} expense`}
                     >
@@ -360,7 +360,7 @@ export function Expenses() {
                     <button
                       onClick={() => handleDelete(e.id)}
                       disabled={deletingId === e.id}
-                      className="p-1.5 rounded-lg bg-slate-700 hover:bg-red-600/80 text-slate-300 hover:text-white transition-colors disabled:opacity-50"
+                      className="p-1.5 rounded-sharp bg-shade hover:bg-bad/80 text-body hover:text-ink transition-colors disabled:opacity-50"
                       title="Delete expense"
                     >
                       {deletingId === e.id ? (
@@ -416,10 +416,10 @@ export function Expenses() {
 
           {/* Receipt photo */}
           <div className="space-y-3">
-            <p className="text-sm font-medium text-slate-300">Receipt Photo</p>
+            <p className="text-sm font-medium text-body">Receipt Photo</p>
 
             <div className="flex items-center gap-4">
-              <div className="relative w-20 h-20 rounded-xl bg-slate-700/50 border border-slate-600 overflow-hidden flex items-center justify-center shrink-0">
+              <div className="relative w-20 h-20 rounded-sharp bg-shade/50 border border-line-strong overflow-hidden flex items-center justify-center shrink-0">
                 {displayReceiptUrl ? (
                   <img
                     src={displayReceiptUrl}
@@ -427,11 +427,11 @@ export function Expenses() {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <PaperClipIcon className="w-8 h-8 text-slate-500" />
+                  <PaperClipIcon className="w-8 h-8 text-mist" />
                 )}
                 {isUploadingReceipt && (
                   <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span className="w-4 h-4 border-2 border-cream border-t-transparent rounded-full animate-spin" />
                   </div>
                 )}
               </div>
@@ -463,7 +463,7 @@ export function Expenses() {
                   <button
                     type="button"
                     onClick={handleRemoveReceipt}
-                    className="text-sm text-red-400 hover:text-red-300"
+                    className="text-sm text-bad hover:text-bad"
                   >
                     Remove receipt
                   </button>
@@ -474,10 +474,10 @@ export function Expenses() {
             {receiptError && (
               <div
                 role="alert"
-                className="flex items-start gap-3 p-3 rounded-lg bg-red-500/10 border border-red-500/30"
+                className="flex items-start gap-3 p-3 rounded-sharp bg-bad/10 border border-bad/30"
               >
-                <ExclamationTriangleIcon className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
-                <p className="text-sm text-red-400">{receiptError}</p>
+                <ExclamationTriangleIcon className="w-5 h-5 text-bad shrink-0 mt-0.5" />
+                <p className="text-sm text-bad">{receiptError}</p>
               </div>
             )}
           </div>

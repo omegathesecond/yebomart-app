@@ -124,15 +124,15 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-slate-900">
+    <div className="fixed inset-0 z-50 flex flex-col bg-cream">
       {/* Header */}
       <div className="flex items-center justify-between p-4 bg-black/50">
-        <h2 className="text-lg font-semibold text-white">Scan Barcode</h2>
+        <h2 className="text-lg font-semibold text-ink">Scan Barcode</h2>
         <button
           onClick={handleClose}
-          className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+          className="p-2 hover:bg-cream/10 rounded-sharp transition-colors"
         >
-          <XMarkIcon className="w-6 h-6 text-white" />
+          <XMarkIcon className="w-6 h-6 text-ink" />
         </button>
       </div>
 
@@ -145,23 +145,23 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
             {/* Framing guide for the cashier (purely visual) */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="relative w-64 h-40">
-                <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-amber-500 rounded-tl-2xl" />
-                <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-amber-500 rounded-tr-2xl" />
-                <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-amber-500 rounded-bl-2xl" />
-                <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-amber-500 rounded-br-2xl" />
+                <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-ink rounded-tl-sharp" />
+                <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-ink rounded-tr-sharp" />
+                <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-ink rounded-bl-sharp" />
+                <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-ink rounded-br-sharp" />
               </div>
             </div>
           </>
         ) : (
           <div className="flex flex-col items-center justify-center h-full p-8">
-            <CameraIcon className="w-16 h-16 text-slate-500 mb-4" />
-            <p className="text-slate-400 text-center mb-2">{error}</p>
+            <CameraIcon className="w-16 h-16 text-mist mb-4" />
+            <p className="text-mute text-center mb-2">{error}</p>
           </div>
         )}
       </div>
 
       {/* Manual Entry */}
-      <div className="p-4 bg-slate-900">
+      <div className="p-4 bg-cream">
         <form onSubmit={handleManualSubmit} className="flex gap-2">
           <Input
             placeholder="Enter barcode manually"
@@ -173,7 +173,7 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
             Search
           </Button>
         </form>
-        <p className="text-xs text-slate-500 text-center mt-3">
+        <p className="text-xs text-mist text-center mt-3">
           Point the camera at a barcode or enter it manually
         </p>
       </div>

@@ -32,7 +32,6 @@ export interface ShopType {
   name: string;
   description: string;
   icon: any;
-  color: string;
   categories: string[];
 }
 
@@ -43,7 +42,6 @@ export const shopTypes: ShopType[] = [
     name: 'Spaza / Tuckshop',
     description: 'Small convenience store with everyday essentials',
     icon: ShoppingCartIcon,
-    color: 'from-amber-500 to-orange-600',
     categories: [
       'Beverages',
       'Snacks & Sweets',
@@ -63,7 +61,6 @@ export const shopTypes: ShopType[] = [
     name: 'Grocery Store',
     description: 'Full grocery with fresh produce and household items',
     icon: ShoppingBagIcon,
-    color: 'from-green-500 to-emerald-600',
     categories: [
       'Fresh Produce',
       'Meat & Poultry',
@@ -87,7 +84,6 @@ export const shopTypes: ShopType[] = [
     name: 'Butchery',
     description: 'Fresh meat, poultry and related products',
     icon: CubeIcon,
-    color: 'from-red-600 to-red-800',
     categories: [
       'Beef',
       'Pork',
@@ -110,7 +106,6 @@ export const shopTypes: ShopType[] = [
     name: 'Bakery',
     description: 'Bread, cakes, pastries and baked goods',
     icon: CakeIcon,
-    color: 'from-amber-400 to-yellow-600',
     categories: [
       'Bread - White',
       'Bread - Brown',
@@ -132,7 +127,6 @@ export const shopTypes: ShopType[] = [
     name: 'Restaurant / Fast Food',
     description: 'Food service, takeaway and catering',
     icon: FireIcon,
-    color: 'from-red-500 to-orange-600',
     categories: [
       'Breakfast',
       'Lunch Specials',
@@ -154,7 +148,6 @@ export const shopTypes: ShopType[] = [
     name: 'Liquor Store / Bottle Store',
     description: 'Alcoholic beverages and mixers',
     icon: GiftIcon,
-    color: 'from-purple-600 to-violet-800',
     categories: [
       'Beer - Local',
       'Beer - Imported',
@@ -181,7 +174,6 @@ export const shopTypes: ShopType[] = [
     name: 'Salon / Barbershop',
     description: 'Hair, beauty and grooming services',
     icon: ScissorsIcon,
-    color: 'from-pink-500 to-rose-600',
     categories: [
       'Haircuts - Men',
       'Haircuts - Women',
@@ -207,7 +199,6 @@ export const shopTypes: ShopType[] = [
     name: 'Beauty & Cosmetics Shop',
     description: 'Cosmetics, skincare and beauty products',
     icon: SparklesIcon,
-    color: 'from-fuchsia-500 to-pink-600',
     categories: [
       'Skincare - Face',
       'Skincare - Body',
@@ -233,7 +224,6 @@ export const shopTypes: ShopType[] = [
     name: 'Makeup & Cosmetics',
     description: 'Professional makeup products and tools',
     icon: PaintBrushIcon,
-    color: 'from-rose-500 to-red-600',
     categories: [
       'Foundation',
       'Concealer',
@@ -260,7 +250,6 @@ export const shopTypes: ShopType[] = [
     name: 'Spa & Wellness',
     description: 'Massage, treatments and wellness services',
     icon: HeartIcon,
-    color: 'from-teal-500 to-cyan-600',
     categories: [
       'Massage - Swedish',
       'Massage - Deep Tissue',
@@ -285,7 +274,6 @@ export const shopTypes: ShopType[] = [
     name: 'Tyre Shop',
     description: 'Tyre sales, repairs and automotive accessories',
     icon: TruckIcon,
-    color: 'from-slate-600 to-gray-800',
     categories: [
       'New Tyres - Car',
       'New Tyres - SUV/4x4',
@@ -309,7 +297,6 @@ export const shopTypes: ShopType[] = [
     name: 'Auto Parts & Accessories',
     description: 'Car parts, spares and accessories',
     icon: WrenchIcon,
-    color: 'from-blue-600 to-indigo-700',
     categories: [
       'Engine Parts',
       'Brake Parts',
@@ -337,7 +324,6 @@ export const shopTypes: ShopType[] = [
     name: 'Car Wash & Valet',
     description: 'Vehicle cleaning and detailing services',
     icon: SunIcon,
-    color: 'from-sky-500 to-blue-600',
     categories: [
       'Basic Wash',
       'Full Wash',
@@ -361,7 +347,6 @@ export const shopTypes: ShopType[] = [
     name: 'Hardware Store',
     description: 'Building materials, tools and DIY supplies',
     icon: WrenchScrewdriverIcon,
-    color: 'from-orange-500 to-red-600',
     categories: [
       'Power Tools',
       'Hand Tools',
@@ -386,7 +371,6 @@ export const shopTypes: ShopType[] = [
     name: 'Building Supplies',
     description: 'Construction materials and building supplies',
     icon: HomeModernIcon,
-    color: 'from-stone-500 to-zinc-700',
     categories: [
       'Cement',
       'Sand & Stone',
@@ -414,7 +398,6 @@ export const shopTypes: ShopType[] = [
     name: 'Electronics Shop',
     description: 'Phones, accessories and gadgets',
     icon: DevicePhoneMobileIcon,
-    color: 'from-indigo-500 to-blue-600',
     categories: [
       'Smartphones',
       'Feature Phones',
@@ -439,7 +422,6 @@ export const shopTypes: ShopType[] = [
     name: 'Computer Shop / Internet Café',
     description: 'Computers, accessories and internet services',
     icon: ComputerDesktopIcon,
-    color: 'from-gray-600 to-slate-700',
     categories: [
       'Desktops',
       'Laptops',
@@ -464,7 +446,6 @@ export const shopTypes: ShopType[] = [
     name: 'Phone & Electronics Repair',
     description: 'Device repairs and technical services',
     icon: BoltIcon,
-    color: 'from-yellow-500 to-amber-600',
     categories: [
       'Screen Replacement',
       'Battery Replacement',
@@ -489,7 +470,6 @@ export const shopTypes: ShopType[] = [
     name: 'Clothing Store',
     description: 'Fashion, apparel and accessories',
     icon: SparklesIcon,
-    color: 'from-purple-500 to-violet-600',
     categories: [
       'Men\'s Wear',
       'Women\'s Wear',
@@ -513,7 +493,6 @@ export const shopTypes: ShopType[] = [
     name: 'Shoe Shop',
     description: 'Footwear for all ages and occasions',
     icon: ShoppingBagIcon,
-    color: 'from-amber-600 to-orange-700',
     categories: [
       'Men\'s Casual',
       'Men\'s Formal',
@@ -538,7 +517,6 @@ export const shopTypes: ShopType[] = [
     name: 'Tailoring & Alterations',
     description: 'Custom clothing and alteration services',
     icon: ScissorsIcon,
-    color: 'from-indigo-600 to-purple-700',
     categories: [
       'Suits - Made to Order',
       'Dresses - Custom',
@@ -560,7 +538,6 @@ export const shopTypes: ShopType[] = [
     name: 'Second-Hand / Thrift Store',
     description: 'Pre-owned clothing and goods',
     icon: GiftIcon,
-    color: 'from-green-600 to-teal-700',
     categories: [
       'Men\'s Clothing',
       'Women\'s Clothing',
@@ -584,7 +561,6 @@ export const shopTypes: ShopType[] = [
     name: 'Pharmacy',
     description: 'Medicines, health and beauty products',
     icon: BeakerIcon,
-    color: 'from-blue-500 to-cyan-600',
     categories: [
       'Prescription Medicines',
       'Over-the-Counter',
@@ -609,7 +585,6 @@ export const shopTypes: ShopType[] = [
     name: 'Traditional Medicine / Herbalist',
     description: 'Traditional and herbal remedies',
     icon: SunIcon,
-    color: 'from-green-700 to-emerald-800',
     categories: [
       'Herbs - Dried',
       'Herbs - Fresh',
@@ -630,7 +605,6 @@ export const shopTypes: ShopType[] = [
     name: 'Furniture Store',
     description: 'Home and office furniture',
     icon: HomeModernIcon,
-    color: 'from-amber-700 to-yellow-800',
     categories: [
       'Living Room',
       'Bedroom',
@@ -654,7 +628,6 @@ export const shopTypes: ShopType[] = [
     name: 'Homeware & Kitchen',
     description: 'Household items and kitchenware',
     icon: HomeModernIcon,
-    color: 'from-teal-600 to-cyan-700',
     categories: [
       'Cookware',
       'Bakeware',
@@ -680,7 +653,6 @@ export const shopTypes: ShopType[] = [
     name: 'Stationery & Office Supplies',
     description: 'School and office supplies',
     icon: AcademicCapIcon,
-    color: 'from-blue-600 to-indigo-700',
     categories: [
       'Pens & Pencils',
       'Notebooks & Pads',
@@ -706,7 +678,6 @@ export const shopTypes: ShopType[] = [
     name: 'Printing & Copy Shop',
     description: 'Printing, copying and design services',
     icon: BookOpenIcon,
-    color: 'from-gray-700 to-slate-800',
     categories: [
       'Photocopying - B&W',
       'Photocopying - Colour',
@@ -730,7 +701,6 @@ export const shopTypes: ShopType[] = [
     name: 'Bookshop',
     description: 'Books, magazines and educational materials',
     icon: BookOpenIcon,
-    color: 'from-emerald-600 to-green-700',
     categories: [
       'Fiction',
       'Non-Fiction',
@@ -755,7 +725,6 @@ export const shopTypes: ShopType[] = [
     name: 'Agricultural Supplies',
     description: 'Farming supplies, seeds and equipment',
     icon: SunIcon,
-    color: 'from-lime-600 to-green-700',
     categories: [
       'Seeds - Vegetables',
       'Seeds - Maize',
@@ -779,7 +748,6 @@ export const shopTypes: ShopType[] = [
     name: 'Plant Nursery / Garden Centre',
     description: 'Plants, gardening supplies and landscaping',
     icon: SunIcon,
-    color: 'from-green-500 to-emerald-600',
     categories: [
       'Indoor Plants',
       'Outdoor Plants',
@@ -804,7 +772,6 @@ export const shopTypes: ShopType[] = [
     name: 'Laundry / Dry Cleaning',
     description: 'Laundry and dry cleaning services',
     icon: SunIcon,
-    color: 'from-cyan-500 to-blue-600',
     categories: [
       'Wash & Fold - Per KG',
       'Wash & Iron',
@@ -826,7 +793,6 @@ export const shopTypes: ShopType[] = [
     name: 'Photography / Studio',
     description: 'Photography services and prints',
     icon: CameraIcon,
-    color: 'from-violet-600 to-purple-700',
     categories: [
       'Passport Photos',
       'ID Photos',
@@ -850,7 +816,6 @@ export const shopTypes: ShopType[] = [
     name: 'Gaming / Entertainment',
     description: 'Video games, consoles and entertainment',
     icon: MusicalNoteIcon,
-    color: 'from-purple-600 to-pink-700',
     categories: [
       'Gaming - Per Hour',
       'PS5 Games',
@@ -870,7 +835,6 @@ export const shopTypes: ShopType[] = [
     name: 'Sports Shop',
     description: 'Sports equipment, apparel and accessories',
     icon: UserGroupIcon,
-    color: 'from-orange-500 to-red-600',
     categories: [
       'Football',
       'Rugby',
@@ -894,7 +858,6 @@ export const shopTypes: ShopType[] = [
     name: 'Music Shop',
     description: 'Musical instruments and accessories',
     icon: MusicalNoteIcon,
-    color: 'from-red-600 to-pink-700',
     categories: [
       'Guitars',
       'Keyboards & Pianos',
@@ -918,7 +881,6 @@ export const shopTypes: ShopType[] = [
     name: 'Gift Shop',
     description: 'Gifts, souvenirs and specialty items',
     icon: GiftIcon,
-    color: 'from-pink-500 to-rose-600',
     categories: [
       'Greeting Cards',
       'Gift Wrap & Bags',
@@ -942,7 +904,6 @@ export const shopTypes: ShopType[] = [
     name: 'Jewellery Store',
     description: 'Jewellery, watches and accessories',
     icon: SparklesIcon,
-    color: 'from-yellow-500 to-amber-600',
     categories: [
       'Rings - Gold',
       'Rings - Silver',
@@ -965,7 +926,6 @@ export const shopTypes: ShopType[] = [
     name: 'Florist',
     description: 'Fresh flowers, arrangements and plants',
     icon: SunIcon,
-    color: 'from-rose-500 to-pink-600',
     categories: [
       'Single Flowers',
       'Bouquets - Small',
@@ -988,7 +948,6 @@ export const shopTypes: ShopType[] = [
     name: 'Pet Shop',
     description: 'Pet food, supplies and accessories',
     icon: HeartIcon,
-    color: 'from-orange-400 to-amber-500',
     categories: [
       'Dog Food',
       'Cat Food',
@@ -1012,7 +971,6 @@ export const shopTypes: ShopType[] = [
     name: 'Arts & Crafts',
     description: 'Art supplies, crafts and DIY materials',
     icon: PaintBrushIcon,
-    color: 'from-violet-500 to-purple-600',
     categories: [
       'Paints',
       'Brushes',
@@ -1036,7 +994,6 @@ export const shopTypes: ShopType[] = [
     name: 'General Store',
     description: 'Mixed retail - customize your own categories',
     icon: BuildingStorefrontIcon,
-    color: 'from-gray-500 to-slate-600',
     categories: [
       'Category 1',
       'Category 2',

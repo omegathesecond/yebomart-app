@@ -275,7 +275,7 @@ export function POS() {
           {/* Mobile POS link - scan-centric mode */}
           <Link
             to="/pos/mobile"
-            className="px-4 py-2 bg-teal-500 hover:bg-teal-400 text-white rounded-xl flex items-center gap-2 transition-colors md:hidden"
+            className="px-4 py-2 bg-brand hover:bg-brand text-ink rounded-sharp flex items-center gap-2 transition-colors md:hidden"
             title="Mobile Scan Mode"
           >
             <DevicePhoneMobileIcon className="w-5 h-5" />
@@ -287,7 +287,7 @@ export function POS() {
         <div className="flex-1 overflow-y-auto space-y-6 pr-2">
           {Object.entries(productsByCategory).map(([category, categoryProducts]) => (
             <div key={category}>
-              <h3 className="text-sm font-medium text-slate-400 mb-2 sticky top-0 bg-slate-900 py-1">
+              <h3 className="text-sm font-medium text-mute mb-2 sticky top-0 bg-cream py-1">
                 {category}
               </h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-2">
@@ -305,28 +305,28 @@ export function POS() {
                         onClick={() => !isOutOfStock && addItem(product)}
                         disabled={isOutOfStock}
                         className={`pos-product-card text-left flex-1 ${
-                          inCart ? 'border-amber-500 ring-1 ring-amber-500/30' : ''
+                          inCart ? 'border-ink ring-1 ring-ink/30' : ''
                         } ${isOutOfStock ? 'opacity-50 cursor-not-allowed' : ''} ${
                           hasPack ? 'rounded-b-none' : ''
                         }`}
                       >
                         <div className="flex items-start justify-between gap-1">
-                          <h4 className="font-medium text-white text-sm line-clamp-2">
+                          <h4 className="font-medium text-ink text-sm line-clamp-2">
                             {product.name}
                           </h4>
                           {inCart && (
-                            <span className="flex-shrink-0 w-5 h-5 rounded-full bg-amber-500 text-white text-xs flex items-center justify-center font-bold">
+                            <span className="flex-shrink-0 w-5 h-5 rounded-full bg-brand text-ink text-xs flex items-center justify-center font-bold">
                               {inCart.quantity}
                             </span>
                           )}
                         </div>
                         <div className="mt-2 flex items-end justify-between">
-                          <span className="text-lg font-bold text-amber-400">
+                          <span className="text-lg font-bold text-brick">
                             {formatCurrency(product.sellPrice)}
                           </span>
                           <span className={`text-xs ${
-                            isOutOfStock ? 'text-red-400' :
-                            isLowStock ? 'text-amber-400' : 'text-slate-500'
+                            isOutOfStock ? 'text-bad' :
+                            isLowStock ? 'text-brick' : 'text-mist'
                           }`}>
                             {isOutOfStock ? 'Out' : `${product.quantity} left`}
                           </span>
@@ -337,17 +337,17 @@ export function POS() {
                         <button
                           onClick={() => canSellPack && addItem(product, true)}
                           disabled={!canSellPack}
-                          className={`px-3 py-1.5 text-xs font-medium rounded-b-xl border border-t-0 transition-colors ${
+                          className={`px-3 py-1.5 text-xs font-medium rounded-b-sharp border border-t-0 transition-colors ${
                             inCartPack 
-                              ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' 
-                              : 'bg-slate-700/50 border-slate-600 text-slate-300 hover:bg-slate-700'
+                              ? 'bg-ok/20 border-ok text-ok' 
+                              : 'bg-shade/50 border-line-strong text-body hover:bg-shade'
                           } ${!canSellPack ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
                           <span className="flex items-center justify-between">
                             <span>📦 {product.packSize}-Pack</span>
                             <span className="font-bold">{formatCurrency(product.packPrice!)}</span>
                             {inCartPack && (
-                              <span className="ml-1 w-4 h-4 rounded-full bg-emerald-500 text-white text-xs flex items-center justify-center">
+                              <span className="ml-1 w-4 h-4 rounded-full bg-ok text-cream text-xs flex items-center justify-center">
                                 {inCartPack.quantity}
                               </span>
                             )}
@@ -363,24 +363,24 @@ export function POS() {
 
           {filteredProducts.length === 0 && (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <MagnifyingGlassIcon className="w-12 h-12 text-slate-600 mb-3" />
-              <p className="text-slate-400">No products found</p>
-              <p className="text-sm text-slate-500">Try a different search term</p>
+              <MagnifyingGlassIcon className="w-12 h-12 text-mist mb-3" />
+              <p className="text-mute">No products found</p>
+              <p className="text-sm text-mist">Try a different search term</p>
             </div>
           )}
         </div>
       </div>
 
       {/* Cart Section */}
-      <div className="lg:w-96 flex flex-col bg-slate-800/50 rounded-2xl border border-slate-700/50">
+      <div className="lg:w-96 flex flex-col bg-sand/50 rounded-sharp border border-line/50">
         {/* Cart Header */}
-        <div className="p-4 border-b border-slate-700 space-y-3">
+        <div className="p-4 border-b border-line space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-white">Cart</h2>
+            <h2 className="text-lg font-semibold text-ink">Cart</h2>
             {items.length > 0 && (
               <button
                 onClick={clear}
-                className="text-sm text-red-400 hover:text-red-300"
+                className="text-sm text-bad hover:text-bad"
               >
                 Clear all
               </button>
@@ -389,17 +389,17 @@ export function POS() {
 
           {/* Customer attach */}
           {customer ? (
-            <div className="flex items-center gap-2 bg-slate-700/50 rounded-xl px-3 py-2">
-              <UserCircleIcon className="w-5 h-5 text-amber-400 shrink-0" />
+            <div className="flex items-center gap-2 bg-shade/50 rounded-sharp px-3 py-2">
+              <UserCircleIcon className="w-5 h-5 text-brick shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-white truncate">{customer.name}</p>
+                <p className="text-sm font-medium text-ink truncate">{customer.name}</p>
                 {customer.phone && (
-                  <p className="text-xs text-slate-400 truncate">{customer.phone}</p>
+                  <p className="text-xs text-mute truncate">{customer.phone}</p>
                 )}
               </div>
               <button
                 onClick={() => setCustomer(null)}
-                className="p-1 rounded-lg hover:bg-slate-600 text-slate-400 hover:text-red-400"
+                className="p-1 rounded-sharp hover:bg-shade text-mute hover:text-bad"
                 title="Remove customer"
               >
                 <XMarkIcon className="w-4 h-4" />
@@ -408,7 +408,7 @@ export function POS() {
           ) : (
             <button
               onClick={() => setShowCustomerPicker(true)}
-              className="flex items-center gap-2 w-full px-3 py-2 rounded-xl border border-dashed border-slate-600 text-slate-400 hover:border-amber-500/50 hover:text-amber-400 transition-colors text-sm"
+              className="flex items-center gap-2 w-full px-3 py-2 rounded-sharp border border-dashed border-line-strong text-mute hover:border-ink/50 hover:text-brick transition-colors text-sm"
             >
               <UserPlusIcon className="w-5 h-5" />
               Attach customer (optional)
@@ -420,11 +420,11 @@ export function POS() {
         <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
           {items.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center py-8">
-              <div className="w-16 h-16 rounded-full bg-slate-700/50 flex items-center justify-center mb-3">
-                <BanknotesIcon className="w-8 h-8 text-slate-500" />
+              <div className="w-16 h-16 rounded-full bg-shade/50 flex items-center justify-center mb-3">
+                <BanknotesIcon className="w-8 h-8 text-mist" />
               </div>
-              <p className="text-slate-400">Cart is empty</p>
-              <p className="text-sm text-slate-500">Tap products to add them</p>
+              <p className="text-mute">Cart is empty</p>
+              <p className="text-sm text-mist">Tap products to add them</p>
             </div>
           ) : (
             items.map((item) => {
@@ -439,20 +439,20 @@ export function POS() {
               return (
                 <div key={itemKey} className="pos-cart-item">
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-medium text-white truncate">
+                    <h4 className="font-medium text-ink truncate">
                       {item.product.name}
                       {item.isPack && item.product.packSize && (
-                        <span className="ml-1 text-emerald-400 text-sm">({item.product.packSize}-Pack)</span>
+                        <span className="ml-1 text-ok text-sm">({item.product.packSize}-Pack)</span>
                       )}
                     </h4>
-                    <p className="text-sm text-slate-400">
+                    <p className="text-sm text-mute">
                       {formatCurrency(unitPrice)} {item.isPack ? 'per pack' : 'each'}
                     </p>
                   </div>
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => updateQuantity(item.productId, item.quantity - 1, item.isPack)}
-                      className="p-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300"
+                      className="p-1.5 rounded-sharp bg-shade hover:bg-shade text-body"
                     >
                       <MinusIcon className="w-4 h-4" />
                     </button>
@@ -469,23 +469,23 @@ export function POS() {
                           updateQuantity(item.productId, qty, item.isPack);
                         }
                       }}
-                      className="w-14 text-center font-medium text-white bg-slate-700 border border-slate-600 rounded-lg py-1 px-1 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      className="w-14 text-center font-medium text-ink bg-shade border border-line-strong rounded-sharp py-1 px-1 focus:outline-none focus:ring-2 focus:ring-ink"
                     />
                     <button
                       onClick={() => updateQuantity(item.productId, item.quantity + 1, item.isPack)}
                       disabled={item.quantity >= maxQty}
-                      className="p-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 disabled:opacity-50"
+                      className="p-1.5 rounded-sharp bg-shade hover:bg-shade text-body disabled:opacity-50"
                     >
                       <PlusIcon className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => removeItem(item.productId, item.isPack)}
-                      className="p-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 ml-1"
+                      className="p-1.5 rounded-sharp bg-bad/20 hover:bg-bad/30 text-bad ml-1"
                     >
                       <TrashIcon className="w-4 h-4" />
                     </button>
                   </div>
-                  <p className="font-semibold text-amber-400 w-20 text-right">
+                  <p className="font-semibold text-brick w-20 text-right">
                     {formatCurrency(unitPrice * item.quantity)}
                   </p>
                 </div>
@@ -496,21 +496,21 @@ export function POS() {
 
         {/* Cart Footer - Payment Buttons */}
         {items.length > 0 && (
-          <div className="p-4 border-t border-slate-700 space-y-3">
+          <div className="p-4 border-t border-line space-y-3">
             {/* Subtotal */}
             <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-400">Subtotal</span>
-              <span className="text-slate-300">{formatCurrency(cartSubtotal)}</span>
+              <span className="text-mute">Subtotal</span>
+              <span className="text-body">{formatCurrency(cartSubtotal)}</span>
             </div>
             
             {/* Discount Row */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-slate-400 text-sm">Discount</span>
+                <span className="text-mute text-sm">Discount</span>
                 {canDiscount && (
                   <button
                     onClick={() => setShowDiscountModal(true)}
-                    className="text-xs text-amber-400 hover:text-amber-300"
+                    className="text-xs text-brick hover:text-brick"
                   >
                     {discount ? 'Edit' : '+ Add'}
                   </button>
@@ -518,36 +518,36 @@ export function POS() {
               </div>
               {discount ? (
                 <div className="flex items-center gap-2">
-                  <span className="text-emerald-400 font-medium">
+                  <span className="text-ok font-medium">
                     -{formatCurrency(discount.amount)}
                     {discount.percent && <span className="text-xs ml-1">({discount.percent}%)</span>}
                   </span>
                   <button 
                     onClick={clearDiscount}
-                    className="text-red-400 hover:text-red-300"
+                    className="text-bad hover:text-bad"
                   >
                     <XMarkIcon className="w-4 h-4" />
                   </button>
                 </div>
               ) : (
-                <span className="text-slate-500 text-sm">-</span>
+                <span className="text-mist text-sm">-</span>
               )}
             </div>
             
             {/* Tax / VAT — only shown when the shop charges tax */}
             {taxBreakdown.tax > 0 && (
               <div className="flex items-center justify-between text-sm">
-                <span className="text-slate-400">
+                <span className="text-mute">
                   VAT ({shop?.taxRate}%{shop?.taxInclusive ? ' incl.' : ''})
                 </span>
-                <span className="text-slate-300">{formatCurrency(taxBreakdown.tax)}</span>
+                <span className="text-body">{formatCurrency(taxBreakdown.tax)}</span>
               </div>
             )}
 
             {/* Total */}
-            <div className="flex items-center justify-between pt-2 border-t border-slate-600">
-              <span className="text-white font-medium">Total</span>
-              <span className="text-2xl font-bold text-white">
+            <div className="flex items-center justify-between pt-2 border-t border-line-strong">
+              <span className="text-ink font-medium">Total</span>
+              <span className="text-2xl font-bold text-ink">
                 {formatCurrency(cartTotal)}
               </span>
             </div>
@@ -597,11 +597,11 @@ export function POS() {
             <button
               onClick={() => handlePayment('credit')}
               disabled={isProcessing}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-300 font-medium hover:bg-amber-500/20 transition-colors disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-sharp border border-ink/40 bg-wash text-brick font-medium hover:bg-wash transition-colors disabled:opacity-50"
             >
               📒 Credit / On the book
               {customer && (
-                <span className="text-xs text-amber-400/80">({customer.name.split(' ')[0]})</span>
+                <span className="text-xs text-brick/80">({customer.name.split(' ')[0]})</span>
               )}
             </button>
           </div>
@@ -648,23 +648,23 @@ export function POS() {
       >
         <div className="space-y-4">
           {/* Discount Type Toggle */}
-          <div className="flex rounded-lg bg-slate-700/50 p-1">
+          <div className="flex rounded-sharp bg-shade/50 p-1">
             <button
               onClick={() => setDiscountType('percent')}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+              className={`flex-1 py-2 px-4 rounded-sharp text-sm font-medium transition-colors ${
                 discountType === 'percent' 
-                  ? 'bg-amber-500 text-white' 
-                  : 'text-slate-300 hover:text-white'
+                  ? 'bg-brand text-ink' 
+                  : 'text-body hover:text-ink'
               }`}
             >
               Percentage (%)
             </button>
             <button
               onClick={() => setDiscountType('amount')}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+              className={`flex-1 py-2 px-4 rounded-sharp text-sm font-medium transition-colors ${
                 discountType === 'amount' 
-                  ? 'bg-amber-500 text-white' 
-                  : 'text-slate-300 hover:text-white'
+                  ? 'bg-brand text-ink' 
+                  : 'text-body hover:text-ink'
               }`}
             >
               Fixed Amount (E)
@@ -673,7 +673,7 @@ export function POS() {
 
           {/* Discount Value Input */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-body mb-2">
               {discountType === 'percent' ? 'Discount Percentage' : 'Discount Amount'}
             </label>
             <div className="relative">
@@ -685,14 +685,14 @@ export function POS() {
                 value={discountValue}
                 onChange={(e) => setDiscountValue(e.target.value)}
                 placeholder={discountType === 'percent' ? 'e.g., 10' : 'e.g., 50.00'}
-                className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full px-4 py-3 bg-shade border border-line-strong rounded-sharp text-ink placeholder-mist focus:outline-none focus:ring-2 focus:ring-ink"
               />
-              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-mute">
                 {discountType === 'percent' ? '%' : 'E'}
               </span>
             </div>
             {discountType === 'percent' && maxDiscountPercent < 100 && (
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-mute mt-1">
                 Maximum discount allowed: {maxDiscountPercent}%
               </p>
             )}
@@ -705,10 +705,10 @@ export function POS() {
                 <button
                   key={percent}
                   onClick={() => setDiscountValue(percent.toString())}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
+                  className={`px-3 py-1.5 rounded-sharp text-sm font-medium border transition-colors ${
                     discountValue === percent.toString()
-                      ? 'bg-amber-500/20 border-amber-500 text-amber-400'
-                      : 'border-slate-600 text-slate-300 hover:border-slate-500'
+                      ? 'bg-wash border-ink text-brick'
+                      : 'border-line-strong text-body hover:border-line-strong'
                   }`}
                 >
                   {percent}%
@@ -719,13 +719,13 @@ export function POS() {
 
           {/* Discount Reason */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-body mb-2">
               Reason (required)
             </label>
             <select
               value={discountReason}
               onChange={(e) => setDiscountReason(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className="w-full px-4 py-3 bg-shade border border-line-strong rounded-sharp text-ink focus:outline-none focus:ring-2 focus:ring-ink"
             >
               <option value="">Select reason...</option>
               {DISCOUNT_REASONS.map(reason => (
@@ -736,14 +736,14 @@ export function POS() {
 
           {/* Preview */}
           {discountValue && (
-            <div className="bg-slate-700/30 rounded-lg p-3 space-y-1">
+            <div className="bg-shade/30 rounded-sharp p-3 space-y-1">
               <div className="flex justify-between text-sm">
-                <span className="text-slate-400">Subtotal</span>
-                <span className="text-white">{formatCurrency(cartSubtotal)}</span>
+                <span className="text-mute">Subtotal</span>
+                <span className="text-ink">{formatCurrency(cartSubtotal)}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-slate-400">Discount</span>
-                <span className="text-emerald-400">
+                <span className="text-mute">Discount</span>
+                <span className="text-ok">
                   -{formatCurrency(
                     discountType === 'percent' 
                       ? cartSubtotal * (parseFloat(discountValue) || 0) / 100
@@ -751,9 +751,9 @@ export function POS() {
                   )}
                 </span>
               </div>
-              <div className="flex justify-between font-medium border-t border-slate-600 pt-1">
-                <span className="text-white">New Total</span>
-                <span className="text-white">
+              <div className="flex justify-between font-medium border-t border-line-strong pt-1">
+                <span className="text-ink">New Total</span>
+                <span className="text-ink">
                   {formatCurrency(Math.max(0, 
                     cartSubtotal - (discountType === 'percent' 
                       ? cartSubtotal * (parseFloat(discountValue) || 0) / 100
@@ -820,18 +820,18 @@ export function POS() {
       >
         <div className="space-y-6">
           {/* Total Due */}
-          <div className="bg-slate-700/50 rounded-xl p-4 text-center">
-            <p className="text-sm text-slate-400 mb-1">Total Due</p>
-            <p className="text-3xl font-bold text-white">{formatCurrency(cartTotal)}</p>
+          <div className="bg-shade/50 rounded-sharp p-4 text-center">
+            <p className="text-sm text-mute mb-1">Total Due</p>
+            <p className="text-3xl font-bold text-ink">{formatCurrency(cartTotal)}</p>
           </div>
 
           {/* Cash Received Input */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-body mb-2">
               Cash Received
             </label>
             <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">E</span>
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-mute font-medium">E</span>
               <input
                 type="number"
                 min={cartTotal}
@@ -840,7 +840,7 @@ export function POS() {
                 onChange={(e) => handleCashReceivedChange(e.target.value)}
                 placeholder="0.00"
                 autoFocus
-                className="w-full pl-8 pr-4 py-4 text-2xl font-bold bg-slate-700 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 text-center"
+                className="w-full pl-8 pr-4 py-4 text-2xl font-bold bg-shade border border-line-strong rounded-sharp text-ink placeholder-mist focus:outline-none focus:ring-2 focus:ring-ink text-center"
               />
             </div>
           </div>
@@ -851,10 +851,10 @@ export function POS() {
               <button
                 key={amount}
                 onClick={() => handleCashReceivedChange(amount.toString())}
-                className={`py-2 px-3 rounded-lg text-sm font-medium border transition-colors ${
+                className={`py-2 px-3 rounded-sharp text-sm font-medium border transition-colors ${
                   parseFloat(cashReceived) === amount
-                    ? 'bg-amber-500/20 border-amber-500 text-amber-400'
-                    : 'border-slate-600 text-slate-300 hover:border-slate-500'
+                    ? 'bg-wash border-ink text-brick'
+                    : 'border-line-strong text-body hover:border-line-strong'
                 }`}
               >
                 E{amount}
@@ -865,10 +865,10 @@ export function POS() {
           {/* Exact Amount Button */}
           <button
             onClick={() => handleCashReceivedChange(cartTotal.toFixed(2))}
-            className={`w-full py-2 rounded-lg text-sm font-medium border transition-colors ${
+            className={`w-full py-2 rounded-sharp text-sm font-medium border transition-colors ${
               parseFloat(cashReceived) === cartTotal
-                ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400'
-                : 'border-slate-600 text-slate-300 hover:border-slate-500'
+                ? 'bg-ok/20 border-ok text-ok'
+                : 'border-line-strong text-body hover:border-line-strong'
             }`}
           >
             Exact Amount ({formatCurrency(cartTotal)})
@@ -876,16 +876,16 @@ export function POS() {
 
           {/* Change Display */}
           {parseFloat(cashReceived) >= cartTotal && (
-            <div className="bg-emerald-500/20 border border-emerald-500/30 rounded-xl p-4 text-center">
-              <p className="text-sm text-emerald-400 mb-1">Change Due</p>
-              <p className="text-3xl font-bold text-emerald-400">{formatCurrency(changeAmount)}</p>
+            <div className="bg-ok/20 border border-ok/30 rounded-sharp p-4 text-center">
+              <p className="text-sm text-ok mb-1">Change Due</p>
+              <p className="text-3xl font-bold text-ok">{formatCurrency(changeAmount)}</p>
             </div>
           )}
 
           {/* Insufficient Warning */}
           {cashReceived && parseFloat(cashReceived) < cartTotal && (
-            <div className="bg-red-500/20 border border-red-500/30 rounded-xl p-3 text-center">
-              <p className="text-red-400 text-sm">
+            <div className="bg-bad/20 border border-bad/30 rounded-sharp p-3 text-center">
+              <p className="text-bad text-sm">
                 Insufficient amount. Need {formatCurrency(cartTotal - (parseFloat(cashReceived) || 0))} more.
               </p>
             </div>

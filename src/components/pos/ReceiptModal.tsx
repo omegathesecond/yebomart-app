@@ -178,32 +178,32 @@ export function ReceiptModal({ isOpen, onClose, sale, shop, customerPhone }: Rec
         <div className="space-y-6">
           {/* Success Icon */}
           <div className="flex justify-center">
-            <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center">
-              <CheckCircleIcon className="w-10 h-10 text-green-500" />
+            <div className="w-16 h-16 rounded-full bg-ok/20 flex items-center justify-center">
+              <CheckCircleIcon className="w-10 h-10 text-ok" />
             </div>
           </div>
 
           {/* Receipt Preview */}
           {sale && (
-            <div className="bg-white text-black p-4 rounded-lg font-mono text-sm print:shadow-none" id="receipt">
-              <div className="text-center border-b border-dashed border-gray-300 pb-3 mb-3">
+            <div className="bg-cream text-black p-4 rounded-sharp font-mono text-sm print:shadow-none" id="receipt">
+              <div className="text-center border-b border-dashed border-line-strong pb-3 mb-3">
                 <h3 className="font-bold text-lg">{shop?.name || 'YeboMart'}</h3>
-                <p className="text-xs text-gray-500">{shop?.address || ''}</p>
-                <p className="text-xs text-gray-500">Tel: {shop?.ownerPhone || ''}</p>
+                <p className="text-xs text-mist">{shop?.address || ''}</p>
+                <p className="text-xs text-mist">Tel: {shop?.ownerPhone || ''}</p>
               </div>
 
-              <div className="text-xs text-gray-500 mb-3">
+              <div className="text-xs text-mist mb-3">
                 <p>Date: {sale.date.toLocaleDateString()} {sale.date.toLocaleTimeString()}</p>
                 <p className="font-bold text-black">Receipt #: {sale.receiptNumber || sale.id.slice(-8).toUpperCase()}</p>
               </div>
 
               {sale.pendingSync && (
-                <div className="mb-3 rounded bg-amber-100 border border-amber-300 px-2 py-1.5 text-xs text-amber-800">
+                <div className="mb-3 rounded bg-brand border border-ink px-2 py-1.5 text-xs text-brick">
                   Saved offline — this sale will sync automatically when you're back online.
                 </div>
               )}
 
-              <div className="border-b border-dashed border-gray-300 pb-3 mb-3">
+              <div className="border-b border-dashed border-line-strong pb-3 mb-3">
                 {sale.items.map((item, idx) => (
                   <div key={idx} className="flex justify-between py-1">
                     <span className="flex-1">{item.productName}</span>
@@ -219,7 +219,7 @@ export function ReceiptModal({ isOpen, onClose, sale, shop, customerPhone }: Rec
                   <span>{formatCurrency(sale.subtotal || sale.total)}</span>
                 </div>
                 {sale.discount > 0 && (
-                  <div className="flex justify-between text-sm text-green-600">
+                  <div className="flex justify-between text-sm text-ok">
                     <span>Discount</span>
                     <span>-{formatCurrency(sale.discount)}</span>
                   </div>
@@ -242,23 +242,23 @@ export function ReceiptModal({ isOpen, onClose, sale, shop, customerPhone }: Rec
                 )}
               </div>
 
-              <div className="flex justify-between font-bold text-lg border-t border-gray-300 pt-2">
+              <div className="flex justify-between font-bold text-lg border-t border-line-strong pt-2">
                 <span>TOTAL</span>
                 <span>{formatCurrency(sale.total)}</span>
               </div>
 
               {shop?.taxNumber && (
-                <p className="text-xs text-gray-500 mt-2">VAT No: {shop.taxNumber}</p>
+                <p className="text-xs text-mist mt-2">VAT No: {shop.taxNumber}</p>
               )}
 
               {/* Cash Payment Details */}
               {sale.paymentMethod === 'cash' && sale.cashReceived && (
-                <div className="mt-3 pt-3 border-t border-dashed border-gray-300 space-y-1">
+                <div className="mt-3 pt-3 border-t border-dashed border-line-strong space-y-1">
                   <div className="flex justify-between text-sm">
                     <span>Cash Received</span>
                     <span>{formatCurrency(sale.cashReceived)}</span>
                   </div>
-                  <div className="flex justify-between font-bold text-lg text-green-600">
+                  <div className="flex justify-between font-bold text-lg text-ok">
                     <span>CHANGE</span>
                     <span>{formatCurrency(sale.changeGiven || 0)}</span>
                   </div>
@@ -268,8 +268,8 @@ export function ReceiptModal({ isOpen, onClose, sale, shop, customerPhone }: Rec
               {/* Credit ("on the book") sale: nothing was tendered — the slip is
                   the customer's record of what they now owe. */}
               {sale.paymentMethod === 'credit' && (
-                <div className="mt-3 pt-3 border-t border-dashed border-gray-300 space-y-1">
-                  <div className="text-sm font-bold text-amber-700">SOLD ON CREDIT (PAY LATER)</div>
+                <div className="mt-3 pt-3 border-t border-dashed border-line-strong space-y-1">
+                  <div className="text-sm font-bold text-brick">SOLD ON CREDIT (PAY LATER)</div>
                   {sale.customerName && (
                     <div className="flex justify-between text-sm">
                       <span>Customer</span>
@@ -281,7 +281,7 @@ export function ReceiptModal({ isOpen, onClose, sale, shop, customerPhone }: Rec
                     <span>{formatCurrency(0)}</span>
                   </div>
                   {typeof sale.customerBalance === 'number' && (
-                    <div className="flex justify-between font-bold text-lg text-red-600">
+                    <div className="flex justify-between font-bold text-lg text-bad">
                       <span>BALANCE OWING</span>
                       <span>{formatCurrency(sale.customerBalance)}</span>
                     </div>
@@ -289,16 +289,16 @@ export function ReceiptModal({ isOpen, onClose, sale, shop, customerPhone }: Rec
                 </div>
               )}
 
-              <div className="text-center mt-4 pt-3 border-t border-dashed border-gray-300">
-                <p className="text-xs text-gray-500">Thank you for shopping with us!</p>
-                <p className="text-xs text-gray-400">Powered by YeboMart</p>
+              <div className="text-center mt-4 pt-3 border-t border-dashed border-line-strong">
+                <p className="text-xs text-mist">Thank you for shopping with us!</p>
+                <p className="text-xs text-mute">Powered by YeboMart</p>
               </div>
             </div>
           )}
 
           {/* Email / SMS Sent Confirmation */}
           {(emailSent || smsSent) && (
-            <div className="flex items-center gap-2 text-emerald-400 text-sm bg-emerald-500/10 rounded-lg px-4 py-2">
+            <div className="flex items-center gap-2 text-ok text-sm bg-ok/10 rounded-sharp px-4 py-2">
               <CheckCircleIcon className="w-5 h-5" />
               {emailSent && smsSent
                 ? 'Receipt sent by email and SMS!'
@@ -373,12 +373,12 @@ export function ReceiptModal({ isOpen, onClose, sale, shop, customerPhone }: Rec
         size="sm"
       >
         <div className="space-y-4">
-          <p className="text-slate-400 text-sm">
+          <p className="text-mute text-sm">
             Send a copy of the receipt to the customer's email address.
           </p>
 
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-body mb-2">
               Customer Email
             </label>
             <input
@@ -387,7 +387,7 @@ export function ReceiptModal({ isOpen, onClose, sale, shop, customerPhone }: Rec
               onChange={(e) => setCustomerEmail(e.target.value)}
               placeholder="customer@example.com"
               autoFocus
-              className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className="w-full px-4 py-3 bg-shade border border-line-strong rounded-sharp text-ink placeholder-mist focus:outline-none focus:ring-2 focus:ring-ink"
             />
           </div>
 
@@ -427,12 +427,12 @@ export function ReceiptModal({ isOpen, onClose, sale, shop, customerPhone }: Rec
         size="sm"
       >
         <div className="space-y-4">
-          <p className="text-slate-400 text-sm">
+          <p className="text-mute text-sm">
             Send a short receipt to the customer by SMS.
           </p>
 
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-body mb-2">
               Customer Phone
             </label>
             <input
@@ -441,7 +441,7 @@ export function ReceiptModal({ isOpen, onClose, sale, shop, customerPhone }: Rec
               onChange={(e) => setSmsPhone(e.target.value)}
               placeholder="+268 7842 2613"
               autoFocus
-              className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className="w-full px-4 py-3 bg-shade border border-line-strong rounded-sharp text-ink placeholder-mist focus:outline-none focus:ring-2 focus:ring-ink"
             />
           </div>
 

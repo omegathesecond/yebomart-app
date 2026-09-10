@@ -118,7 +118,7 @@ export function CashUp() {
   // ── Render helpers ──────────────────────────────────────────────────────
 
   const varianceTone = (variance: number) =>
-    variance === 0 ? 'text-emerald-400' : variance < 0 ? 'text-red-400' : 'text-amber-400';
+    variance === 0 ? 'text-ok' : variance < 0 ? 'text-bad' : 'text-brick';
 
   const varianceLabel = (variance: number) => {
     if (variance === 0) return 'Balanced';
@@ -129,7 +129,7 @@ export function CashUp() {
   if (loading) {
     return (
       <div className="min-h-[50vh] flex items-center justify-center">
-        <div className="w-10 h-10 border-3 border-amber-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-10 h-10 border-3 border-ink border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -140,23 +140,23 @@ export function CashUp() {
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div className="flex items-center gap-3">
-        <div className="w-11 h-11 rounded-xl bg-amber-600/20 border border-amber-500/30 flex items-center justify-center">
-          <CalculatorIcon className="w-6 h-6 text-amber-400" />
+        <div className="w-11 h-11 rounded-sharp bg-wash border border-ink/30 flex items-center justify-center">
+          <CalculatorIcon className="w-6 h-6 text-brick" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-white">Cash Up</h1>
-          <p className="text-sm text-slate-400">Open a till, track cash, reconcile the drawer at end of shift.</p>
+          <h1 className="text-2xl font-bold text-ink">Cash Up</h1>
+          <p className="text-sm text-mute">Open a till, track cash, reconcile the drawer at end of shift.</p>
         </div>
       </div>
 
       {/* ── State 1: no open till ─────────────────────────────────────────── */}
       {!session && (
         <div className="card p-6 space-y-4">
-          <div className="flex items-center gap-2 text-slate-300">
-            <LockOpenIcon className="w-5 h-5 text-amber-400" />
-            <h2 className="text-lg font-semibold text-white">Open till</h2>
+          <div className="flex items-center gap-2 text-body">
+            <LockOpenIcon className="w-5 h-5 text-brick" />
+            <h2 className="text-lg font-semibold text-ink">Open till</h2>
           </div>
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-mute">
             Count the cash you're starting the drawer with (the float) and open the till. Cash sales
             you ring up will be tallied against it.
           </p>
@@ -182,12 +182,12 @@ export function CashUp() {
           <div className="card p-6 space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                <h2 className="text-lg font-semibold text-white">Till open</h2>
+                <span className="w-2.5 h-2.5 rounded-full bg-ok animate-pulse" />
+                <h2 className="text-lg font-semibold text-ink">Till open</h2>
               </div>
               <button
                 onClick={loadCurrent}
-                className="text-slate-400 hover:text-white text-sm flex items-center gap-1"
+                className="text-mute hover:text-ink text-sm flex items-center gap-1"
                 title="Refresh tally"
               >
                 <ArrowPathIcon className="w-4 h-4" /> Refresh
@@ -208,10 +208,10 @@ export function CashUp() {
 
           <div className="card p-6 space-y-4">
             <div className="flex items-center gap-2">
-              <CalculatorIcon className="w-5 h-5 text-amber-400" />
-              <h2 className="text-lg font-semibold text-white">Cash up</h2>
+              <CalculatorIcon className="w-5 h-5 text-brick" />
+              <h2 className="text-lg font-semibold text-ink">Cash up</h2>
             </div>
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-mute">
               Count the physical cash in the drawer and enter it. We'll compare it to the expected
               total and record any shortage or overage.
             </p>
@@ -235,8 +235,8 @@ export function CashUp() {
 
             {/* Live preview of the variance as they type. */}
             {countedCash !== '' && !isNaN(parseFloat(countedCash)) && (
-              <div className="rounded-xl bg-slate-800/60 border border-slate-700 p-4 flex items-center justify-between">
-                <span className="text-sm text-slate-400">Expected {formatCurrency(session.expectedCash ?? session.openingFloat)}</span>
+              <div className="rounded-sharp bg-sand/60 border border-line p-4 flex items-center justify-between">
+                <span className="text-sm text-mute">Expected {formatCurrency(session.expectedCash ?? session.openingFloat)}</span>
                 <span className={`text-sm font-semibold ${varianceTone(parseFloat(countedCash) - (session.expectedCash ?? session.openingFloat))}`}>
                   {varianceLabel(parseFloat(countedCash) - (session.expectedCash ?? session.openingFloat))}
                 </span>
@@ -254,18 +254,18 @@ export function CashUp() {
       {isClosed && session && (
         <>
           <div className="card p-6">
-            <h2 className="text-lg font-semibold text-white mb-4">Cash-up result</h2>
+            <h2 className="text-lg font-semibold text-ink mb-4">Cash-up result</h2>
             <div className="grid grid-cols-3 gap-3 mb-4">
               <Stat label="Expected" value={formatCurrency(session.expectedCash ?? 0)} />
               <Stat label="Counted" value={formatCurrency(session.countedCash ?? 0)} />
               <Stat label="Variance" value={formatCurrency(session.variance ?? 0)} />
             </div>
-            <div className={`rounded-xl p-4 text-center font-bold text-xl ${
+            <div className={`rounded-sharp p-4 text-center font-bold text-xl ${
               (session.variance ?? 0) === 0
-                ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400'
+                ? 'bg-ok/10 border border-ok/30 text-ok'
                 : (session.variance ?? 0) < 0
-                  ? 'bg-red-500/10 border border-red-500/30 text-red-400'
-                  : 'bg-amber-500/10 border border-amber-500/30 text-amber-400'
+                  ? 'bg-bad/10 border border-bad/30 text-bad'
+                  : 'bg-wash border border-ink/30 text-brick'
             }`}>
               {varianceLabel(session.variance ?? 0)}
             </div>
@@ -291,10 +291,10 @@ export function CashUp() {
 
 function Stat({ label, value, sub, highlight }: { label: string; value: string; sub?: string; highlight?: boolean }) {
   return (
-    <div className={`rounded-xl p-3 ${highlight ? 'bg-amber-600/15 border border-amber-500/30' : 'bg-slate-800/60 border border-slate-700'}`}>
-      <p className="text-[11px] uppercase tracking-wide text-slate-400">{label}</p>
-      <p className={`text-lg font-bold ${highlight ? 'text-amber-300' : 'text-white'} truncate`}>{value}</p>
-      {sub && <p className="text-[11px] text-slate-500 truncate">{sub}</p>}
+    <div className={`rounded-sharp p-3 ${highlight ? 'bg-brand/15 border border-ink/30' : 'bg-sand/60 border border-line'}`}>
+      <p className="text-[11px] uppercase tracking-wide text-mute">{label}</p>
+      <p className={`text-lg font-bold ${highlight ? 'text-brick' : 'text-ink'} truncate`}>{value}</p>
+      {sub && <p className="text-[11px] text-mist truncate">{sub}</p>}
     </div>
   );
 }
@@ -306,7 +306,7 @@ function Stat({ label, value, sub, highlight }: { label: string; value: string; 
 function ZReportCard({ z, shopName }: { z: CashSessionZReport; shopName?: string }) {
   return (
     <div className="card p-6">
-      <h3 className="text-base font-semibold text-white mb-3">Z-Report</h3>
+      <h3 className="text-base font-semibold text-ink mb-3">Z-Report</h3>
 
       {/* On-screen dark version */}
       <div className="space-y-2 text-sm">
@@ -314,11 +314,11 @@ function ZReportCard({ z, shopName }: { z: CashSessionZReport; shopName?: string
         <Row label="Gross sales" value={formatCurrency(z.gross)} />
         <Row label="Discounts" value={formatCurrency(z.totalDiscount)} />
         <Row label="Net sales" value={formatCurrency(z.net)} />
-        <div className="border-t border-slate-700 my-2" />
+        <div className="border-t border-line my-2" />
         {z.byPaymentMethod.map((m) => (
           <Row key={m.method} label={`${m.method} (${m.count})`} value={formatCurrency(m.total)} />
         ))}
-        <div className="border-t border-slate-700 my-2" />
+        <div className="border-t border-line my-2" />
         <Row label="Opening float" value={formatCurrency(z.session.openingFloat)} />
         <Row label="Expected cash" value={formatCurrency(z.session.expectedCash ?? 0)} />
         <Row label="Counted cash" value={formatCurrency(z.session.countedCash ?? 0)} />
@@ -326,7 +326,7 @@ function ZReportCard({ z, shopName }: { z: CashSessionZReport; shopName?: string
       </div>
 
       {/* Print-only white card (hidden on screen) */}
-      <div id="zreport-print" className="hidden print:block bg-white text-black p-6" style={{ fontFamily: 'monospace' }}>
+      <div id="zreport-print" className="hidden print:block bg-cream text-black p-6" style={{ fontFamily: 'monospace' }}>
         <div style={{ textAlign: 'center', marginBottom: 12 }}>
           <div style={{ fontWeight: 'bold', fontSize: 18 }}>{shopName || z.shop?.name || 'YeboMart'}</div>
           <div style={{ fontSize: 14 }}>Z-REPORT — END OF SHIFT</div>
@@ -359,8 +359,8 @@ function ZReportCard({ z, shopName }: { z: CashSessionZReport; shopName?: string
 function Row({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
   return (
     <div className="flex items-center justify-between">
-      <span className="text-slate-400">{label}</span>
-      <span className={strong ? 'font-bold text-white' : 'text-slate-200'}>{value}</span>
+      <span className="text-mute">{label}</span>
+      <span className={strong ? 'font-bold text-ink' : 'text-ink'}>{value}</span>
     </div>
   );
 }
