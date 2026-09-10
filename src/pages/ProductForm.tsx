@@ -439,7 +439,7 @@ export function ProductForm() {
               <div className="p-4 bg-shade/30 rounded-sharp space-y-4">
                 <div className="flex items-center justify-between">
                   <h4 className="text-sm font-medium text-brick">
-                    📋 {formData.category} Details
+                    {formData.category} Details
                   </h4>
                   <span className="text-xs text-mist">Optional</span>
                 </div>

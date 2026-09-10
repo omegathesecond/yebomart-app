@@ -116,7 +116,7 @@ export function CountryPicker({
         >
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 flex items-center justify-center bg-sand rounded-sharp text-3xl">
-              {country?.flag || '🌍'}
+              {country?.flag}
             </div>
             <div className="flex-1">
               <p className="text-sm text-mute">{t('countryPicker.currentCountry')}</p>
@@ -141,7 +141,7 @@ export function CountryPicker({
         onClick={() => setIsOpen(true)}
         className="flex items-center gap-3 px-4 py-2.5 bg-sand hover:bg-shade border border-line-strong rounded-sharp transition"
       >
-        <span className="text-2xl">{country?.flag || '🌍'}</span>
+        <span className="text-2xl">{country?.flag}</span>
         <div className="text-left">
           <p className="text-ink font-medium">
             {language === 'fr' && country?.nameFr ? country.nameFr : country?.name}

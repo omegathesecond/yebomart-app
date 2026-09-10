@@ -18,7 +18,8 @@ import { Modal } from '@/components/ui/Modal';
 import { Toast, useToast } from '@/components/ui/Toast';
 import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
-import { formatCurrency, formatDate, formatTime, type Sale, PAYMENT_METHODS } from '@/types';
+import { formatCurrency, formatDate, formatTime, type Sale, type PaymentMethod, PAYMENT_METHODS } from '@/types';
+import { PaymentMethodIcon } from '@/components/ui/PaymentMethodIcon';
 
 export function Sales() {
   const { shop } = useAuthStore();
@@ -154,10 +155,6 @@ export function Sales() {
     return acc;
   }, {} as Record<string, number>);
 
-  const getPaymentIcon = (method: string) => {
-    const pm = PAYMENT_METHODS.find(p => p.value === method);
-    return pm?.icon || '💰';
-  };
 
   return (
     <div className="space-y-6">
@@ -217,8 +214,8 @@ export function Sales() {
           <p className="text-sm text-mute">Payment Split</p>
           <div className="flex gap-2 mt-2">
             {Object.entries(paymentBreakdown).slice(0, 3).map(([method, amount]) => (
-              <span key={method} className="text-lg">
-                {getPaymentIcon(method)}
+              <span key={method} className="text-mute" title={method}>
+                <PaymentMethodIcon method={method as PaymentMethod} className="h-[18px] w-[18px]" />
               </span>
             ))}
           </div>
@@ -237,7 +234,7 @@ export function Sales() {
               return (
                 <div key={method} className="p-3 rounded-sharp bg-shade/30">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xl">{pm?.icon}</span>
+                    <PaymentMethodIcon method={method as PaymentMethod} className="h-[18px] w-[18px] text-mute" />
                     <span className="font-medium text-ink">{pm?.label}</span>
                   </div>
                   <p className="text-lg font-bold text-brick">{formatCurrency(amount)}</p>
@@ -280,7 +277,7 @@ export function Sales() {
                           {sale.items.length} item{sale.items.length > 1 ? 's' : ''}
                         </p>
                         <div className="flex items-center gap-2">
-                          <span className="text-xs">{getPaymentIcon(sale.paymentMethod)}</span>
+                          <PaymentMethodIcon method={sale.paymentMethod} className="h-3.5 w-3.5 text-mute" />
                           <span className="text-xs text-mute">
                             {formatTime(sale.createdAt)}
                           </span>
@@ -326,7 +323,7 @@ export function Sales() {
                   onClick={() => setSelectedSale(null)}
                   className="p-1 hover:bg-shade rounded-sharp"
                 >
-                  ✕
+                  <XMarkIcon className="h-5 w-5" />
                 </button>
               </div>
               <p className="text-sm text-mute">
@@ -409,7 +406,7 @@ export function Sales() {
               <div className="flex justify-between items-center print:hidden">
                 <span className="text-mute">Payment</span>
                 <Badge variant="success">
-                  {getPaymentIcon(selectedSale.paymentMethod)}{' '}
+                  <PaymentMethodIcon method={selectedSale.paymentMethod} className="h-3.5 w-3.5" />
                   {PAYMENT_METHODS.find(p => p.value === selectedSale.paymentMethod)?.label}
                 </Badge>
               </div>

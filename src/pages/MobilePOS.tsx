@@ -16,6 +16,7 @@ import { useInventoryStore } from '@/stores/inventoryStore';
 import { useCartStore, useCartSubtotal, useCartTaxBreakdown } from '@/stores/cartStore';
 import { computeChange } from '@/lib/money';
 import { formatCurrency, type Product, type PaymentMethod, PAYMENT_METHODS } from '@/types';
+import { PaymentMethodIcon } from '@/components/ui/PaymentMethodIcon';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { ReceiptModal, type ReceiptSale } from '@/components/pos/ReceiptModal';
@@ -598,7 +599,7 @@ export function MobilePOS() {
                 <span className="w-5 h-5 border-2 border-cream border-t-transparent rounded-full animate-spin" />
               ) : (
                 <>
-                  <span>{method.icon}</span>
+                  <PaymentMethodIcon method={method.value} />
                   <span>{method.label}</span>
                 </>
               )}
@@ -706,7 +707,8 @@ export function MobilePOS() {
               disabled={!cashReceived || parseFloat(cashReceived) < cartTotal}
               isLoading={isProcessing}
             >
-              💵 Complete Sale
+              <PaymentMethodIcon method="cash" />
+              Complete Sale
             </Button>
           </div>
         </div>

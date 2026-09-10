@@ -159,7 +159,7 @@ export function ShopCountryPicker({
             {/* Info banner */}
             <div className="px-4 py-3 bg-wash border-b border-ink/20">
               <p className="text-sm text-brick">
-                💡 Your shop's country determines the currency, tax settings, and payment methods.
+                Your shop's country determines the currency, tax settings, and payment methods.
               </p>
             </div>
 

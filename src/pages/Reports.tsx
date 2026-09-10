@@ -455,7 +455,7 @@ export function Reports() {
 
               <div className="grid lg:grid-cols-2 gap-6">
                 <Card>
-                  <h3 className="text-lg font-semibold text-ink mb-4">🏆 {t('reports.topSelling')}</h3>
+                  <h3 className="text-lg font-semibold text-ink mb-4">{t('reports.topSelling')}</h3>
                   {m.topProducts.length > 0 ? (
                     <div className="space-y-3">
                       {m.topProducts.map((product, idx) => (
@@ -482,7 +482,7 @@ export function Reports() {
                 </Card>
 
                 <Card>
-                  <h3 className="text-lg font-semibold text-ink mb-4">📦 {t('reports.stockReport')}</h3>
+                  <h3 className="text-lg font-semibold text-ink mb-4">{t('reports.stockReport')}</h3>
                   <div className="space-y-4">
                     <div className="flex items-center justify-between p-4 bg-shade/30 rounded-sharp">
                       <div className="flex items-center gap-3">
@@ -512,7 +512,7 @@ export function Reports() {
               </div>
 
               <Card>
-                <h3 className="text-lg font-semibold text-ink mb-4">💰 {t('reports.profitReport')}</h3>
+                <h3 className="text-lg font-semibold text-ink mb-4">{t('reports.profitReport')}</h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
                   <div className="text-center p-4 bg-shade/30 rounded-sharp">
                     <p className="text-sm text-mute">{t('reports.revenue')}{m.totalTax > 0 ? ' (net)' : ''}</p>

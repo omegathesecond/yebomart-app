@@ -75,10 +75,7 @@ export function ShopSwitcher({ variant = 'header', className }: ShopSwitcherProp
             'transition-colors'
           )}
         >
-          <span className="text-lg">{currentShop.countryCode ? 
-            (shops.find(s => s.id === currentShopId)?.countryCode === currentShop.countryCode ? 
-              getFlag(currentShop.countryCode) : '🏪') 
-            : '🏪'}</span>
+          <span className="text-lg">{getFlag(currentShop.countryCode)}</span>
           <span className="text-sm font-medium text-ink max-w-[120px] truncate">
             {currentShop.name}
           </span>
@@ -215,7 +212,7 @@ export function ShopSwitcher({ variant = 'header', className }: ShopSwitcherProp
 
 // Helper to get country flag emoji
 function getFlag(countryCode?: string): string {
-  if (!countryCode) return '🏪';
+  if (!countryCode) return '';
   
   const flags: Record<string, string> = {
     SZ: '🇸🇿', ZA: '🇿🇦', BW: '🇧🇼', ZM: '🇿🇲', ZW: '🇿🇼',
@@ -225,5 +222,5 @@ function getFlag(countryCode?: string): string {
     MA: '🇲🇦', EG: '🇪🇬', TN: '🇹🇳', DZ: '🇩🇿'
   };
   
-  return flags[countryCode] || '🏪';
+  return flags[countryCode] || '';
 }

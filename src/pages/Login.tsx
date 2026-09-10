@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ShoppingCartIcon,
   KeyIcon,
   PhoneIcon,
   UserIcon,
   BuildingStorefrontIcon,
 } from '@heroicons/react/24/outline';
+import { YeboLogo } from '@/components/ui/YeboLogo';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAuthStore } from '@/stores/authStore';
@@ -89,17 +89,12 @@ export function Login() {
   return (
     <div className="min-h-screen bg-cream flex items-center justify-center p-4">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-wash rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-wash rounded-full blur-3xl" />
       </div>
 
       <div className="relative w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-sharp bg-brand shadow-lg mb-4">
-            <ShoppingCartIcon className="w-10 h-10 text-ink" />
-          </div>
-          <h1 className="text-3xl font-bold text-ink">YeboMart</h1>
-          <p className="text-mute mt-2">AI-Powered Shop Management</p>
+          <YeboLogo size="lg" className="mb-4" />
+          <p className="text-mute">Point of sale for African shops</p>
         </div>
 
         <div className="bg-sand/50 rounded-sharp border border-line/50 p-8">
@@ -209,7 +204,7 @@ export function Login() {
         </div>
 
         <p className="text-center text-mist text-sm mt-6">
-          © 2026 YeboMart by Omevision. Made in Eswatini 🇸🇿
+          © 2026 YeboMart by Omevision · Made in Eswatini
         </p>
       </div>
     </div>

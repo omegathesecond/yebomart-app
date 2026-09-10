@@ -1,15 +1,19 @@
+import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { 
-  BellIcon, 
-  MagnifyingGlassIcon,
-  Bars3Icon
-} from '@heroicons/react/24/outline';
+import { BellIcon } from '@heroicons/react/24/outline';
 import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
 import { useShopStore } from '@/stores/shopStore';
 import { ShopSwitcher } from '@/components/ui/ShopSwitcher';
-import { formatCurrency } from '@/types';
-import { useState, useEffect } from 'react';
+import { YeboLogo } from '@/components/ui/YeboLogo';
+
+/**
+ * A hairline, not a bar. The screen name and the connection state are the only
+ * things that earn space here; everything else lives in the rail.
+ *
+ * The date and time are mono so the header does not reflow every minute when
+ * the clock ticks — proportional digits change width, tabular ones do not.
+ */
 
 const pageNames: Record<string, string> = {
   '/': 'Dashboard',
@@ -27,7 +31,7 @@ const pageNames: Record<string, string> = {
   '/billing/success': 'Top-up Complete',
   '/billing/cancel': 'Top-up Cancelled',
   '/settings': 'Settings',
-  '/settings/subscription': 'Subscription'
+  '/settings/subscription': 'Subscription',
 };
 
 export function TopBar() {
@@ -37,7 +41,7 @@ export function TopBar() {
   const { alerts, isOnline } = useInventoryStore();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showNotifications, setShowNotifications] = useState(false);
-  
+
   const hasMultipleShops = shops.length > 1;
 
   useEffect(() => {
@@ -48,92 +52,91 @@ export function TopBar() {
   const pageName = pageNames[location.pathname] || 'YeboMart';
 
   return (
-    <header className="sticky top-0 z-40 bg-cream/95 border-b border-line">
-      <div className="flex items-center justify-between px-4 py-3">
-        {/* Left: Mobile menu + Page title */}
-        <div className="flex items-center gap-3">
-          <button className="md:hidden p-2 hover:bg-sand rounded-sharp">
-            <Bars3Icon className="w-6 h-6 text-mute" />
-          </button>
-          <div>
-            <h1 className="text-lg font-semibold text-ink">{pageName}</h1>
-            <p className="text-xs text-mist hidden sm:block">
-              {currentTime.toLocaleDateString('en-GB', {
-                weekday: 'short',
-                day: 'numeric',
-                month: 'short'
-              })} • {currentTime.toLocaleTimeString('en-GB', {
-                hour: '2-digit',
-                minute: '2-digit'
-              })}
-            </p>
-          </div>
+    <header className="sticky top-0 z-40 border-b border-line bg-cream">
+      <div className="flex h-14 items-center justify-between gap-4 px-4 md:px-6">
+        {/* Left: identity on phones, screen name everywhere */}
+        <div className="flex min-w-0 items-baseline gap-3.5">
+          <span className="md:hidden">
+            <YeboLogo size="sm" />
+          </span>
+          <h1 className="hidden truncate text-[17px] font-semibold tracking-[-0.02em] md:block">
+            {pageName}
+          </h1>
+          <span className="m hidden text-[11px] text-mute lg:block">
+            {currentTime.toLocaleDateString('en-GB', {
+              weekday: 'short',
+              day: 'numeric',
+              month: 'short',
+            })}
+            {' · '}
+            {currentTime.toLocaleTimeString('en-GB', {
+              hour: '2-digit',
+              minute: '2-digit',
+            })}
+          </span>
         </div>
 
-        {/* Right: Actions */}
-        <div className="flex items-center gap-2">
-          {/* Online/Offline indicator */}
-          <div className={`hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${
-            isOnline 
-              ? 'bg-ok/20 text-ok' 
-              : 'bg-wash text-brick'
-          }`}>
-            <span className={`w-2 h-2 rounded-full ${
-              isOnline ? 'bg-ok' : 'bg-brand animate-pulse'
-            }`} />
-            {isOnline ? 'Online' : 'Offline'}
+        <div className="flex shrink-0 items-center gap-2">
+          {/* Connection state — a word, not a colour on its own. */}
+          <div className="hidden items-center gap-2 border border-line px-2.5 py-1.5 sm:flex">
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${isOnline ? 'bg-ok' : 'bg-warn'}`}
+            />
+            <span className="m text-[10.5px] uppercase tracking-[0.1em] text-body">
+              {isOnline ? 'Online' : 'Offline'}
+            </span>
           </div>
 
           {/* Notifications */}
           <div className="relative">
-            <button 
+            <button
               onClick={() => setShowNotifications(!showNotifications)}
-              className="p-2 hover:bg-sand rounded-sharp relative"
+              aria-label={`Notifications${alerts.length ? ` (${alerts.length})` : ''}`}
+              className="relative grid h-10 w-10 place-items-center rounded-sharp transition-colors hover:bg-sand"
             >
-              <BellIcon className="w-6 h-6 text-mute" />
+              <BellIcon className="h-5 w-5 text-mute" />
               {alerts.length > 0 && (
-                <span className="absolute top-1 right-1 w-4 h-4 bg-bad text-cream text-[10px] font-bold rounded-full flex items-center justify-center">
+                <span className="m absolute right-1 top-1 grid h-4 min-w-4 place-items-center bg-bad px-1 text-[10px] font-medium text-cream">
                   {alerts.length > 9 ? '9+' : alerts.length}
                 </span>
               )}
             </button>
 
-            {/* Notifications dropdown */}
             {showNotifications && (
               <>
-                <div 
+                <div
                   className="fixed inset-0 z-40"
                   onClick={() => setShowNotifications(false)}
                 />
-                <div className="absolute right-0 top-full mt-2 w-80 bg-sand border border-line rounded-sharp shadow-2xl z-50 overflow-hidden">
-                  <div className="p-3 border-b border-line">
-                    <h3 className="font-semibold text-ink">Notifications</h3>
+                <div className="absolute right-0 top-full z-50 mt-2 w-80 overflow-hidden rounded-sharp border border-line-strong bg-cream shadow-[0_1px_2px_rgba(26,24,20,0.04),0_10px_30px_-12px_rgba(26,24,20,0.18)]">
+                  <div className="border-b border-line px-4 py-3">
+                    <h3 className="eyebrow">Needs attention</h3>
                   </div>
                   <div className="max-h-80 overflow-y-auto">
                     {alerts.length === 0 ? (
-                      <p className="p-4 text-center text-mist text-sm">
-                        No new notifications
+                      <p className="px-4 py-6 text-center text-sm text-mute">
+                        Nothing to deal with right now.
                       </p>
                     ) : (
-                      alerts.slice(0, 5).map(alert => (
-                        <div 
-                          key={alert.id} 
-                          className="p-3 border-b border-line/50 hover:bg-shade/50"
+                      alerts.slice(0, 5).map((alert) => (
+                        <div
+                          key={alert.id}
+                          className="flex items-center gap-3 border-b border-line px-4 py-3 last:border-b-0"
                         >
-                          <div className="flex items-start gap-3">
-                            <div className={`w-2 h-2 rounded-full mt-2 ${
-                              alert.severity === 'out' ? 'bg-bad' :
-                              alert.severity === 'critical' ? 'bg-brand' : 'bg-warn'
-                            }`} />
-                            <div>
-                              <p className="text-sm text-ink font-medium">
-                                {alert.productName}
-                              </p>
-                              <p className="text-xs text-mute">
-                                {alert.severity === 'out' ? 'Out of stock' : 
-                                 `Low stock: ${alert.currentQty} remaining`}
-                              </p>
-                            </div>
+                          <span
+                            className={`h-6 w-[3px] shrink-0 ${
+                              alert.severity === 'out' ? 'bg-bad' : 'bg-warn'
+                            }`}
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-[13px] font-medium">
+                              {alert.productName}
+                            </p>
+                            <p className="m mt-0.5 text-[10.5px] uppercase tracking-[0.06em] text-mute">
+                              {alert.severity === 'out'
+                                ? 'Out of stock'
+                                : `${alert.currentQty} left`}
+                            </p>
                           </div>
                         </div>
                       ))
@@ -144,7 +147,7 @@ export function TopBar() {
                       to="/stock"
                       state={{ showAlerts: true }}
                       onClick={() => setShowNotifications(false)}
-                      className="block p-3 text-center text-sm text-brick hover:bg-shade/50"
+                      className="m block border-t border-line px-4 py-3 text-center text-[10.5px] uppercase tracking-[0.1em] text-brick hover:bg-sand"
                     >
                       View all alerts
                     </Link>
@@ -154,16 +157,12 @@ export function TopBar() {
             )}
           </div>
 
-          {/* Shop Switcher (if multiple shops) */}
           {hasMultipleShops ? (
             <ShopSwitcher variant="header" />
           ) : (
-            /* Mobile: Shop name */
-            <div className="md:hidden pl-2">
-              <span className="text-sm font-medium text-brick">
-                {currentShop?.name?.split(' ')[0] || shop?.name?.split(' ')[0]}
-              </span>
-            </div>
+            <span className="m truncate text-[11px] uppercase tracking-[0.1em] text-mute md:hidden">
+              {currentShop?.name?.split(' ')[0] || shop?.name?.split(' ')[0]}
+            </span>
           )}
         </div>
       </div>

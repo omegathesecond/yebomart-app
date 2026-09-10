@@ -29,10 +29,10 @@ interface Message {
 }
 
 const QUICK_ACTIONS = [
-  { label: '📊 Sales today', prompt: 'How are my sales doing today?' },
-  { label: '📦 Low stock', prompt: 'Which products are running low on stock?' },
-  { label: '💡 Tips', prompt: 'Give me some tips to improve my shop' },
-  { label: '📈 Best sellers', prompt: 'What are my best selling products this week?' },
+  { label: 'Sales today', prompt: 'How are my sales doing today?' },
+  { label: 'Low stock', prompt: 'Which products are running low on stock?' },
+  { label: 'Tips', prompt: 'Give me some tips to improve my shop' },
+  { label: 'Best sellers', prompt: 'What are my best selling products this week?' },
 ];
 
 export function AIChat() {
@@ -64,7 +64,7 @@ export function AIChat() {
       setMessages([{
         id: 'welcome',
         role: 'assistant',
-        content: `Hello! I'm ${shop.assistantName || 'Yebo'}, your AI shop assistant. 👋\n\nI can help you with:\n• Checking sales and inventory\n• Stock predictions\n• Business insights\n• Product suggestions\n\nHow can I help you today?`,
+        content: `Hello! I'm ${shop.assistantName || 'Yebo'}, your shop assistant.\n\nI can help you with:\n• Checking sales and inventory\n• Stock predictions\n• Business insights\n• Product suggestions\n\nHow can I help you today?`,
         timestamp: new Date()
       }]);
     }

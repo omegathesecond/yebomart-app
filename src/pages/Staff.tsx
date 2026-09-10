@@ -7,7 +7,9 @@ import {
   UserCircleIcon,
   PhoneIcon,
   ShieldCheckIcon,
-  ChartBarIcon
+  ChartBarIcon,
+  CheckIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -242,28 +244,28 @@ export function Staff() {
           <div className="p-4 bg-shade/30 rounded-sharp">
             <h4 className="font-medium text-ok mb-2">Owner</h4>
             <ul className="text-sm text-mute space-y-1">
-              <li>✓ Full access to everything</li>
-              <li>✓ Manage staff & permissions</li>
-              <li>✓ View reports & analytics</li>
-              <li>✓ Manage billing</li>
+              <li className="flex items-center gap-2"><CheckIcon className="h-3.5 w-3.5 shrink-0 text-ok" aria-hidden="true" /><span>Full access to everything</span></li>
+              <li className="flex items-center gap-2"><CheckIcon className="h-3.5 w-3.5 shrink-0 text-ok" aria-hidden="true" /><span>Manage staff & permissions</span></li>
+              <li className="flex items-center gap-2"><CheckIcon className="h-3.5 w-3.5 shrink-0 text-ok" aria-hidden="true" /><span>View reports & analytics</span></li>
+              <li className="flex items-center gap-2"><CheckIcon className="h-3.5 w-3.5 shrink-0 text-ok" aria-hidden="true" /><span>Manage billing</span></li>
             </ul>
           </div>
           <div className="p-4 bg-shade/30 rounded-sharp">
             <h4 className="font-medium text-brick mb-2">Manager</h4>
             <ul className="text-sm text-mute space-y-1">
-              <li>✓ POS & sales</li>
-              <li>✓ Manage products & stock</li>
-              <li>✓ View reports</li>
-              <li>✗ Manage billing</li>
+              <li className="flex items-center gap-2"><CheckIcon className="h-3.5 w-3.5 shrink-0 text-ok" aria-hidden="true" /><span>POS & sales</span></li>
+              <li className="flex items-center gap-2"><CheckIcon className="h-3.5 w-3.5 shrink-0 text-ok" aria-hidden="true" /><span>Manage products & stock</span></li>
+              <li className="flex items-center gap-2"><CheckIcon className="h-3.5 w-3.5 shrink-0 text-ok" aria-hidden="true" /><span>View reports</span></li>
+              <li className="flex items-center gap-2 text-mist"><XMarkIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" /><span>Manage billing</span></li>
             </ul>
           </div>
           <div className="p-4 bg-shade/30 rounded-sharp">
             <h4 className="font-medium text-mute mb-2">Cashier</h4>
             <ul className="text-sm text-mute space-y-1">
-              <li>✓ POS & sales only</li>
-              <li>✓ View products</li>
-              <li>✗ Manage stock</li>
-              <li>✗ View reports</li>
+              <li className="flex items-center gap-2"><CheckIcon className="h-3.5 w-3.5 shrink-0 text-ok" aria-hidden="true" /><span>POS & sales only</span></li>
+              <li className="flex items-center gap-2"><CheckIcon className="h-3.5 w-3.5 shrink-0 text-ok" aria-hidden="true" /><span>View products</span></li>
+              <li className="flex items-center gap-2 text-mist"><XMarkIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" /><span>Manage stock</span></li>
+              <li className="flex items-center gap-2 text-mist"><XMarkIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" /><span>View reports</span></li>
             </ul>
           </div>
         </div>

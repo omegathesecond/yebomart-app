@@ -261,12 +261,14 @@ export const LOCALE = 'en-SZ';
 export const TIMEZONE = 'Africa/Mbabane';
 
 // Payment methods with labels
-export const PAYMENT_METHODS: { value: PaymentMethod; label: string; icon: string }[] = [
-  { value: 'cash', label: 'Cash', icon: '💵' },
-  { value: 'momo', label: 'MoMo', icon: '📱' },
-  { value: 'emali', label: 'E-Mali', icon: '💳' },
-  { value: 'card', label: 'Card', icon: '💳' },
-  { value: 'credit', label: 'Credit', icon: '📒' }
+// Icons live in components/ui/PaymentMethodIcon — emoji render differently on
+// every till and cannot take the brand colour.
+export const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
+  { value: 'cash', label: 'Cash' },
+  { value: 'momo', label: 'MoMo' },
+  { value: 'emali', label: 'E-Mali' },
+  { value: 'card', label: 'Card' },
+  { value: 'credit', label: 'Credit' }
 ];
 
 // Product categories

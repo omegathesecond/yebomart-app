@@ -75,7 +75,7 @@ export function Dashboard() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-ink">
-            {getGreeting()}, {shop?.ownerName?.split(' ')[0] || 'Boss'}! 👋
+            {getGreeting()}, {shop?.ownerName?.split(' ')[0] || 'Boss'}.
           </h1>
           <div className="flex items-center gap-2 mt-1">
             <p className="text-mute">

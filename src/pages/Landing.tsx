@@ -48,9 +48,6 @@ export function Landing() {
     <div className="min-h-screen bg-cream flex flex-col">
       {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-wash rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-wash rounded-full blur-3xl" />
-        <div className="absolute top-1/2 right-0 w-72 h-72 bg-wash rounded-full blur-3xl" />
       </div>
 
       {/* Content */}
@@ -130,7 +127,7 @@ export function Landing() {
         {/* Footer */}
         <div className="mt-6 pt-6 border-t border-line">
           <p className="text-center text-mist text-xs">
-            © 2026 YeboMart by Omevision • Made with ❤️ in Eswatini 🇸🇿
+            © 2026 YeboMart by Omevision · Made in Eswatini
           </p>
         </div>
       </div>

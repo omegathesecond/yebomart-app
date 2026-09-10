@@ -15,6 +15,7 @@ import {
   GlobeAltIcon,
   BuildingStorefrontIcon
 } from '@heroicons/react/24/outline';
+import { YeboLogo } from '@/components/ui/YeboLogo';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { PhoneInput } from '@/components/ui/PhoneInput';
@@ -179,8 +180,6 @@ export function Onboarding() {
     return (
       <div className="min-h-screen bg-cream flex items-center justify-center p-4">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-wash rounded-full blur-3xl" />
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-wash rounded-full blur-3xl" />
         </div>
 
         <div className="relative w-full max-w-md text-center">
@@ -206,7 +205,7 @@ export function Onboarding() {
           </div>
 
           <p className="text-mist text-sm mt-6">
-            © 2026 YeboMart by Omevision. Available across Africa 🌍
+            © 2026 YeboMart by Omevision. Available across Africa
           </p>
         </div>
       </div>
@@ -218,17 +217,12 @@ export function Onboarding() {
     return (
       <div className="min-h-screen bg-cream flex items-center justify-center p-4">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-wash rounded-full blur-3xl" />
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-wash rounded-full blur-3xl" />
         </div>
 
         <div className="relative w-full max-w-md text-center">
           <div className="mb-8">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-sharp bg-brand shadow-lg mb-4">
-              <ShoppingCartIcon className="w-12 h-12 text-ink" />
-            </div>
-            <h1 className="text-3xl font-bold text-ink">YeboMart</h1>
-            <p className="text-mute mt-2">AI-Powered Shop Management</p>
+            <YeboLogo size="lg" className="mb-4" />
+            <p className="text-mute">Point of sale for African shops</p>
           </div>
 
           <div className="bg-sand/50 rounded-sharp border border-line/50 p-8 mb-6">
@@ -260,7 +254,7 @@ export function Onboarding() {
           </button>
 
           <p className="text-mist text-sm mt-8">
-            © 2026 YeboMart by Omevision. Available across Africa 🌍
+            © 2026 YeboMart by Omevision. Available across Africa
           </p>
         </div>
       </div>
@@ -272,15 +266,11 @@ export function Onboarding() {
     return (
       <div className="min-h-screen bg-cream flex items-center justify-center p-4">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-wash rounded-full blur-3xl" />
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-wash rounded-full blur-3xl" />
         </div>
 
         <div className="relative w-full max-w-lg">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-sharp bg-brand shadow-lg mb-4">
-              <ShoppingCartIcon className="w-10 h-10 text-ink" />
-            </div>
+            <YeboLogo size="lg" className="mb-4" />
             <h1 className="text-2xl font-bold text-ink">Let's Get You Started</h1>
             <p className="text-mute mt-2">Here's what you need to know</p>
           </div>
@@ -358,8 +348,6 @@ export function Onboarding() {
     return (
       <div className="min-h-screen bg-cream p-4 pb-24">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-wash rounded-full blur-3xl" />
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-wash rounded-full blur-3xl" />
         </div>
 
         <div className="relative max-w-lg mx-auto pt-8">
@@ -424,8 +412,6 @@ export function Onboarding() {
     return (
       <div className="min-h-screen bg-cream p-4 pb-24">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-wash rounded-full blur-3xl" />
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-wash rounded-full blur-3xl" />
         </div>
 
         <div className="relative max-w-2xl mx-auto pt-8">
@@ -530,8 +516,6 @@ export function Onboarding() {
   return (
     <div className="min-h-screen bg-cream flex items-center justify-center p-4">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-wash rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-wash rounded-full blur-3xl" />
       </div>
 
       <div className="relative w-full max-w-md">
@@ -620,7 +604,7 @@ export function Onboarding() {
         </div>
 
         <p className="text-center text-mist text-sm mt-6">
-          © 2026 YeboMart by Omevision. Available across Africa 🌍
+          © 2026 YeboMart by Omevision. Available across Africa
         </p>
       </div>
     </div>

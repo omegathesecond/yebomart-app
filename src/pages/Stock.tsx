@@ -27,12 +27,12 @@ import api, { type ReorderSuggestion } from '@/api/client';
 // Adjustment types supported by API
 type AdjustmentType = 'ADJUSTMENT' | 'DAMAGED' | 'EXPIRED' | 'TRANSFER' | 'RETURN';
 
-const ADJUSTMENT_TYPES: { value: AdjustmentType; label: string; icon: string }[] = [
-  { value: 'ADJUSTMENT', label: 'Stock Correction', icon: '📝' },
-  { value: 'DAMAGED', label: 'Damaged', icon: '💔' },
-  { value: 'EXPIRED', label: 'Expired', icon: '📅' },
-  { value: 'RETURN', label: 'Customer Return', icon: '↩️' },
-  { value: 'TRANSFER', label: 'Transfer', icon: '🔄' },
+const ADJUSTMENT_TYPES: { value: AdjustmentType; label: string }[] = [
+  { value: 'ADJUSTMENT', label: 'Stock Correction' },
+  { value: 'DAMAGED', label: 'Damaged' },
+  { value: 'EXPIRED', label: 'Expired' },
+  { value: 'RETURN', label: 'Customer Return' },
+  { value: 'TRANSFER', label: 'Transfer' },
 ];
 
 export function Stock() {
@@ -362,7 +362,7 @@ export function Stock() {
             <ExclamationTriangleIcon className="w-6 h-6 text-bad flex-shrink-0 mt-1" />
             <div className="flex-1">
               <p className="font-semibold text-ink mb-2">
-                ⚠️ {lowStockAlerts.length} Stock Alert{lowStockAlerts.length > 1 ? 's' : ''}
+                {lowStockAlerts.length} Stock Alert{lowStockAlerts.length > 1 ? 's' : ''}
               </p>
               <div className="space-y-2">
                 {lowStockAlerts.slice(0, 5).map(p => (
@@ -756,7 +756,7 @@ export function Stock() {
               </div>
               {receiveMarginPreview.profit < 0 && (
                 <p className="text-xs text-bad mt-2">
-                  ⚠️ This cost is above the sell price — you'd lose money on each sale.
+                  This cost is above the sell price — you'd lose money on each sale.
                 </p>
               )}
             </div>
@@ -849,7 +849,7 @@ export function Stock() {
                       : 'bg-shade text-body hover:bg-shade'
                   }`}
                 >
-                  {type.icon} {type.label}
+                  {type.label}
                 </button>
               ))}
             </div>

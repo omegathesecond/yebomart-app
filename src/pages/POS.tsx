@@ -24,6 +24,7 @@ import { useInventoryStore } from '@/stores/inventoryStore';
 import { useCartStore, useCartSubtotal, useCartDiscount, useCartTaxBreakdown } from '@/stores/cartStore';
 import { computeChange } from '@/lib/money';
 import { formatCurrency, type Product, PAYMENT_METHODS } from '@/types';
+import { PaymentMethodIcon } from '@/components/ui/PaymentMethodIcon';
 import { BarcodeScanner } from '@/components/scanner/BarcodeScanner';
 
 // Discount reasons for quick selection
@@ -344,7 +345,7 @@ export function POS() {
                           } ${!canSellPack ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
                           <span className="flex items-center justify-between">
-                            <span>📦 {product.packSize}-Pack</span>
+                            <span>{product.packSize}-Pack</span>
                             <span className="font-bold">{formatCurrency(product.packPrice!)}</span>
                             {inCartPack && (
                               <span className="ml-1 w-4 h-4 rounded-full bg-ok text-cream text-xs flex items-center justify-center">
@@ -561,7 +562,8 @@ export function POS() {
                 onClick={() => handlePayment('cash')}
                 isLoading={isProcessing}
               >
-                💵 Cash
+                <PaymentMethodIcon method="cash" />
+                Cash
               </Button>
               <Button 
                 variant="primary" 
@@ -570,7 +572,8 @@ export function POS() {
                 onClick={() => handlePayment('card')}
                 isLoading={isProcessing}
               >
-                💳 Card
+                <PaymentMethodIcon method="card" />
+                Card
               </Button>
               <Button 
                 variant="secondary" 
@@ -579,7 +582,8 @@ export function POS() {
                 onClick={() => handlePayment('momo')}
                 isLoading={isProcessing}
               >
-                📱 MoMo
+                <PaymentMethodIcon method="momo" />
+                MoMo
               </Button>
               <Button
                 variant="secondary"
@@ -588,7 +592,8 @@ export function POS() {
                 onClick={() => handlePayment('emali')}
                 isLoading={isProcessing}
               >
-                📲 eMali
+                <PaymentMethodIcon method="emali" />
+                eMali
               </Button>
             </div>
 
@@ -599,7 +604,8 @@ export function POS() {
               disabled={isProcessing}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-sharp border border-ink/40 bg-wash text-brick font-medium hover:bg-wash transition-colors disabled:opacity-50"
             >
-              📒 Credit / On the book
+              <PaymentMethodIcon method="credit" />
+              Credit / On the book
               {customer && (
                 <span className="text-xs text-brick/80">({customer.name.split(' ')[0]})</span>
               )}
@@ -909,7 +915,8 @@ export function POS() {
               disabled={!cashReceived || parseFloat(cashReceived) < cartTotal}
               isLoading={isProcessing}
             >
-              💵 Complete Sale
+              <PaymentMethodIcon method="cash" />
+              Complete Sale
             </Button>
           </div>
         </div>
