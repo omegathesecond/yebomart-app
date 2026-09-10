@@ -228,6 +228,52 @@ export interface CreditPack {
   discountPercent: number;
 }
 
+/** A YeboMart plan. TILL is free and is what a shop has when it has no
+ *  subscription at all. An allowance of `null` means unlimited. */
+export type PlanCode = 'TILL' | 'SHOP' | 'BUSY';
+
+export interface Plan {
+  code: PlanCode;
+  name: string;
+  tagline: string;
+  price_szl: number;
+  automated_messages: boolean;
+  features: string[];
+  allowances: Record<string, number | null>;
+}
+
+/** A plan cycle is PENDING until its invoice is paid, and PAST_DUE once it
+ *  lapses. Both fall back to Till entitlements — the plan follows the money. */
+export type SubscriptionStatus = 'PENDING' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED';
+
+export interface SubscriptionState {
+  plan_code: PlanCode;
+  status: SubscriptionStatus;
+  current_period_start: string;
+  current_period_end: string;
+  cancel_at_period_end: boolean;
+  /** Present only while a cycle is unpaid, so the UI can offer "Pay now". */
+  invoice_number: string | null;
+  pay_url: string | null;
+}
+
+export interface UsageSummary {
+  plan_code: PlanCode;
+  period_start: string;
+  period_end: string | null;
+  allowances: Array<{
+    action: string;
+    allowance: number | null;
+    used: number;
+    remaining: number | null;
+  }>;
+}
+
+export interface SubscriptionResponse {
+  subscription: SubscriptionState | null;
+  usage: UsageSummary;
+}
+
 /** The shop's current wallet balance, from YeboPay. */
 export interface CreditBalance {
   available: number;
@@ -1247,6 +1293,46 @@ class ApiClient {
   /** GET /api/billing/credit-packs — public catalog for the top-up UI. */
   async getCreditPacks() {
     return this.request<{ packs: CreditPack[] }>('/api/billing/credit-packs');
+  }
+
+  /** GET /api/billing/plans — public. The three plans and what each includes. */
+  async getPlans() {
+    return this.request<{ plans: Plan[] }>('/api/billing/plans');
+  }
+
+  /**
+   * GET /api/billing/subscription — the shop's plan, the cycle it is in, and
+   * how much of each monthly allowance it has spent. `subscription` is null
+   * for a shop that has never subscribed; `usage` always reflects what the
+   * shop is ENTITLED to right now, which is Till unless a cycle is paid.
+   */
+  async getSubscription() {
+    return this.request<SubscriptionResponse>('/api/billing/subscription');
+  }
+
+  /**
+   * POST /api/billing/subscribe — raises the first cycle's invoice and returns
+   * its pay link. The plan does NOT start until that invoice is paid, so the
+   * caller should send the owner to `pay_url`.
+   */
+  async subscribe(planCode: Exclude<PlanCode, 'TILL'>) {
+    return this.request<{
+      pay_url: string;
+      plan_code: PlanCode;
+      status: SubscriptionStatus;
+      invoice_number: string | null;
+    }>('/api/billing/subscribe', {
+      method: 'POST',
+      body: JSON.stringify({ plan_code: planCode }),
+    });
+  }
+
+  /** POST /api/billing/subscription/cancel — runs to the end of the paid period. */
+  async cancelSubscription() {
+    return this.request<{ plan_code: PlanCode; ends_at: string }>(
+      '/api/billing/subscription/cancel',
+      { method: 'POST' },
+    );
   }
 
   /** GET /api/billing/balance — the shop's current credit balance (YeboPay wallet). */
