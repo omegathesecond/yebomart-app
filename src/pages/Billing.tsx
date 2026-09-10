@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Toast, useToast } from '@/components/ui/Toast';
 import { api, type CreditPack } from '@/api/client';
 import { useBillingStore, isLowBalance } from '@/stores/billingStore';
+import { PlanSection } from '@/components/billing/PlanSection';
 
 /**
  * localStorage key holding the in-flight top-up so the success page can confirm
@@ -107,9 +108,21 @@ export function Billing() {
     <div className="space-y-6 max-w-4xl">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-white">Billing &amp; Credits</h1>
+        <h1 className="text-2xl font-bold text-white">Plan &amp; Credits</h1>
         <p className="text-slate-400 mt-1">
-          Credits power your AI assistant and customer messaging. 1 credit = {szl(1)}.
+          Your plan covers the day-to-day. Credits cover anything beyond it. 1 credit = {szl(1)}.
+        </p>
+      </div>
+
+      {/* The plan comes first: it is what covers most of a shop's usage, and
+          credits are the overage on top of it. */}
+      <PlanSection onNotify={showToast} />
+
+      <div className="border-t border-slate-700/60 pt-6">
+        <h2 className="text-lg font-semibold text-white">Credits</h2>
+        <p className="text-slate-400 text-sm mt-1">
+          Used for anything past your plan&rsquo;s monthly allowance, and for everything on the free
+          Till plan.
         </p>
       </div>
 
@@ -148,8 +161,8 @@ export function Billing() {
         <div className="flex items-start gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/30">
           <ExclamationTriangleIcon className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
           <p className="text-sm text-red-200">
-            Your balance is low ({balance.available.toLocaleString()} credits left). Top up below to
-            keep using your AI assistant and customer messaging without interruption.
+            Your balance is low ({balance.available.toLocaleString()} credits left). Top up below so
+            anything beyond your plan&rsquo;s allowance keeps working.
           </p>
         </div>
       )}
