@@ -24,10 +24,10 @@ export function LowBalanceBanner() {
   if (!isLowBalance(balance)) return null;
 
   return (
-    <div className="bg-red-500/10 border-b border-red-500/30">
+    <div className="bg-bad/10 border-b border-bad/30">
       <div className="flex items-center gap-3 px-4 py-2.5">
-        <ExclamationTriangleIcon className="w-5 h-5 text-red-400 shrink-0" />
-        <p className="text-sm text-red-200 flex-1 min-w-0">
+        <ExclamationTriangleIcon className="w-5 h-5 text-bad shrink-0" />
+        <p className="text-sm text-bad flex-1 min-w-0">
           <span className="font-medium">Low credits.</span>{' '}
           <span className="hidden sm:inline">
             {balance!.available.toLocaleString()} credits left — top up to keep AI &amp; messaging
@@ -37,7 +37,7 @@ export function LowBalanceBanner() {
         </p>
         <Link
           to="/billing"
-          className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-medium transition-colors"
+          className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-sharp bg-bad hover:bg-bad text-cream text-sm font-medium transition-colors"
         >
           Top up
           <ArrowRightIcon className="w-4 h-4" />

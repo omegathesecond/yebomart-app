@@ -24,6 +24,7 @@ import { useInventoryStore } from '@/stores/inventoryStore';
 import { useCartStore, useCartSubtotal, useCartDiscount, useCartTaxBreakdown } from '@/stores/cartStore';
 import { computeChange } from '@/lib/money';
 import { formatCurrency, type Product, PAYMENT_METHODS } from '@/types';
+import { PaymentMethodIcon } from '@/components/ui/PaymentMethodIcon';
 import { BarcodeScanner } from '@/components/scanner/BarcodeScanner';
 
 // Discount reasons for quick selection
@@ -275,7 +276,7 @@ export function POS() {
           {/* Mobile POS link - scan-centric mode */}
           <Link
             to="/pos/mobile"
-            className="px-4 py-2 bg-teal-500 hover:bg-teal-400 text-white rounded-xl flex items-center gap-2 transition-colors md:hidden"
+            className="px-4 py-2 bg-brand hover:bg-brand text-ink rounded-sharp flex items-center gap-2 transition-colors md:hidden"
             title="Mobile Scan Mode"
           >
             <DevicePhoneMobileIcon className="w-5 h-5" />
@@ -287,9 +288,10 @@ export function POS() {
         <div className="flex-1 overflow-y-auto space-y-6 pr-2">
           {Object.entries(productsByCategory).map(([category, categoryProducts]) => (
             <div key={category}>
-              <h3 className="text-sm font-medium text-slate-400 mb-2 sticky top-0 bg-slate-900 py-1">
-                {category}
-              </h3>
+              <div className="sticky top-0 z-10 mb-3 flex items-center gap-3 bg-cream py-1.5">
+                <span className="eyebrow">{category}</span>
+                <span className="h-px flex-1 bg-line" />
+              </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-2">
                 {categoryProducts.map((product) => {
                   const inCart = items.find(i => i.productId === product.id && !i.isPack);
@@ -304,31 +306,31 @@ export function POS() {
                       <button
                         onClick={() => !isOutOfStock && addItem(product)}
                         disabled={isOutOfStock}
-                        className={`pos-product-card text-left flex-1 ${
-                          inCart ? 'border-amber-500 ring-1 ring-amber-500/30' : ''
-                        } ${isOutOfStock ? 'opacity-50 cursor-not-allowed' : ''} ${
-                          hasPack ? 'rounded-b-none' : ''
+                        className={`pos-product-card flex min-h-[92px] flex-1 flex-col justify-between text-left ${
+                          inCart ? 'is-in-cart' : ''
+                        } ${isOutOfStock ? 'opacity-60 cursor-not-allowed' : ''} ${
+                          hasPack ? 'rounded-b-none border-b-0' : ''
                         }`}
                       >
-                        <div className="flex items-start justify-between gap-1">
-                          <h4 className="font-medium text-white text-sm line-clamp-2">
+                        <div className="flex items-start justify-between gap-1.5">
+                          <h4 className="line-clamp-2 text-[13.5px] font-medium leading-[1.3]">
                             {product.name}
                           </h4>
                           {inCart && (
-                            <span className="flex-shrink-0 w-5 h-5 rounded-full bg-amber-500 text-white text-xs flex items-center justify-center font-bold">
+                            <span className="m grid h-[19px] w-[19px] shrink-0 place-items-center bg-brand text-[11px] font-semibold text-ink">
                               {inCart.quantity}
                             </span>
                           )}
                         </div>
-                        <div className="mt-2 flex items-end justify-between">
-                          <span className="text-lg font-bold text-amber-400">
+                        <div className="flex items-baseline justify-between gap-2">
+                          <span className="m text-[16px] font-semibold">
                             {formatCurrency(product.sellPrice)}
                           </span>
-                          <span className={`text-xs ${
-                            isOutOfStock ? 'text-red-400' :
-                            isLowStock ? 'text-amber-400' : 'text-slate-500'
+                          <span className={`m text-[10.5px] ${
+                            isOutOfStock ? 'font-medium text-bad' :
+                            isLowStock ? 'font-medium text-warn' : 'text-mute'
                           }`}>
-                            {isOutOfStock ? 'Out' : `${product.quantity} left`}
+                            {isOutOfStock ? 'OUT' : isLowStock ? `${product.quantity} low` : `${product.quantity} left`}
                           </span>
                         </div>
                       </button>
@@ -337,17 +339,17 @@ export function POS() {
                         <button
                           onClick={() => canSellPack && addItem(product, true)}
                           disabled={!canSellPack}
-                          className={`px-3 py-1.5 text-xs font-medium rounded-b-xl border border-t-0 transition-colors ${
-                            inCartPack 
-                              ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' 
-                              : 'bg-slate-700/50 border-slate-600 text-slate-300 hover:bg-slate-700'
-                          } ${!canSellPack ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          className={`rounded-b-sharp border px-3 py-2 text-[11.5px] transition-colors ${
+                            inCartPack
+                              ? 'border-ink bg-wash font-medium text-ink'
+                              : 'border-line bg-sand text-body hover:border-line-strong'
+                          } ${!canSellPack ? 'cursor-not-allowed opacity-60' : ''}`}
                         >
                           <span className="flex items-center justify-between">
-                            <span>📦 {product.packSize}-Pack</span>
-                            <span className="font-bold">{formatCurrency(product.packPrice!)}</span>
+                            <span className="m uppercase tracking-[0.04em]">{product.packSize}-pack</span>
+                            <span className="m font-semibold">{formatCurrency(product.packPrice!)}</span>
                             {inCartPack && (
-                              <span className="ml-1 w-4 h-4 rounded-full bg-emerald-500 text-white text-xs flex items-center justify-center">
+                              <span className="m ml-1 grid h-4 w-4 place-items-center bg-brand text-[10px] font-semibold text-ink">
                                 {inCartPack.quantity}
                               </span>
                             )}
@@ -363,24 +365,24 @@ export function POS() {
 
           {filteredProducts.length === 0 && (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <MagnifyingGlassIcon className="w-12 h-12 text-slate-600 mb-3" />
-              <p className="text-slate-400">No products found</p>
-              <p className="text-sm text-slate-500">Try a different search term</p>
+              <MagnifyingGlassIcon className="w-12 h-12 text-mist mb-3" />
+              <p className="text-mute">No products found</p>
+              <p className="text-sm text-mist">Try a different search term</p>
             </div>
           )}
         </div>
       </div>
 
       {/* Cart Section */}
-      <div className="lg:w-96 flex flex-col bg-slate-800/50 rounded-2xl border border-slate-700/50">
+      <div className="lg:w-96 flex flex-col bg-sand/50 rounded-sharp border border-line/50">
         {/* Cart Header */}
-        <div className="p-4 border-b border-slate-700 space-y-3">
+        <div className="p-4 border-b border-line space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-white">Cart</h2>
+            <h2 className="text-lg font-semibold text-ink">Cart</h2>
             {items.length > 0 && (
               <button
                 onClick={clear}
-                className="text-sm text-red-400 hover:text-red-300"
+                className="text-sm text-bad hover:text-bad"
               >
                 Clear all
               </button>
@@ -389,17 +391,17 @@ export function POS() {
 
           {/* Customer attach */}
           {customer ? (
-            <div className="flex items-center gap-2 bg-slate-700/50 rounded-xl px-3 py-2">
-              <UserCircleIcon className="w-5 h-5 text-amber-400 shrink-0" />
+            <div className="flex items-center gap-2 bg-shade/50 rounded-sharp px-3 py-2">
+              <UserCircleIcon className="w-5 h-5 text-brick shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-white truncate">{customer.name}</p>
+                <p className="text-sm font-medium text-ink truncate">{customer.name}</p>
                 {customer.phone && (
-                  <p className="text-xs text-slate-400 truncate">{customer.phone}</p>
+                  <p className="text-xs text-mute truncate">{customer.phone}</p>
                 )}
               </div>
               <button
                 onClick={() => setCustomer(null)}
-                className="p-1 rounded-lg hover:bg-slate-600 text-slate-400 hover:text-red-400"
+                className="p-1 rounded-sharp hover:bg-shade text-mute hover:text-bad"
                 title="Remove customer"
               >
                 <XMarkIcon className="w-4 h-4" />
@@ -408,7 +410,7 @@ export function POS() {
           ) : (
             <button
               onClick={() => setShowCustomerPicker(true)}
-              className="flex items-center gap-2 w-full px-3 py-2 rounded-xl border border-dashed border-slate-600 text-slate-400 hover:border-amber-500/50 hover:text-amber-400 transition-colors text-sm"
+              className="flex items-center gap-2 w-full px-3 py-2 rounded-sharp border border-dashed border-line-strong text-mute hover:border-ink/50 hover:text-brick transition-colors text-sm"
             >
               <UserPlusIcon className="w-5 h-5" />
               Attach customer (optional)
@@ -417,14 +419,21 @@ export function POS() {
         </div>
 
         {/* Cart Items */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
+        {items.length > 0 && (
+          <div className="flex items-center gap-3 border-b border-line px-4 pb-2 pt-3">
+            <span className="eyebrow flex-1">Item</span>
+            <span className="eyebrow w-[104px] text-center">Qty</span>
+            <span className="eyebrow w-[68px] text-right">Amount</span>
+          </div>
+        )}
+        <div className="min-h-0 flex-1 overflow-y-auto px-4">
           {items.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-center py-8">
-              <div className="w-16 h-16 rounded-full bg-slate-700/50 flex items-center justify-center mb-3">
-                <BanknotesIcon className="w-8 h-8 text-slate-500" />
-              </div>
-              <p className="text-slate-400">Cart is empty</p>
-              <p className="text-sm text-slate-500">Tap products to add them</p>
+            <div className="flex h-full flex-col items-center justify-center py-8 text-center">
+              <BanknotesIcon className="mb-3 h-7 w-7 text-mist" />
+              <p className="text-[13.5px] text-mute">Nothing rung up yet</p>
+              <p className="m mt-1 text-[10.5px] uppercase tracking-[0.1em] text-mist">
+                Tap a product to add it
+              </p>
             </div>
           ) : (
             items.map((item) => {
@@ -438,23 +447,26 @@ export function POS() {
 
               return (
                 <div key={itemKey} className="pos-cart-item">
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-medium text-white truncate">
+                  <div className="min-w-0 flex-1">
+                    <h4 className="truncate text-[13.5px] font-medium">
                       {item.product.name}
                       {item.isPack && item.product.packSize && (
-                        <span className="ml-1 text-emerald-400 text-sm">({item.product.packSize}-Pack)</span>
+                        <span className="m ml-1.5 text-[10.5px] uppercase tracking-[0.04em] text-brick">
+                          {item.product.packSize}-pack
+                        </span>
                       )}
                     </h4>
-                    <p className="text-sm text-slate-400">
+                    <p className="m mt-0.5 text-[10.5px] text-mute">
                       {formatCurrency(unitPrice)} {item.isPack ? 'per pack' : 'each'}
                     </p>
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className="flex w-[104px] items-center justify-center">
                     <button
                       onClick={() => updateQuantity(item.productId, item.quantity - 1, item.isPack)}
-                      className="p-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300"
+                      aria-label="One fewer"
+                      className="grid h-8 w-8 shrink-0 place-items-center border border-line-strong bg-cream transition-colors hover:border-ink"
                     >
-                      <MinusIcon className="w-4 h-4" />
+                      <MinusIcon className="h-3.5 w-3.5" />
                     </button>
                     <input
                       type="number"
@@ -469,23 +481,26 @@ export function POS() {
                           updateQuantity(item.productId, qty, item.isPack);
                         }
                       }}
-                      className="w-14 text-center font-medium text-white bg-slate-700 border border-slate-600 rounded-lg py-1 px-1 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      aria-label="Quantity"
+                      className="m h-8 w-9 border-y border-line-strong bg-cream px-0 text-center text-[13.5px] font-semibold focus:outline-none"
                     />
                     <button
                       onClick={() => updateQuantity(item.productId, item.quantity + 1, item.isPack)}
                       disabled={item.quantity >= maxQty}
-                      className="p-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 disabled:opacity-50"
+                      aria-label="One more"
+                      className="grid h-8 w-8 shrink-0 place-items-center border border-line-strong bg-cream transition-colors hover:border-ink disabled:opacity-40"
                     >
-                      <PlusIcon className="w-4 h-4" />
+                      <PlusIcon className="h-3.5 w-3.5" />
                     </button>
                     <button
                       onClick={() => removeItem(item.productId, item.isPack)}
-                      className="p-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 ml-1"
+                      aria-label={`Remove ${item.product.name}`}
+                      className="ml-1.5 grid h-8 w-7 shrink-0 place-items-center text-mist transition-colors hover:text-bad"
                     >
-                      <TrashIcon className="w-4 h-4" />
+                      <TrashIcon className="h-4 w-4" />
                     </button>
                   </div>
-                  <p className="font-semibold text-amber-400 w-20 text-right">
+                  <p className="m w-[68px] text-right text-[13.5px] font-semibold">
                     {formatCurrency(unitPrice * item.quantity)}
                   </p>
                 </div>
@@ -496,21 +511,21 @@ export function POS() {
 
         {/* Cart Footer - Payment Buttons */}
         {items.length > 0 && (
-          <div className="p-4 border-t border-slate-700 space-y-3">
+          <div className="p-4 border-t border-line space-y-3">
             {/* Subtotal */}
             <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-400">Subtotal</span>
-              <span className="text-slate-300">{formatCurrency(cartSubtotal)}</span>
+              <span className="text-mute">Subtotal</span>
+              <span className="m text-body">{formatCurrency(cartSubtotal)}</span>
             </div>
             
             {/* Discount Row */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-slate-400 text-sm">Discount</span>
+                <span className="text-mute text-sm">Discount</span>
                 {canDiscount && (
                   <button
                     onClick={() => setShowDiscountModal(true)}
-                    className="text-xs text-amber-400 hover:text-amber-300"
+                    className="text-xs text-brick hover:text-brick"
                   >
                     {discount ? 'Edit' : '+ Add'}
                   </button>
@@ -518,59 +533,63 @@ export function POS() {
               </div>
               {discount ? (
                 <div className="flex items-center gap-2">
-                  <span className="text-emerald-400 font-medium">
+                  <span className="m font-medium text-ok">
                     -{formatCurrency(discount.amount)}
                     {discount.percent && <span className="text-xs ml-1">({discount.percent}%)</span>}
                   </span>
                   <button 
                     onClick={clearDiscount}
-                    className="text-red-400 hover:text-red-300"
+                    className="text-bad hover:text-bad"
                   >
                     <XMarkIcon className="w-4 h-4" />
                   </button>
                 </div>
               ) : (
-                <span className="text-slate-500 text-sm">-</span>
+                <span className="text-mist text-sm">-</span>
               )}
             </div>
             
             {/* Tax / VAT — only shown when the shop charges tax */}
             {taxBreakdown.tax > 0 && (
               <div className="flex items-center justify-between text-sm">
-                <span className="text-slate-400">
+                <span className="text-mute">
                   VAT ({shop?.taxRate}%{shop?.taxInclusive ? ' incl.' : ''})
                 </span>
-                <span className="text-slate-300">{formatCurrency(taxBreakdown.tax)}</span>
+                <span className="m text-body">{formatCurrency(taxBreakdown.tax)}</span>
               </div>
             )}
 
-            {/* Total */}
-            <div className="flex items-center justify-between pt-2 border-t border-slate-600">
-              <span className="text-white font-medium">Total</span>
-              <span className="text-2xl font-bold text-white">
+            {/* Amount due — the one ink band on the till. */}
+            <div className="pos-total-band -mx-4">
+              <span className="m text-[11px] uppercase tracking-[0.14em] text-mist">
+                Amount due
+              </span>
+              <span className="m text-[28px] font-semibold tracking-[-0.02em]">
                 {formatCurrency(cartTotal)}
               </span>
             </div>
             
             {/* Payment Method Buttons */}
             <div className="grid grid-cols-2 gap-2 pt-2">
-              <Button 
-                variant="success" 
+              <Button
+                variant="primary"
                 size="lg"
                 className="w-full"
                 onClick={() => handlePayment('cash')}
                 isLoading={isProcessing}
               >
-                💵 Cash
+                <PaymentMethodIcon method="cash" />
+                Cash
               </Button>
-              <Button 
-                variant="primary" 
+              <Button
+                variant="secondary"
                 size="lg"
                 className="w-full"
                 onClick={() => handlePayment('card')}
                 isLoading={isProcessing}
               >
-                💳 Card
+                <PaymentMethodIcon method="card" />
+                Card
               </Button>
               <Button 
                 variant="secondary" 
@@ -579,7 +598,8 @@ export function POS() {
                 onClick={() => handlePayment('momo')}
                 isLoading={isProcessing}
               >
-                📱 MoMo
+                <PaymentMethodIcon method="momo" />
+                MoMo
               </Button>
               <Button
                 variant="secondary"
@@ -588,7 +608,8 @@ export function POS() {
                 onClick={() => handlePayment('emali')}
                 isLoading={isProcessing}
               >
-                📲 eMali
+                <PaymentMethodIcon method="emali" />
+                eMali
               </Button>
             </div>
 
@@ -597,11 +618,12 @@ export function POS() {
             <button
               onClick={() => handlePayment('credit')}
               disabled={isProcessing}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-300 font-medium hover:bg-amber-500/20 transition-colors disabled:opacity-50"
+              className="flex h-[46px] w-full items-center justify-center gap-2 rounded-sharp border border-dashed border-brick/50 bg-transparent text-[13.5px] font-medium text-brick transition-colors hover:bg-wash disabled:opacity-50"
             >
-              📒 Credit / On the book
+              <PaymentMethodIcon method="credit" />
+              Credit / On the book
               {customer && (
-                <span className="text-xs text-amber-400/80">({customer.name.split(' ')[0]})</span>
+                <span className="text-xs text-brick/80">({customer.name.split(' ')[0]})</span>
               )}
             </button>
           </div>
@@ -648,23 +670,23 @@ export function POS() {
       >
         <div className="space-y-4">
           {/* Discount Type Toggle */}
-          <div className="flex rounded-lg bg-slate-700/50 p-1">
+          <div className="flex rounded-sharp bg-shade/50 p-1">
             <button
               onClick={() => setDiscountType('percent')}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+              className={`flex-1 py-2 px-4 rounded-sharp text-sm font-medium transition-colors ${
                 discountType === 'percent' 
-                  ? 'bg-amber-500 text-white' 
-                  : 'text-slate-300 hover:text-white'
+                  ? 'bg-brand text-ink' 
+                  : 'text-body hover:text-ink'
               }`}
             >
               Percentage (%)
             </button>
             <button
               onClick={() => setDiscountType('amount')}
-              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+              className={`flex-1 py-2 px-4 rounded-sharp text-sm font-medium transition-colors ${
                 discountType === 'amount' 
-                  ? 'bg-amber-500 text-white' 
-                  : 'text-slate-300 hover:text-white'
+                  ? 'bg-brand text-ink' 
+                  : 'text-body hover:text-ink'
               }`}
             >
               Fixed Amount (E)
@@ -673,7 +695,7 @@ export function POS() {
 
           {/* Discount Value Input */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-body mb-2">
               {discountType === 'percent' ? 'Discount Percentage' : 'Discount Amount'}
             </label>
             <div className="relative">
@@ -685,14 +707,14 @@ export function POS() {
                 value={discountValue}
                 onChange={(e) => setDiscountValue(e.target.value)}
                 placeholder={discountType === 'percent' ? 'e.g., 10' : 'e.g., 50.00'}
-                className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full px-4 py-3 bg-shade border border-line-strong rounded-sharp text-ink placeholder-mist focus:outline-none focus:ring-2 focus:ring-ink"
               />
-              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-mute">
                 {discountType === 'percent' ? '%' : 'E'}
               </span>
             </div>
             {discountType === 'percent' && maxDiscountPercent < 100 && (
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-mute mt-1">
                 Maximum discount allowed: {maxDiscountPercent}%
               </p>
             )}
@@ -705,10 +727,10 @@ export function POS() {
                 <button
                   key={percent}
                   onClick={() => setDiscountValue(percent.toString())}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
+                  className={`px-3 py-1.5 rounded-sharp text-sm font-medium border transition-colors ${
                     discountValue === percent.toString()
-                      ? 'bg-amber-500/20 border-amber-500 text-amber-400'
-                      : 'border-slate-600 text-slate-300 hover:border-slate-500'
+                      ? 'bg-wash border-ink text-brick'
+                      : 'border-line-strong text-body hover:border-line-strong'
                   }`}
                 >
                   {percent}%
@@ -719,13 +741,13 @@ export function POS() {
 
           {/* Discount Reason */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-body mb-2">
               Reason (required)
             </label>
             <select
               value={discountReason}
               onChange={(e) => setDiscountReason(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className="w-full px-4 py-3 bg-shade border border-line-strong rounded-sharp text-ink focus:outline-none focus:ring-2 focus:ring-ink"
             >
               <option value="">Select reason...</option>
               {DISCOUNT_REASONS.map(reason => (
@@ -736,14 +758,14 @@ export function POS() {
 
           {/* Preview */}
           {discountValue && (
-            <div className="bg-slate-700/30 rounded-lg p-3 space-y-1">
+            <div className="bg-shade/30 rounded-sharp p-3 space-y-1">
               <div className="flex justify-between text-sm">
-                <span className="text-slate-400">Subtotal</span>
-                <span className="text-white">{formatCurrency(cartSubtotal)}</span>
+                <span className="text-mute">Subtotal</span>
+                <span className="m text-ink">{formatCurrency(cartSubtotal)}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-slate-400">Discount</span>
-                <span className="text-emerald-400">
+                <span className="text-mute">Discount</span>
+                <span className="text-ok">
                   -{formatCurrency(
                     discountType === 'percent' 
                       ? cartSubtotal * (parseFloat(discountValue) || 0) / 100
@@ -751,9 +773,9 @@ export function POS() {
                   )}
                 </span>
               </div>
-              <div className="flex justify-between font-medium border-t border-slate-600 pt-1">
-                <span className="text-white">New Total</span>
-                <span className="text-white">
+              <div className="flex justify-between font-medium border-t border-line-strong pt-1">
+                <span className="text-ink">New Total</span>
+                <span className="m text-ink">
                   {formatCurrency(Math.max(0, 
                     cartSubtotal - (discountType === 'percent' 
                       ? cartSubtotal * (parseFloat(discountValue) || 0) / 100
@@ -820,18 +842,18 @@ export function POS() {
       >
         <div className="space-y-6">
           {/* Total Due */}
-          <div className="bg-slate-700/50 rounded-xl p-4 text-center">
-            <p className="text-sm text-slate-400 mb-1">Total Due</p>
-            <p className="text-3xl font-bold text-white">{formatCurrency(cartTotal)}</p>
+          <div className="bg-shade/50 rounded-sharp p-4 text-center">
+            <p className="text-sm text-mute mb-1">Total Due</p>
+            <p className="m text-3xl font-bold text-ink">{formatCurrency(cartTotal)}</p>
           </div>
 
           {/* Cash Received Input */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-body mb-2">
               Cash Received
             </label>
             <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">E</span>
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-mute font-medium">E</span>
               <input
                 type="number"
                 min={cartTotal}
@@ -840,7 +862,7 @@ export function POS() {
                 onChange={(e) => handleCashReceivedChange(e.target.value)}
                 placeholder="0.00"
                 autoFocus
-                className="w-full pl-8 pr-4 py-4 text-2xl font-bold bg-slate-700 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 text-center"
+                className="w-full pl-8 pr-4 py-4 text-2xl font-bold bg-shade border border-line-strong rounded-sharp text-ink placeholder-mist focus:outline-none focus:ring-2 focus:ring-ink text-center"
               />
             </div>
           </div>
@@ -851,10 +873,10 @@ export function POS() {
               <button
                 key={amount}
                 onClick={() => handleCashReceivedChange(amount.toString())}
-                className={`py-2 px-3 rounded-lg text-sm font-medium border transition-colors ${
+                className={`py-2 px-3 rounded-sharp text-sm font-medium border transition-colors ${
                   parseFloat(cashReceived) === amount
-                    ? 'bg-amber-500/20 border-amber-500 text-amber-400'
-                    : 'border-slate-600 text-slate-300 hover:border-slate-500'
+                    ? 'bg-wash border-ink text-brick'
+                    : 'border-line-strong text-body hover:border-line-strong'
                 }`}
               >
                 E{amount}
@@ -865,10 +887,10 @@ export function POS() {
           {/* Exact Amount Button */}
           <button
             onClick={() => handleCashReceivedChange(cartTotal.toFixed(2))}
-            className={`w-full py-2 rounded-lg text-sm font-medium border transition-colors ${
+            className={`w-full py-2 rounded-sharp text-sm font-medium border transition-colors ${
               parseFloat(cashReceived) === cartTotal
-                ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400'
-                : 'border-slate-600 text-slate-300 hover:border-slate-500'
+                ? 'bg-ok/20 border-ok text-ok'
+                : 'border-line-strong text-body hover:border-line-strong'
             }`}
           >
             Exact Amount ({formatCurrency(cartTotal)})
@@ -876,16 +898,16 @@ export function POS() {
 
           {/* Change Display */}
           {parseFloat(cashReceived) >= cartTotal && (
-            <div className="bg-emerald-500/20 border border-emerald-500/30 rounded-xl p-4 text-center">
-              <p className="text-sm text-emerald-400 mb-1">Change Due</p>
-              <p className="text-3xl font-bold text-emerald-400">{formatCurrency(changeAmount)}</p>
+            <div className="bg-ok/20 border border-ok/30 rounded-sharp p-4 text-center">
+              <p className="text-sm text-ok mb-1">Change Due</p>
+              <p className="m text-3xl font-bold text-ok">{formatCurrency(changeAmount)}</p>
             </div>
           )}
 
           {/* Insufficient Warning */}
           {cashReceived && parseFloat(cashReceived) < cartTotal && (
-            <div className="bg-red-500/20 border border-red-500/30 rounded-xl p-3 text-center">
-              <p className="text-red-400 text-sm">
+            <div className="bg-bad/20 border border-bad/30 rounded-sharp p-3 text-center">
+              <p className="text-bad text-sm">
                 Insufficient amount. Need {formatCurrency(cartTotal - (parseFloat(cashReceived) || 0))} more.
               </p>
             </div>
@@ -909,7 +931,8 @@ export function POS() {
               disabled={!cashReceived || parseFloat(cashReceived) < cartTotal}
               isLoading={isProcessing}
             >
-              💵 Complete Sale
+              <PaymentMethodIcon method="cash" />
+              Complete Sale
             </Button>
           </div>
         </div>

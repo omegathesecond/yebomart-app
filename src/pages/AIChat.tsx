@@ -29,10 +29,10 @@ interface Message {
 }
 
 const QUICK_ACTIONS = [
-  { label: '📊 Sales today', prompt: 'How are my sales doing today?' },
-  { label: '📦 Low stock', prompt: 'Which products are running low on stock?' },
-  { label: '💡 Tips', prompt: 'Give me some tips to improve my shop' },
-  { label: '📈 Best sellers', prompt: 'What are my best selling products this week?' },
+  { label: 'Sales today', prompt: 'How are my sales doing today?' },
+  { label: 'Low stock', prompt: 'Which products are running low on stock?' },
+  { label: 'Tips', prompt: 'Give me some tips to improve my shop' },
+  { label: 'Best sellers', prompt: 'What are my best selling products this week?' },
 ];
 
 export function AIChat() {
@@ -64,7 +64,7 @@ export function AIChat() {
       setMessages([{
         id: 'welcome',
         role: 'assistant',
-        content: `Hello! I'm ${shop.assistantName || 'Yebo'}, your AI shop assistant. 👋\n\nI can help you with:\n• Checking sales and inventory\n• Stock predictions\n• Business insights\n• Product suggestions\n\nHow can I help you today?`,
+        content: `Hello! I'm ${shop.assistantName || 'Yebo'}, your shop assistant.\n\nI can help you with:\n• Checking sales and inventory\n• Stock predictions\n• Business insights\n• Product suggestions\n\nHow can I help you today?`,
         timestamp: new Date()
       }]);
     }
@@ -185,14 +185,14 @@ export function AIChat() {
     <div className="h-[calc(100vh-140px)] md:h-[calc(100vh-100px)] flex flex-col">
       {/* Header */}
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
-          <SparklesIcon className="w-6 h-6 text-white" />
+        <div className="w-12 h-12 rounded-full bg-brand flex items-center justify-center">
+          <SparklesIcon className="w-6 h-6 text-ink" />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-white">
+          <h1 className="text-xl font-bold text-ink">
             {shop?.assistantName || 'Yebo'} AI
           </h1>
-          <p className="text-sm text-slate-400">Your smart shop assistant</p>
+          <p className="text-sm text-mute">Your smart shop assistant</p>
         </div>
       </div>
 
@@ -205,16 +205,16 @@ export function AIChat() {
               className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               <div
-                className={`max-w-[85%] rounded-2xl px-4 py-3 ${
+                className={`max-w-[85%] rounded-sharp px-4 py-3 ${
                   message.role === 'user'
-                    ? 'bg-amber-500 text-white'
+                    ? 'bg-brand text-ink'
                     : message.isError
-                      ? 'bg-red-500/10 border border-red-500/30 text-red-200'
-                      : 'bg-slate-700/50 text-slate-100'
+                      ? 'bg-bad/10 border border-bad/30 text-bad'
+                      : 'bg-shade/50 text-ink'
                 }`}
               >
                 {message.isError && (
-                  <div className="flex items-center gap-1.5 mb-1 text-red-300 text-xs font-medium uppercase tracking-wide">
+                  <div className="flex items-center gap-1.5 mb-1 text-bad text-xs font-medium uppercase tracking-wide">
                     <ExclamationTriangleIcon className="w-4 h-4 shrink-0" />
                     <span>Couldn't get a reply</span>
                   </div>
@@ -222,10 +222,10 @@ export function AIChat() {
                 <p className="whitespace-pre-wrap">{message.content}</p>
                 <p className={`text-xs mt-1 ${
                   message.role === 'user'
-                    ? 'text-amber-100'
+                    ? 'text-brick'
                     : message.isError
-                      ? 'text-red-300/70'
-                      : 'text-slate-400'
+                      ? 'text-bad/70'
+                      : 'text-mute'
                 }`}>
                   {formatTime(message.timestamp)}
                 </p>
@@ -235,11 +235,11 @@ export function AIChat() {
 
           {isLoading && (
             <div className="flex justify-start">
-              <div className="bg-slate-700/50 rounded-2xl px-4 py-3">
+              <div className="bg-shade/50 rounded-sharp px-4 py-3">
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-amber-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <div className="w-2 h-2 bg-amber-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <div className="w-2 h-2 bg-amber-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  <div className="w-2 h-2 bg-brand rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <div className="w-2 h-2 bg-brand rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <div className="w-2 h-2 bg-brand rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                 </div>
               </div>
             </div>
@@ -252,15 +252,15 @@ export function AIChat() {
         {messages.length <= 1 && (
           <div className="px-4 pb-2">
             <div className="flex items-center gap-2 mb-2">
-              <LightBulbIcon className="w-4 h-4 text-amber-500" />
-              <span className="text-sm text-slate-400">Try asking:</span>
+              <LightBulbIcon className="w-4 h-4 text-brick" />
+              <span className="text-sm text-mute">Try asking:</span>
             </div>
             <div className="flex flex-wrap gap-2">
               {QUICK_ACTIONS.map((action) => (
                 <button
                   key={action.label}
                   onClick={() => handleSend(action.prompt)}
-                  className="px-3 py-1.5 text-sm bg-slate-700/50 hover:bg-slate-600/50 text-slate-300 rounded-full transition-colors"
+                  className="px-3 py-1.5 text-sm bg-shade/50 hover:bg-shade/50 text-body rounded-full transition-colors"
                 >
                   {action.label}
                 </button>
@@ -271,14 +271,14 @@ export function AIChat() {
 
         {/* Out-of-credits CTA — actionable deep link to billing, not a dead end */}
         {outOfCredits && (
-          <div className="mx-4 mb-2 flex items-center gap-3 p-3 rounded-xl bg-red-500/10 border border-red-500/30">
-            <BoltIcon className="w-5 h-5 text-red-400 shrink-0" />
-            <p className="text-sm text-red-200 flex-1">
+          <div className="mx-4 mb-2 flex items-center gap-3 p-3 rounded-sharp bg-bad/10 border border-bad/30">
+            <BoltIcon className="w-5 h-5 text-bad shrink-0" />
+            <p className="text-sm text-bad flex-1">
               You’re out of credits. Top up to keep using your AI assistant.
             </p>
             <Link
               to="/billing"
-              className="shrink-0 px-3 py-1.5 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-medium transition-colors"
+              className="shrink-0 px-3 py-1.5 rounded-sharp bg-bad hover:bg-bad text-cream text-sm font-medium transition-colors"
             >
               Top up credits
             </Link>
@@ -286,14 +286,14 @@ export function AIChat() {
         )}
 
         {/* Input */}
-        <div className="p-4 border-t border-slate-700">
+        <div className="p-4 border-t border-line">
           <div className="flex items-center gap-2">
             <button
               onClick={isListening ? () => {} : startVoiceInput}
-              className={`p-3 rounded-xl transition-colors ${
+              className={`p-3 rounded-sharp transition-colors ${
                 isListening 
-                  ? 'bg-red-500 text-white animate-pulse' 
-                  : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+                  ? 'bg-bad text-cream animate-pulse' 
+                  : 'bg-shade hover:bg-shade text-body'
               }`}
             >
               {isListening ? (
@@ -310,7 +310,7 @@ export function AIChat() {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
               placeholder="Ask anything about your shop..."
-              className="flex-1 px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:border-amber-500"
+              className="flex-1 px-4 py-3 bg-shade/50 border border-line-strong rounded-sharp text-ink placeholder-mist focus:outline-none focus:border-ink"
             />
 
             <Button

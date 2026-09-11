@@ -100,10 +100,10 @@ export function CountryPicker({
       return (
         <button
           onClick={() => setIsOpen(true)}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-700/50 transition"
+          className="flex items-center gap-2 px-3 py-2 rounded-sharp hover:bg-shade/50 transition"
         >
           <span className="text-2xl">{country?.flag}</span>
-          <ChevronDownIcon className="w-4 h-4 text-slate-400" />
+          <ChevronDownIcon className="w-4 h-4 text-mute" />
         </button>
       );
     }
@@ -112,24 +112,24 @@ export function CountryPicker({
       return (
         <button
           onClick={() => setIsOpen(true)}
-          className="w-full p-4 bg-slate-700/30 hover:bg-slate-700/50 border border-slate-600 rounded-xl transition text-left"
+          className="w-full p-4 bg-shade/30 hover:bg-shade/50 border border-line-strong rounded-sharp transition text-left"
         >
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 flex items-center justify-center bg-slate-800 rounded-xl text-3xl">
-              {country?.flag || '🌍'}
+            <div className="w-12 h-12 flex items-center justify-center bg-sand rounded-sharp text-3xl">
+              {country?.flag}
             </div>
             <div className="flex-1">
-              <p className="text-sm text-slate-400">{t('countryPicker.currentCountry')}</p>
-              <h3 className="text-lg font-semibold text-white">
+              <p className="text-sm text-mute">{t('countryPicker.currentCountry')}</p>
+              <h3 className="text-lg font-semibold text-ink">
                 {language === 'fr' && country?.nameFr ? country.nameFr : country?.name}
               </h3>
               {showCurrency && country && (
-                <p className="text-sm text-amber-400">
+                <p className="text-sm text-brick">
                   {country.currencySymbol} {country.currencyName}
                 </p>
               )}
             </div>
-            <ChevronDownIcon className="w-5 h-5 text-slate-400" />
+            <ChevronDownIcon className="w-5 h-5 text-mute" />
           </div>
         </button>
       );
@@ -139,18 +139,18 @@ export function CountryPicker({
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="flex items-center gap-3 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-xl transition"
+        className="flex items-center gap-3 px-4 py-2.5 bg-sand hover:bg-shade border border-line-strong rounded-sharp transition"
       >
-        <span className="text-2xl">{country?.flag || '🌍'}</span>
+        <span className="text-2xl">{country?.flag}</span>
         <div className="text-left">
-          <p className="text-white font-medium">
+          <p className="text-ink font-medium">
             {language === 'fr' && country?.nameFr ? country.nameFr : country?.name}
           </p>
           {showCurrency && country && (
-            <p className="text-xs text-slate-400">{country.currencySymbol} {country.currency}</p>
+            <p className="text-xs text-mute">{country.currencySymbol} {country.currency}</p>
           )}
         </div>
-        <ChevronDownIcon className="w-4 h-4 text-slate-400 ml-2" />
+        <ChevronDownIcon className="w-4 h-4 text-mute ml-2" />
       </button>
     );
   };
@@ -161,46 +161,46 @@ export function CountryPicker({
 
       {/* Modal Backdrop */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 animate-in fade-in duration-200">
           {/* Modal */}
           <div
             ref={modalRef}
-            className="w-full max-w-lg max-h-[85vh] bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
+            className="w-full max-w-lg max-h-[85vh] bg-cream border border-line rounded-sharp shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
           >
             {/* Header */}
-            <div className="sticky top-0 bg-slate-900 border-b border-slate-700 p-4 z-10">
+            <div className="sticky top-0 bg-cream border-b border-line p-4 z-10">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-amber-500/20 rounded-full flex items-center justify-center">
-                    <GlobeAltIcon className="w-5 h-5 text-amber-400" />
+                  <div className="w-10 h-10 bg-wash rounded-full flex items-center justify-center">
+                    <GlobeAltIcon className="w-5 h-5 text-brick" />
                   </div>
-                  <h2 className="text-xl font-bold text-white">{t('countryPicker.title')}</h2>
+                  <h2 className="text-xl font-bold text-ink">{t('countryPicker.title')}</h2>
                 </div>
                 <button
                   onClick={() => setIsOpen(false)}
-                  className="p-2 hover:bg-slate-700 rounded-lg transition"
+                  className="p-2 hover:bg-shade rounded-sharp transition"
                 >
-                  <XMarkIcon className="w-5 h-5 text-slate-400" />
+                  <XMarkIcon className="w-5 h-5 text-mute" />
                 </button>
               </div>
 
               {/* Search */}
               <div className="relative">
-                <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-mute" />
                 <input
                   ref={searchRef}
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={t('countryPicker.searchPlaceholder')}
-                  className="w-full pl-10 pr-4 py-3 bg-slate-800 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                  className="w-full pl-10 pr-4 py-3 bg-sand border border-line-strong rounded-sharp text-ink placeholder-mist focus:outline-none focus:border-ink focus:ring-1 focus:ring-ink"
                 />
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-700 rounded"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-shade rounded"
                   >
-                    <XMarkIcon className="w-4 h-4 text-slate-400" />
+                    <XMarkIcon className="w-4 h-4 text-mute" />
                   </button>
                 )}
               </div>
@@ -210,8 +210,8 @@ export function CountryPicker({
             <div className="overflow-y-auto max-h-[calc(85vh-180px)] p-2">
               {!hasResults ? (
                 <div className="text-center py-12">
-                  <GlobeAltIcon className="w-12 h-12 text-slate-600 mx-auto mb-4" />
-                  <p className="text-slate-400">{t('common.noResults')}</p>
+                  <GlobeAltIcon className="w-12 h-12 text-mist mx-auto mb-4" />
+                  <p className="text-mute">{t('common.noResults')}</p>
                 </div>
               ) : (
                 regions.map(region => {
@@ -228,13 +228,13 @@ export function CountryPicker({
                       {/* Region Header */}
                       <button
                         onClick={() => toggleRegion(region)}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm font-semibold text-slate-400 hover:text-slate-300 transition"
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm font-semibold text-mute hover:text-body transition"
                       >
                         <ChevronDownIcon
                           className={`w-4 h-4 transition-transform ${isExpanded ? '' : '-rotate-90'}`}
                         />
                         <span>{regionLabel}</span>
-                        <span className="text-xs text-slate-500">({countries.length})</span>
+                        <span className="text-xs text-mist">({countries.length})</span>
                       </button>
 
                       {/* Countries */}
@@ -248,24 +248,24 @@ export function CountryPicker({
                               <button
                                 key={c.code}
                                 onClick={() => handleSelectCountry(c)}
-                                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition ${
+                                className={`w-full flex items-center gap-3 px-3 py-3 rounded-sharp transition ${
                                   isSelected
-                                    ? 'bg-amber-500/20 border border-amber-500/50'
-                                    : 'hover:bg-slate-800 border border-transparent'
+                                    ? 'bg-wash border border-ink/50'
+                                    : 'hover:bg-sand border border-transparent'
                                 }`}
                               >
                                 <span className="text-3xl">{c.flag}</span>
                                 <div className="flex-1 text-left">
-                                  <p className={`font-medium ${isSelected ? 'text-amber-400' : 'text-white'}`}>
+                                  <p className={`font-medium ${isSelected ? 'text-brick' : 'text-ink'}`}>
                                     {displayName}
                                   </p>
-                                  <p className="text-sm text-slate-400">
+                                  <p className="text-sm text-mute">
                                     {c.currencySymbol} {c.currencyName}
                                   </p>
                                 </div>
                                 {isSelected && (
-                                  <div className="w-6 h-6 bg-amber-500 rounded-full flex items-center justify-center">
-                                    <CheckIcon className="w-4 h-4 text-white" />
+                                  <div className="w-6 h-6 bg-brand rounded-full flex items-center justify-center">
+                                    <CheckIcon className="w-4 h-4 text-ink" />
                                   </div>
                                 )}
                               </button>
@@ -281,17 +281,17 @@ export function CountryPicker({
 
             {/* Footer with Language Switcher */}
             {showLanguage && country && country.languages.length > 1 && (
-              <div className="sticky bottom-0 bg-slate-800/80 backdrop-blur border-t border-slate-700 p-4">
-                <p className="text-sm text-slate-400 mb-2">{t('settings.language')}</p>
+              <div className="sticky bottom-0 bg-sand/80 border-t border-line p-4">
+                <p className="text-sm text-mute mb-2">{t('settings.language')}</p>
                 <div className="flex gap-2">
                   {country.languages.map(lang => (
                     <button
                       key={lang}
                       onClick={() => setLanguage(lang)}
-                      className={`flex-1 py-2 px-4 rounded-lg font-medium transition ${
+                      className={`flex-1 py-2 px-4 rounded-sharp font-medium transition ${
                         language === lang
-                          ? 'bg-amber-500 text-white'
-                          : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                          ? 'bg-brand text-ink'
+                          : 'bg-shade text-body hover:bg-shade'
                       }`}
                     >
                       {LANGUAGE_LABELS[lang].native}
@@ -329,10 +329,10 @@ export function LanguageSwitcher() {
         <button
           key={lang}
           onClick={() => setLanguage(lang)}
-          className={`px-4 py-2 rounded-lg font-medium transition ${
+          className={`px-4 py-2 rounded-sharp font-medium transition ${
             language === lang
-              ? 'bg-amber-500 text-white'
-              : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+              ? 'bg-brand text-ink'
+              : 'bg-shade text-body hover:bg-shade'
           }`}
         >
           {LANGUAGE_LABELS[lang].native}

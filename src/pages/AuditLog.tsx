@@ -130,11 +130,11 @@ export function AuditLog() {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-center max-w-md">
-          <div className="w-16 h-16 rounded-2xl bg-red-500/20 flex items-center justify-center mx-auto mb-6">
-            <ShieldExclamationIcon className="w-8 h-8 text-red-400" />
+          <div className="w-16 h-16 rounded-sharp bg-bad/20 flex items-center justify-center mx-auto mb-6">
+            <ShieldExclamationIcon className="w-8 h-8 text-bad" />
           </div>
-          <h1 className="text-xl font-semibold text-white mt-3">Owners only</h1>
-          <p className="text-slate-400 mt-2">
+          <h1 className="text-xl font-semibold text-ink mt-3">Owners only</h1>
+          <p className="text-mute mt-2">
             The audit log is only visible to the shop owner.
           </p>
         </div>
@@ -146,8 +146,8 @@ export function AuditLog() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-white">Audit Log</h1>
-        <p className="text-slate-400 mt-1">
+        <h1 className="text-2xl font-bold text-ink">Audit Log</h1>
+        <p className="text-mute mt-1">
           Every login, sale, stock change and edit made in your shop
         </p>
       </div>
@@ -174,7 +174,7 @@ export function AuditLog() {
             ]}
           />
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1.5">From</label>
+            <label className="block text-sm font-medium text-body mb-1.5">From</label>
             <input
               type="date"
               value={filters.startDate}
@@ -183,7 +183,7 @@ export function AuditLog() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1.5">To</label>
+            <label className="block text-sm font-medium text-body mb-1.5">To</label>
             <input
               type="date"
               value={filters.endDate}
@@ -205,17 +205,17 @@ export function AuditLog() {
           role, shared/expired session, etc). Never a silent blank page. */}
       {forbidden && (
         <Card className="text-center py-12">
-          <ShieldExclamationIcon className="w-12 h-12 mx-auto text-red-400 mb-3" />
-          <p className="text-slate-300 font-medium">
+          <ShieldExclamationIcon className="w-12 h-12 mx-auto text-bad mb-3" />
+          <p className="text-body font-medium">
             You don't have permission to view the audit log
           </p>
-          <p className="text-slate-500 text-sm mt-1">This page is restricted to the shop owner.</p>
+          <p className="text-mist text-sm mt-1">This page is restricted to the shop owner.</p>
         </Card>
       )}
 
       {!forbidden && error && (
         <Card className="text-center py-12">
-          <p className="text-red-400">{error}</p>
+          <p className="text-bad">{error}</p>
           <Button variant="secondary" className="mt-4" onClick={load}>
             Retry
           </Button>
@@ -224,18 +224,18 @@ export function AuditLog() {
 
       {!forbidden && !error && loading && (
         <div className="text-center py-12">
-          <ArrowPathIcon className="w-8 h-8 animate-spin mx-auto text-slate-400" />
-          <p className="text-slate-400 mt-2">Loading audit log...</p>
+          <ArrowPathIcon className="w-8 h-8 animate-spin mx-auto text-mute" />
+          <p className="text-mute mt-2">Loading audit log...</p>
         </div>
       )}
 
       {!forbidden && !error && !loading && logs.length === 0 && (
         <Card className="text-center py-12">
-          <ClockIcon className="w-12 h-12 mx-auto text-slate-500 mb-3" />
+          <ClockIcon className="w-12 h-12 mx-auto text-mist mb-3" />
           {hasFilters ? (
             <>
-              <p className="text-slate-400">No audit entries match these filters</p>
-              <p className="text-slate-500 text-sm mt-1">
+              <p className="text-mute">No audit entries match these filters</p>
+              <p className="text-mist text-sm mt-1">
                 Try a wider date range, or a different staff member or action.
               </p>
               <Button variant="ghost" size="sm" className="mt-4" onClick={clearFilters}>
@@ -243,7 +243,7 @@ export function AuditLog() {
               </Button>
             </>
           ) : (
-            <p className="text-slate-400">No audit entries found</p>
+            <p className="text-mute">No audit entries found</p>
           )}
         </Card>
       )}
@@ -253,33 +253,33 @@ export function AuditLog() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-slate-700">
-                  <th className="text-left py-3 px-4 text-sm font-medium text-slate-400">Time</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-slate-400">
+                <tr className="border-b border-line">
+                  <th className="text-left py-3 px-4 text-sm font-medium text-mute">Time</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-mute">
                     Staff Member
                   </th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-slate-400">Action</th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-slate-400">Details</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-mute">Action</th>
+                  <th className="text-left py-3 px-4 text-sm font-medium text-mute">Details</th>
                 </tr>
               </thead>
               <tbody>
                 {logs.map((log) => (
-                  <tr key={log.id} className="border-b border-slate-700/50">
-                    <td className="py-3 px-4 text-slate-300 whitespace-nowrap">
+                  <tr key={log.id} className="border-b border-line/50">
+                    <td className="py-3 px-4 text-body whitespace-nowrap">
                       {formatDateTime(log.createdAt)}
                     </td>
                     <td className="py-3 px-4">
-                      <p className="text-white">{log.user?.name || 'Unknown'}</p>
+                      <p className="text-ink">{log.user?.name || 'Unknown'}</p>
                       {log.user?.role && (
-                        <p className="text-xs text-slate-500 capitalize">{log.user.role}</p>
+                        <p className="text-xs text-mist capitalize">{log.user.role}</p>
                       )}
                     </td>
                     <td className="py-3 px-4">
                       <Badge variant={actionVariant(log.action)}>{actionLabel(log.action)}</Badge>
-                      <p className="text-xs text-slate-500 mt-1 capitalize">{log.entityType}</p>
+                      <p className="text-xs text-mist mt-1 capitalize">{log.entityType}</p>
                     </td>
                     <td
-                      className="py-3 px-4 text-slate-400 max-w-xs truncate"
+                      className="py-3 px-4 text-mute max-w-xs truncate"
                       title={log.details && Object.keys(log.details).length ? JSON.stringify(log.details) : undefined}
                     >
                       {log.details && Object.keys(log.details).length > 0
@@ -293,8 +293,8 @@ export function AuditLog() {
           </div>
 
           {pagination && pagination.pages > 1 && (
-            <div className="flex items-center justify-between pt-4 mt-2 border-t border-slate-700">
-              <p className="text-sm text-slate-400">
+            <div className="flex items-center justify-between pt-4 mt-2 border-t border-line">
+              <p className="text-sm text-mute">
                 Page {pagination.page} of {pagination.pages} ({pagination.total} entries)
               </p>
               <div className="flex gap-2">

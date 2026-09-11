@@ -90,19 +90,19 @@ export function BillingSuccess() {
       <Card className="text-center py-10 px-6">
         {phase === 'loading' && (
           <>
-            <ArrowPathIcon className="w-12 h-12 mx-auto text-amber-400 animate-spin mb-4" />
-            <h1 className="text-xl font-bold text-white">Confirming your top-up…</h1>
-            <p className="text-slate-400 mt-2">Hang tight, this only takes a moment.</p>
+            <ArrowPathIcon className="w-12 h-12 mx-auto text-brick animate-spin mb-4" />
+            <h1 className="text-xl font-bold text-ink">Confirming your top-up…</h1>
+            <p className="text-mute mt-2">Hang tight, this only takes a moment.</p>
           </>
         )}
 
         {phase === 'completed' && (
           <>
-            <CheckCircleIcon className="w-16 h-16 mx-auto text-emerald-400 mb-4" />
-            <h1 className="text-2xl font-bold text-white">Payment successful</h1>
-            <p className="text-slate-300 mt-2">
+            <CheckCircleIcon className="w-16 h-16 mx-auto text-ok mb-4" />
+            <h1 className="text-2xl font-bold text-ink">Payment successful</h1>
+            <p className="text-body mt-2">
               {creditsAdded != null && (
-                <span className="text-emerald-400 font-semibold">
+                <span className="text-ok font-semibold">
                   +{creditsAdded.toLocaleString()} credits
                 </span>
               )}
@@ -110,7 +110,7 @@ export function BillingSuccess() {
               {newBalance != null && (
                 <>
                   New balance:{' '}
-                  <span className="font-semibold text-white">
+                  <span className="font-semibold text-ink">
                     {newBalance.toLocaleString()} credits
                   </span>
                 </>
@@ -133,14 +133,14 @@ export function BillingSuccess() {
 
         {phase === 'pending' && (
           <>
-            <ClockIcon className="w-16 h-16 mx-auto text-amber-400 mb-4" />
-            <h1 className="text-2xl font-bold text-white">Payment received</h1>
-            <p className="text-slate-300 mt-2">
+            <ClockIcon className="w-16 h-16 mx-auto text-brick mb-4" />
+            <h1 className="text-2xl font-bold text-ink">Payment received</h1>
+            <p className="text-body mt-2">
               We’re still crediting your wallet. This usually clears within a minute.
               {newBalance != null && (
                 <>
                   {' '}Current balance:{' '}
-                  <span className="font-semibold text-white">
+                  <span className="font-semibold text-ink">
                     {newBalance.toLocaleString()} credits
                   </span>
                   .
@@ -162,10 +162,10 @@ export function BillingSuccess() {
 
         {phase === 'error' && (
           <>
-            <ExclamationTriangleIcon className="w-16 h-16 mx-auto text-red-400 mb-4" />
-            <h1 className="text-2xl font-bold text-white">Couldn’t confirm top-up</h1>
-            <p className="text-red-300 mt-2">{errorMsg}</p>
-            <p className="text-slate-400 text-sm mt-2">
+            <ExclamationTriangleIcon className="w-16 h-16 mx-auto text-bad mb-4" />
+            <h1 className="text-2xl font-bold text-ink">Couldn’t confirm top-up</h1>
+            <p className="text-bad mt-2">{errorMsg}</p>
+            <p className="text-mute text-sm mt-2">
               If you completed payment, your credits may still arrive shortly. Try again or check
               your balance on the billing page.
             </p>
@@ -184,9 +184,9 @@ export function BillingSuccess() {
 
         {phase === 'missing' && (
           <>
-            <ExclamationTriangleIcon className="w-16 h-16 mx-auto text-amber-400 mb-4" />
-            <h1 className="text-2xl font-bold text-white">No top-up to confirm</h1>
-            <p className="text-slate-400 mt-2">
+            <ExclamationTriangleIcon className="w-16 h-16 mx-auto text-brick mb-4" />
+            <h1 className="text-2xl font-bold text-ink">No top-up to confirm</h1>
+            <p className="text-mute mt-2">
               We couldn’t find a pending top-up. Head to the billing page to view your balance or
               buy credits.
             </p>

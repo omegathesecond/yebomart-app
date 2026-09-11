@@ -18,9 +18,9 @@ export function BillingCancel() {
   return (
     <div className="max-w-lg mx-auto py-8">
       <Card className="text-center py-10 px-6">
-        <XCircleIcon className="w-16 h-16 mx-auto text-slate-400 mb-4" />
-        <h1 className="text-2xl font-bold text-white">Top-up cancelled</h1>
-        <p className="text-slate-400 mt-2">
+        <XCircleIcon className="w-16 h-16 mx-auto text-mute mb-4" />
+        <h1 className="text-2xl font-bold text-ink">Top-up cancelled</h1>
+        <p className="text-mute mt-2">
           No payment was taken. You can pick a credit pack and try again whenever you’re ready.
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center mt-6">

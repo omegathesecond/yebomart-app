@@ -1,27 +1,54 @@
 @import "tailwindcss";
 
-:root {
-  /* YeboMart brand colors - African sunset inspired */
-  --color-primary: #f59e0b;
-  --color-primary-dark: #d97706;
-  --color-secondary: #10b981;
-  --color-accent: #8b5cf6;
-  --color-danger: #ef4444;
-  --color-warning: #f59e0b;
-  --color-success: #10b981;
-  
-  /* Dark mode base */
-  --bg-primary: #0f172a;
-  --bg-secondary: #1e293b;
-  --bg-tertiary: #334155;
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --border-color: #334155;
+/* ============================================================================
+   YeboMart app — Omevision house design system, Tailwind v4 flavour.
+
+   These tokens are the SAME ones the marketing site ships in
+   landing/src/index.css. Keep the two in sync: if a value changes here it
+   changes there. Warm paper ground, ink text, one bold colour (Yebo orange),
+   Space Grotesk for language and IBM Plex Mono for anything countable.
+
+   Brand rules: ~/.claude/skills/yebo-logo. Never purple, never green-as-brand,
+   no gradients, no glow. Every radius is 2px except round dots and avatars.
+   ========================================================================== */
+@theme {
+  --color-brand: #ff6b00;
+  --color-brand-hot: #ff8c33;
+  --color-brick: #9a3412;
+  --color-ink: #1a1814;
+  --color-ink-2: #221f1a;
+  --color-cream: #fdfbf7;
+  --color-sand: #f5f1ea;
+  --color-shade: #eae5dc;
+  --color-wash: #fff5ec;
+  --color-body: #57524b;
+  --color-mute: #78716c;
+  --color-mist: #a8a29e;
+  --color-line: rgba(26, 24, 20, 0.12);
+  --color-line-strong: rgba(26, 24, 20, 0.28);
+  --color-line-ink: rgba(253, 251, 247, 0.16);
+  --color-ok: #15803d;
+  --color-warn: #ca8a04;
+  --color-bad: #dc2626;
+
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-sans: 'Space Grotesk', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --radius-sharp: 2px;
+  --tracking-tightest: -0.03em;
+  --tracking-eyebrow: 0.14em;
+
+  /* Paper lifts; nothing glows. Used only on receipt-like surfaces. */
+  --shadow-card: 0 1px 2px rgba(26, 24, 20, 0.05), 0 24px 48px -24px rgba(26, 24, 20, 0.25);
+  --shadow-lift: 0 1px 2px rgba(26, 24, 20, 0.04), 0 10px 30px -12px rgba(26, 24, 20, 0.18);
 }
+
+/* ── Base ─────────────────────────────────────────────────────────────── */
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--bg-tertiary) var(--bg-secondary);
+  scrollbar-color: var(--color-shade) transparent;
 }
 
 *::-webkit-scrollbar {
@@ -30,12 +57,21 @@
 }
 
 *::-webkit-scrollbar-track {
-  background: var(--bg-secondary);
+  background: transparent;
 }
 
 *::-webkit-scrollbar-thumb {
-  background: var(--bg-tertiary);
-  border-radius: 3px;
+  background: var(--color-shade);
+  border-radius: 2px;
+}
+
+/* On ink surfaces (the sidebar rail) the thumb has to invert to stay visible. */
+.on-ink * {
+  scrollbar-color: rgba(253, 251, 247, 0.24) transparent;
+}
+
+.on-ink *::-webkit-scrollbar-thumb {
+  background: rgba(253, 251, 247, 0.24);
 }
 
 html {
@@ -43,12 +79,54 @@ html {
 }
 
 body {
-  background-color: #0f172a;
-  color: #f1f5f9;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--color-cream);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-tap-highlight-color: transparent;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  text-wrap: pretty;
+}
+
+::selection {
+  background-color: rgba(255, 107, 0, 0.25);
+  color: var(--color-ink);
+}
+
+.on-ink ::selection {
+  background-color: rgba(255, 140, 51, 0.4);
+  color: var(--color-cream);
+}
+
+/* One focus treatment. A ring must clear 3:1 against what is behind it, and
+   brand orange on cream does not — so cream grounds get an ink ring and ink
+   bands get the orange one. Surfaces declare which they are with .on-ink. */
+:root {
+  --focus-ring: #1a1814;
+}
+
+.on-ink {
+  --focus-ring: #ff8c33;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* Safe area for mobile */
@@ -60,40 +138,49 @@ body {
   padding-top: env(safe-area-inset-top, 0);
 }
 
-/* Glass morphism effects */
-.glass {
-  background: rgba(30, 41, 59, 0.5);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(51, 65, 85, 0.5);
+/* ── House utilities ──────────────────────────────────────────────────── */
+
+/* Anything countable — money, quantities, counts, codes, times. Tabular
+   figures so a column of prices lines up like a receipt. */
+.m {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
-/* Gradient backgrounds */
-.gradient-primary {
-  background: linear-gradient(to right, #f59e0b, #ea580c);
+/* The uppercase mono label that opens a section or heads a column. */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-eyebrow);
+  color: var(--color-mute);
 }
 
-.gradient-success {
-  background: linear-gradient(to right, #059669, #14b8a6);
+.on-ink .eyebrow {
+  color: var(--color-mist);
 }
 
-/* Glow effects */
-.glow-amber {
-  box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
+/* Diagonal hairline stripes for ink panels (scanner viewport, auth panel). */
+.stripes-cream {
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent 0,
+    transparent 14px,
+    rgba(253, 251, 247, 0.05) 14px,
+    rgba(253, 251, 247, 0.05) 15px
+  );
 }
 
-.glow-emerald {
-  box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+/* Hide scrollbars on horizontal scrollers without killing scroll. */
+.no-bar {
+  scrollbar-width: none;
+}
+.no-bar::-webkit-scrollbar {
+  display: none;
 }
 
-/* Animation utilities */
-@keyframes pulse-slow {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
-}
-
-.animate-pulse-slow {
-  animation: pulse-slow 3s ease-in-out infinite;
-}
+/* ── Animation ────────────────────────────────────────────────────────── */
 
 @keyframes slide-up {
   from { transform: translateY(100%); opacity: 0; }
@@ -101,277 +188,224 @@ body {
 }
 
 .animate-slide-up {
-  animation: slide-up 0.3s ease-out;
+  animation: slide-up 0.24s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Card hover effects */
-.card-hover {
-  transition: all 0.3s;
-}
-.card-hover:hover {
-  transform: scale(1.02);
-  box-shadow: 0 25px 50px -12px rgba(245, 158, 11, 0.1);
+@keyframes pulse-slow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
 }
 
-/* Input focus styles */
-input:focus, select:focus, textarea:focus {
-  outline: none;
-  border-color: #f59e0b;
-  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
-}
-
-/* Button base */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.625rem 1rem;
-  border-radius: 0.75rem;
-  font-weight: 500;
-  transition: all 0.2s;
-}
-.btn:active {
-  transform: scale(0.95);
-}
-
-.btn-primary {
-  background: linear-gradient(to right, #f59e0b, #ea580c);
-  color: white;
-  box-shadow: 0 10px 15px -3px rgba(245, 158, 11, 0.25);
-}
-.btn-primary:hover {
-  box-shadow: 0 10px 15px -3px rgba(245, 158, 11, 0.4);
-}
-
-.btn-secondary {
-  background-color: #334155;
-  color: white;
-}
-.btn-secondary:hover {
-  background-color: #475569;
-}
-
-.btn-success {
-  background: linear-gradient(to right, #10b981, #14b8a6);
-  color: white;
-  box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.25);
-}
-
-.btn-danger {
-  background: linear-gradient(to right, #ef4444, #f43f5e);
-  color: white;
-}
-
-.btn-ghost {
-  background: transparent;
-  color: #94a3b8;
-}
-.btn-ghost:hover {
-  background-color: rgba(51, 65, 85, 0.5);
-}
-
-.btn-outline {
-  background: transparent;
-  border: 2px solid #475569;
-  color: #94a3b8;
-}
-.btn-outline:hover {
-  border-color: #f59e0b;
-  color: #f59e0b;
-}
-
-.btn-lg {
-  padding: 0.875rem 1.5rem;
-  font-size: 1.125rem;
-}
-
-.btn-sm {
-  padding: 0.375rem 0.75rem;
-  font-size: 0.875rem;
-}
-
-/* Badge styles */
-.badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.125rem 0.625rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 500;
-}
-
-.badge-success {
-  background-color: rgba(16, 185, 129, 0.2);
-  color: #34d399;
-  border: 1px solid rgba(16, 185, 129, 0.3);
-}
-
-.badge-warning {
-  background-color: rgba(245, 158, 11, 0.2);
-  color: #fbbf24;
-  border: 1px solid rgba(245, 158, 11, 0.3);
-}
-
-.badge-danger {
-  background-color: rgba(239, 68, 68, 0.2);
-  color: #f87171;
-  border: 1px solid rgba(239, 68, 68, 0.3);
-}
-
-.badge-info {
-  background-color: rgba(59, 130, 246, 0.2);
-  color: #60a5fa;
-  border: 1px solid rgba(59, 130, 246, 0.3);
-}
-
-/* Card styles */
-.card {
-  background: rgba(30, 41, 59, 0.5);
-  backdrop-filter: blur(4px);
-  border: 1px solid rgba(51, 65, 85, 0.5);
-  border-radius: 1rem;
-  padding: 1rem;
-}
-
-/* Input styles */
-.input {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  border-radius: 0.75rem;
-  background-color: #1e293b;
-  border: 1px solid #334155;
-  color: white;
-  transition: all 0.2s;
-}
-.input::placeholder {
-  color: #64748b;
-}
-
-/* Select styles */
-.select {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  border-radius: 0.75rem;
-  background-color: #1e293b;
-  border: 1px solid #334155;
-  color: white;
-  cursor: pointer;
-  appearance: none;
-}
-
-/* Modal backdrop */
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
-  z-index: 50;
-}
-
-/* POS specific */
-.pos-product-card {
-  background-color: #1e293b;
-  border-radius: 0.75rem;
-  padding: 0.75rem;
-  border: 1px solid #334155;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.pos-product-card:hover {
-  border-color: rgba(245, 158, 11, 0.5);
-}
-.pos-product-card:active {
-  transform: scale(0.95);
-}
-
-.pos-cart-item {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem;
-  background: rgba(30, 41, 59, 0.5);
-  border-radius: 0.75rem;
-  border: 1px solid rgba(51, 65, 85, 0.5);
-}
-
-/* Floating AI button */
-.ai-fab {
-  position: fixed;
-  bottom: 6rem;
-  right: 1rem;
-  width: 3.5rem;
-  height: 3.5rem;
-  border-radius: 9999px;
-  background: linear-gradient(to right, #9333ea, #db2777);
-  color: white;
-  box-shadow: 0 10px 15px -3px rgba(147, 51, 234, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 40;
-  transition: transform 0.2s;
-}
-.ai-fab:hover {
-  transform: scale(1.1);
-}
-@media (min-width: 768px) {
-  .ai-fab {
-    bottom: 1.5rem;
-    right: 1.5rem;
-  }
-}
-
-/* Loading spinner */
-.spinner {
-  width: 2rem;
-  height: 2rem;
-  border: 4px solid #475569;
-  border-top-color: #f59e0b;
-  border-radius: 9999px;
-  animation: spin 1s linear infinite;
+.animate-pulse-slow {
+  animation: pulse-slow 3s ease-in-out infinite;
 }
 
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
 
-/* Toast notifications */
-.toast {
-  position: fixed;
-  bottom: 6rem;
-  left: 1rem;
-  right: 1rem;
+/* ── Buttons ──────────────────────────────────────────────────────────── */
+/* Hover swaps fill and text rather than dimming. One primary per screen. */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 44px;
+  padding: 0 1.25rem;
+  border-radius: var(--radius-sharp);
+  font-family: var(--font-sans);
+  font-size: 14.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background-color 0.18s, color 0.18s, border-color 0.18s;
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn-primary {
+  background-color: var(--color-brand);
+  color: var(--color-ink);
+  font-weight: 600;
+}
+.btn-primary:hover {
+  background-color: var(--color-ink);
+  color: var(--color-cream);
+}
+
+.btn-secondary {
+  background-color: var(--color-cream);
+  color: var(--color-ink);
+  border: 1px solid var(--color-line-strong);
+}
+.btn-secondary:hover {
+  border-color: var(--color-ink);
+  background-color: var(--color-ink);
+  color: var(--color-cream);
+}
+
+/* Genuine confirmations only. The POS "Cash" key is the primary, not this. */
+.btn-success {
+  background-color: var(--color-ok);
+  color: var(--color-cream);
+}
+.btn-success:hover {
+  background-color: var(--color-ink);
+}
+
+.btn-danger {
+  background-color: var(--color-bad);
+  color: var(--color-cream);
+}
+.btn-danger:hover {
+  background-color: var(--color-ink);
+}
+
+.btn-ghost {
+  background-color: transparent;
+  color: var(--color-body);
+}
+.btn-ghost:hover {
+  background-color: var(--color-sand);
+  color: var(--color-ink);
+}
+
+.btn-outline {
+  background-color: transparent;
+  border: 1px solid var(--color-line-strong);
+  color: var(--color-ink);
+}
+.btn-outline:hover {
+  border-color: var(--color-ink);
+}
+
+.btn-lg {
+  height: 52px;
+  padding: 0 1.5rem;
+  font-size: 15px;
+}
+
+.btn-sm {
+  height: 36px;
+  padding: 0 0.875rem;
+  font-size: 13px;
+}
+
+/* Buttons sitting on an ink band invert their neutrals. */
+.on-ink .btn-secondary,
+.on-ink .btn-outline {
+  background-color: transparent;
+  border-color: rgba(253, 251, 247, 0.4);
+  color: var(--color-cream);
+}
+.on-ink .btn-secondary:hover,
+.on-ink .btn-outline:hover {
+  background-color: var(--color-cream);
+  color: var(--color-ink);
+}
+.on-ink .btn-ghost {
+  color: var(--color-mist);
+}
+.on-ink .btn-ghost:hover {
+  background-color: rgba(253, 251, 247, 0.08);
+  color: var(--color-cream);
+}
+
+/* ── Badges ───────────────────────────────────────────────────────────── */
+/* Mono, uppercase, square. Colour never carries meaning on its own — every
+   badge also carries a word. */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.3125rem 0.6875rem;
+  border-radius: var(--radius-sharp);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.badge-success {
+  border: 1px solid var(--color-ok);
+  color: var(--color-ok);
+}
+
+.badge-warning {
+  border: 1px solid var(--color-warn);
+  color: var(--color-warn);
+}
+
+.badge-danger {
+  border: 1px solid var(--color-bad);
+  color: var(--color-bad);
+}
+
+.badge-info {
+  border: 1px solid var(--color-line-strong);
+  color: var(--color-body);
+}
+
+/* ── Cards & surfaces ─────────────────────────────────────────────────── */
+
+.card {
+  background-color: var(--color-cream);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sharp);
   padding: 1rem;
-  border-radius: 0.75rem;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  z-index: 50;
-  animation: slide-up 0.3s ease-out;
-}
-@media (min-width: 768px) {
-  .toast {
-    left: auto;
-    right: 1.5rem;
-    width: 20rem;
-  }
 }
 
-.toast-success {
-  background-color: #059669;
-  color: white;
+/* Paper — receipts, Z-reports, printable previews. The one place a shadow
+   is correct, because the thing being drawn IS a sheet of paper. */
+.paper {
+  background-color: var(--color-cream);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sharp);
+  box-shadow: var(--shadow-card);
 }
 
-.toast-error {
-  background-color: #dc2626;
-  color: white;
+/* ── Fields ───────────────────────────────────────────────────────────── */
+/* A focused field gets a full ink edge and an orange caret. No glow, no ring. */
+
+.input,
+.select {
+  width: 100%;
+  height: 48px;
+  padding: 0 0.875rem;
+  border-radius: var(--radius-sharp);
+  background-color: var(--color-cream);
+  border: 1px solid var(--color-line-strong);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 14.5px;
+  caret-color: var(--color-brand);
+  transition: border-color 0.18s, box-shadow 0.18s;
 }
 
-.toast-warning {
-  background-color: #d97706;
-  color: white;
+.select {
+  cursor: pointer;
+  appearance: none;
 }
 
-/* Number input - hide spinners */
+.input::placeholder {
+  color: var(--color-mist);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--color-ink);
+  box-shadow: 0 0 0 1px var(--color-ink);
+}
+
+/* Number inputs — hide the spinners. */
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none;
@@ -382,41 +416,154 @@ input[type="number"] {
   -moz-appearance: textfield;
 }
 
-/* Mobile POS Scanner Styles */
-#mobile-scanner-region {
-  position: relative;
-  width: 100%;
-  height: 100%;
+/* ── Modal ────────────────────────────────────────────────────────────── */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(26, 24, 20, 0.55);
+  z-index: 50;
 }
 
-#mobile-scanner-region video {
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: cover !important;
+/* ── POS ──────────────────────────────────────────────────────────────── */
+
+.pos-product-card {
+  background-color: var(--color-cream);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sharp);
+  padding: 0.75rem;
+  cursor: pointer;
+  transition: border-color 0.18s, background-color 0.18s;
+}
+.pos-product-card:hover {
+  border-color: var(--color-ink);
+}
+.pos-product-card:active {
+  background-color: var(--color-sand);
 }
 
-#mobile-scanner-region #qr-shaded-region {
-  border-width: 0 !important;
+/* In the cart already — wash ground and a full ink edge. */
+.pos-product-card.is-in-cart {
+  background-color: var(--color-wash);
+  border-color: var(--color-ink);
 }
 
-/* Shared BarcodeScanner modal (POS + ProductForm) */
+.pos-cart-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.8125rem 0;
+  border-bottom: 1px solid var(--color-line);
+}
+
+/* The amount due. The only dark thing on the till, so it is unmissable. */
+.pos-total-band {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  background-color: var(--color-ink);
+  color: var(--color-cream);
+  padding: 0.875rem 1.25rem;
+}
+
+/* ── Assistant floating button ────────────────────────────────────────── */
+
+.ai-fab {
+  position: fixed;
+  bottom: 5.5rem;
+  right: 1rem;
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-sharp);
+  background-color: var(--color-ink);
+  color: var(--color-cream);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 40;
+  transition: background-color 0.18s;
+}
+.ai-fab:hover {
+  background-color: var(--color-brand);
+  color: var(--color-ink);
+}
+@media (min-width: 768px) {
+  .ai-fab {
+    bottom: 1.5rem;
+    right: 1.5rem;
+  }
+}
+
+/* ── Spinner ──────────────────────────────────────────────────────────── */
+
+.spinner {
+  width: 2rem;
+  height: 2rem;
+  border: 2px solid var(--color-shade);
+  border-top-color: var(--color-brand);
+  border-radius: 9999px;
+  animation: spin 0.8s linear infinite;
+}
+
+/* ── Toasts ───────────────────────────────────────────────────────────── */
+
+.toast {
+  position: fixed;
+  bottom: 5.5rem;
+  left: 1rem;
+  right: 1rem;
+  padding: 0.875rem 1rem;
+  border-radius: var(--radius-sharp);
+  box-shadow: var(--shadow-lift);
+  z-index: 50;
+  animation: slide-up 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@media (min-width: 768px) {
+  .toast {
+    left: auto;
+    right: 1.5rem;
+    width: 20rem;
+  }
+}
+
+.toast-success {
+  background-color: var(--color-ok);
+  color: var(--color-cream);
+}
+
+.toast-error {
+  background-color: var(--color-bad);
+  color: var(--color-cream);
+}
+
+.toast-warning {
+  background-color: var(--color-warn);
+  color: var(--color-ink);
+}
+
+/* ── Barcode scanner ──────────────────────────────────────────────────── */
+/* The camera viewport is an ink surface; the reticle carries the contrast. */
+
+#mobile-scanner-region,
 #barcode-scanner-region {
   position: relative;
   width: 100%;
   height: 100%;
 }
 
+#mobile-scanner-region video,
 #barcode-scanner-region video {
   width: 100% !important;
   height: 100% !important;
   object-fit: cover !important;
 }
 
+#mobile-scanner-region #qr-shaded-region,
 #barcode-scanner-region #qr-shaded-region {
   border-width: 0 !important;
 }
 
-/* Hide html5-qrcode default UI elements */
+/* Hide html5-qrcode's own chrome. */
 #mobile-scanner-region img[alt="Info icon"],
 #mobile-scanner-region button[id*="camera"],
 #mobile-scanner-region div[id*="permission"],
@@ -424,13 +571,12 @@ input[type="number"] {
   display: none !important;
 }
 
-/* Scanner scanning line animation */
 @keyframes scanner-line {
-  0%, 100% { 
+  0%, 100% {
     transform: translateY(-50%) scaleX(0.8);
     opacity: 0.5;
   }
-  50% { 
+  50% {
     transform: translateY(-50%) scaleX(1);
     opacity: 1;
   }
@@ -438,43 +584,6 @@ input[type="number"] {
 
 .scanner-line-animate {
   animation: scanner-line 1.5s ease-in-out infinite;
-}
-
-/* Teal color utilities for scanner */
-.border-teal-400 {
-  border-color: #2dd4bf;
-}
-
-.bg-teal-500 {
-  background-color: #14b8a6;
-}
-
-.bg-teal-500\/20 {
-  background-color: rgba(20, 184, 166, 0.2);
-}
-
-.bg-teal-500\/30 {
-  background-color: rgba(20, 184, 166, 0.3);
-}
-
-.text-teal-400 {
-  color: #2dd4bf;
-}
-
-.text-teal-500 {
-  color: #14b8a6;
-}
-
-.hover\:bg-teal-400:hover {
-  background-color: #2dd4bf;
-}
-
-.hover\:bg-teal-500\/30:hover {
-  background-color: rgba(20, 184, 166, 0.3);
-}
-
-.focus\:ring-teal-500:focus {
-  --tw-ring-color: #14b8a6;
 }
 
 .border-3 {

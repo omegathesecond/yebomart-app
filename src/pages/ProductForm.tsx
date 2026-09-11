@@ -330,15 +330,15 @@ export function ProductForm() {
       <div className="flex items-center gap-4 mb-6">
         <button
           onClick={() => navigate(-1)}
-          className="p-2 hover:bg-slate-800 rounded-lg"
+          className="p-2 hover:bg-sand rounded-sharp"
         >
-          <ArrowLeftIcon className="w-5 h-5 text-slate-400" />
+          <ArrowLeftIcon className="w-5 h-5 text-mute" />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-white">
+          <h1 className="text-2xl font-bold text-ink">
             {isEdit ? 'Edit Product' : 'Add Product'}
           </h1>
-          <p className="text-slate-400 mt-1">
+          <p className="text-mute mt-1">
             {isEdit ? 'Update product details' : 'Add a new product to your catalog'}
           </p>
         </div>
@@ -348,10 +348,10 @@ export function ProductForm() {
         <Card className="space-y-6">
           {/* Photo */}
           <div className="space-y-4">
-            <h3 className="font-semibold text-white">Product Photo</h3>
+            <h3 className="font-semibold text-ink">Product Photo</h3>
 
             <div className="flex items-center gap-4">
-              <div className="relative w-20 h-20 rounded-xl bg-slate-700/50 border border-slate-600 overflow-hidden flex items-center justify-center shrink-0">
+              <div className="relative w-20 h-20 rounded-sharp bg-shade/50 border border-line-strong overflow-hidden flex items-center justify-center shrink-0">
                 {displayImageUrl ? (
                   <img
                     src={displayImageUrl}
@@ -359,11 +359,11 @@ export function ProductForm() {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <PhotoIcon className="w-8 h-8 text-slate-500" />
+                  <PhotoIcon className="w-8 h-8 text-mist" />
                 )}
                 {isUploadingImage && (
                   <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span className="w-4 h-4 border-2 border-cream border-t-transparent rounded-full animate-spin" />
                   </div>
                 )}
               </div>
@@ -391,7 +391,7 @@ export function ProductForm() {
                   <button
                     type="button"
                     onClick={handleRemoveImage}
-                    className="text-sm text-red-400 hover:text-red-300"
+                    className="text-sm text-bad hover:text-bad"
                   >
                     Remove photo
                   </button>
@@ -402,17 +402,17 @@ export function ProductForm() {
             {imageUploadError && (
               <div
                 role="alert"
-                className="flex items-start gap-3 p-3 rounded-lg bg-red-500/10 border border-red-500/30"
+                className="flex items-start gap-3 p-3 rounded-sharp bg-bad/10 border border-bad/30"
               >
-                <ExclamationTriangleIcon className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
-                <p className="text-sm text-red-400">{imageUploadError}</p>
+                <ExclamationTriangleIcon className="w-5 h-5 text-bad shrink-0 mt-0.5" />
+                <p className="text-sm text-bad">{imageUploadError}</p>
               </div>
             )}
           </div>
 
           {/* Basic Info */}
           <div className="space-y-4">
-            <h3 className="font-semibold text-white">Basic Information</h3>
+            <h3 className="font-semibold text-ink">Basic Information</h3>
 
             <Input
               label="Product Name"
@@ -436,25 +436,25 @@ export function ProductForm() {
             
             {/* Dynamic Attributes based on Category */}
             {formData.category && categoryAttributeFields.length > 0 && (
-              <div className="p-4 bg-slate-700/30 rounded-xl space-y-4">
+              <div className="p-4 bg-shade/30 rounded-sharp space-y-4">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-medium text-amber-400">
-                    📋 {formData.category} Details
+                  <h4 className="text-sm font-medium text-brick">
+                    {formData.category} Details
                   </h4>
-                  <span className="text-xs text-slate-500">Optional</span>
+                  <span className="text-xs text-mist">Optional</span>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-3">
                   {categoryAttributeFields.map((field) => (
                     <div key={field.key}>
-                      <label className="block text-xs font-medium text-slate-400 mb-1">
-                        {field.label} {field.unit && <span className="text-slate-500">({field.unit})</span>}
+                      <label className="block text-xs font-medium text-mute mb-1">
+                        {field.label} {field.unit && <span className="text-mist">({field.unit})</span>}
                       </label>
                       {field.type === 'select' && field.options ? (
                         <select
                           value={attributes[field.key] || ''}
                           onChange={(e) => setAttributes(prev => ({ ...prev, [field.key]: e.target.value }))}
-                          className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                          className="w-full px-3 py-2 bg-shade border border-line-strong rounded-sharp text-ink text-sm focus:outline-none focus:ring-2 focus:ring-ink"
                         >
                           <option value="">Select...</option>
                           {field.options.map(opt => (
@@ -467,7 +467,7 @@ export function ProductForm() {
                           value={attributes[field.key] || ''}
                           onChange={(e) => setAttributes(prev => ({ ...prev, [field.key]: e.target.value }))}
                           placeholder={field.placeholder}
-                          className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                          className="w-full px-3 py-2 bg-shade border border-line-strong rounded-sharp text-ink text-sm placeholder-mist focus:outline-none focus:ring-2 focus:ring-ink"
                         />
                       )}
                     </div>
@@ -482,7 +482,7 @@ export function ProductForm() {
                 {customAttributes.map((attr, idx) => (
                   <div key={idx} className="flex gap-2 items-end">
                     <div className="flex-1">
-                      <label className="block text-xs text-slate-400 mb-1">Attribute</label>
+                      <label className="block text-xs text-mute mb-1">Attribute</label>
                       <input
                         type="text"
                         value={attr.key}
@@ -492,11 +492,11 @@ export function ProductForm() {
                           setCustomAttributes(updated);
                         }}
                         placeholder="e.g., Color"
-                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm"
+                        className="w-full px-3 py-2 bg-shade border border-line-strong rounded-sharp text-ink text-sm"
                       />
                     </div>
                     <div className="flex-1">
-                      <label className="block text-xs text-slate-400 mb-1">Value</label>
+                      <label className="block text-xs text-mute mb-1">Value</label>
                       <input
                         type="text"
                         value={attr.value}
@@ -506,13 +506,13 @@ export function ProductForm() {
                           setCustomAttributes(updated);
                         }}
                         placeholder="e.g., Black"
-                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm"
+                        className="w-full px-3 py-2 bg-shade border border-line-strong rounded-sharp text-ink text-sm"
                       />
                     </div>
                     <button
                       type="button"
                       onClick={() => setCustomAttributes(prev => prev.filter((_, i) => i !== idx))}
-                      className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg"
+                      className="p-2 text-bad hover:bg-bad/20 rounded-sharp"
                     >
                       <XMarkIcon className="w-5 h-5" />
                     </button>
@@ -522,7 +522,7 @@ export function ProductForm() {
                 <button
                   type="button"
                   onClick={() => setCustomAttributes(prev => [...prev, { key: '', value: '' }])}
-                  className="flex items-center gap-2 text-sm text-amber-400 hover:text-amber-300"
+                  className="flex items-center gap-2 text-sm text-brick hover:text-brick"
                 >
                   <PlusIcon className="w-4 h-4" />
                   Add custom attribute
@@ -531,7 +531,7 @@ export function ProductForm() {
             )}
             
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">
+              <label className="block text-sm font-medium text-body mb-1.5">
                 Barcode (Optional)
               </label>
               <div className="flex gap-2">
@@ -555,7 +555,7 @@ export function ProductForm() {
 
           {/* Pricing */}
           <div className="space-y-4">
-            <h3 className="font-semibold text-white">Pricing</h3>
+            <h3 className="font-semibold text-ink">Pricing</h3>
             
             <div className="grid grid-cols-2 gap-4">
               <Input
@@ -584,10 +584,10 @@ export function ProductForm() {
             </div>
             
             {sellPrice > 0 && (
-              <div className="p-3 bg-slate-700/30 rounded-lg">
+              <div className="p-3 bg-shade/30 rounded-sharp">
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-400">Profit per unit</span>
-                  <span className="font-semibold text-emerald-400">
+                  <span className="text-mute">Profit per unit</span>
+                  <span className="font-semibold text-ok">
                     E{(sellPrice - costPrice).toFixed(2)} ({margin}% margin)
                   </span>
                 </div>
@@ -597,7 +597,7 @@ export function ProductForm() {
 
           {/* Stock */}
           <div className="space-y-4">
-            <h3 className="font-semibold text-white">Stock</h3>
+            <h3 className="font-semibold text-ink">Stock</h3>
             
             <div className="grid grid-cols-2 gap-4">
               <Input
@@ -643,8 +643,8 @@ export function ProductForm() {
           {/* Wholesale Pricing (Optional) */}
           <div className="space-y-4">
             <div>
-              <h3 className="font-semibold text-white">Wholesale Pricing</h3>
-              <p className="text-sm text-slate-400 mt-1">
+              <h3 className="font-semibold text-ink">Wholesale Pricing</h3>
+              <p className="text-sm text-mute mt-1">
                 Optional: Set bulk pricing for wholesale customers
               </p>
             </div>
@@ -675,10 +675,10 @@ export function ProductForm() {
             </div>
             
             {formData.wholesalePrice && formData.wholesaleMinQty && formData.sellPrice && (
-              <div className="p-3 bg-slate-700/30 rounded-lg">
+              <div className="p-3 bg-shade/30 rounded-sharp">
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-slate-400">Wholesale discount</span>
-                  <span className="font-semibold text-blue-400">
+                  <span className="text-mute">Wholesale discount</span>
+                  <span className="font-semibold text-body">
                     {(() => {
                       const retail = parseFloat(formData.sellPrice);
                       const wholesale = parseFloat(formData.wholesalePrice);
@@ -696,8 +696,8 @@ export function ProductForm() {
           {/* Pack Pricing (Optional) */}
           <div className="space-y-4">
             <div>
-              <h3 className="font-semibold text-white">Pack Pricing</h3>
-              <p className="text-sm text-slate-400 mt-1">
+              <h3 className="font-semibold text-ink">Pack Pricing</h3>
+              <p className="text-sm text-mute mt-1">
                 Optional: Configure if this product can be sold in packs (e.g., 6-pack of drinks)
               </p>
             </div>
@@ -728,10 +728,10 @@ export function ProductForm() {
             </div>
             
             {formData.packSize && formData.packPrice && formData.sellPrice && (
-              <div className="p-3 bg-slate-700/30 rounded-lg">
+              <div className="p-3 bg-shade/30 rounded-sharp">
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-slate-400">Pack savings</span>
-                  <span className="font-semibold text-emerald-400">
+                  <span className="text-mute">Pack savings</span>
+                  <span className="font-semibold text-ok">
                     {(() => {
                       const singleTotal = parseFloat(formData.sellPrice) * parseInt(formData.packSize);
                       const packPrice = parseFloat(formData.packPrice);
@@ -753,11 +753,11 @@ export function ProductForm() {
           {suppliers.length > 0 && (
             <div className="space-y-4">
               <div>
-                <h3 className="font-semibold text-white flex items-center gap-2">
-                  <BuildingStorefrontIcon className="w-5 h-5 text-amber-400" />
+                <h3 className="font-semibold text-ink flex items-center gap-2">
+                  <BuildingStorefrontIcon className="w-5 h-5 text-brick" />
                   Suppliers
                 </h3>
-                <p className="text-sm text-slate-400 mt-1">
+                <p className="text-sm text-mute mt-1">
                   Select suppliers that provide this product
                 </p>
               </div>
@@ -769,18 +769,18 @@ export function ProductForm() {
                     <div
                       key={supplier.id}
                       onClick={() => toggleSupplier(supplier.id)}
-                      className={`p-2 rounded-lg border cursor-pointer transition-colors flex items-center gap-2 ${
+                      className={`p-2 rounded-sharp border cursor-pointer transition-colors flex items-center gap-2 ${
                         isSelected
-                          ? 'bg-amber-500/10 border-amber-500/50'
-                          : 'bg-slate-800 border-slate-700 hover:border-slate-600'
+                          ? 'bg-wash border-ink/50'
+                          : 'bg-sand border-line hover:border-line-strong'
                       }`}
                     >
                       {isSelected && (
-                        <div className="w-5 h-5 bg-amber-500 rounded-full flex items-center justify-center shrink-0">
-                          <CheckIcon className="w-3 h-3 text-white" />
+                        <div className="w-5 h-5 bg-brand rounded-full flex items-center justify-center shrink-0">
+                          <CheckIcon className="w-3 h-3 text-ink" />
                         </div>
                       )}
-                      <span className={`text-sm truncate ${isSelected ? 'text-amber-400' : 'text-slate-300'}`}>
+                      <span className={`text-sm truncate ${isSelected ? 'text-brick' : 'text-body'}`}>
                         {supplier.name}
                       </span>
                     </div>
@@ -789,7 +789,7 @@ export function ProductForm() {
               </div>
               
               {selectedSupplierIds.size > 0 && (
-                <p className="text-xs text-amber-400">
+                <p className="text-xs text-brick">
                   {selectedSupplierIds.size} supplier{selectedSupplierIds.size !== 1 ? 's' : ''} selected
                 </p>
               )}
@@ -800,15 +800,15 @@ export function ProductForm() {
           {errors.submit && (
             <div
               role="alert"
-              className="flex items-start gap-3 p-3 rounded-lg bg-red-500/10 border border-red-500/30"
+              className="flex items-start gap-3 p-3 rounded-sharp bg-bad/10 border border-bad/30"
             >
-              <ExclamationTriangleIcon className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
-              <p className="text-sm text-red-400">{errors.submit}</p>
+              <ExclamationTriangleIcon className="w-5 h-5 text-bad shrink-0 mt-0.5" />
+              <p className="text-sm text-bad">{errors.submit}</p>
             </div>
           )}
 
           {/* Actions */}
-          <div className="flex gap-3 pt-4 border-t border-slate-700">
+          <div className="flex gap-3 pt-4 border-t border-line">
             <Button
               type="button"
               variant="secondary"

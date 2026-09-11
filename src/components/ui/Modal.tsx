@@ -58,22 +58,22 @@ export function Modal({
       {/* Modal content */}
       <div 
         className={clsx(
-          'relative w-full bg-slate-800 rounded-2xl shadow-2xl border border-slate-700 animate-slide-up',
+          'relative w-full bg-sand rounded-sharp shadow-2xl border border-line animate-slide-up',
           sizes[size]
         )}
       >
         {/* Header */}
         {(title || showClose) && (
-          <div className="flex items-center justify-between p-4 border-b border-slate-700">
+          <div className="flex items-center justify-between p-4 border-b border-line">
             {title && (
-              <h2 className="text-lg font-semibold text-white">{title}</h2>
+              <h2 className="text-lg font-semibold text-ink">{title}</h2>
             )}
             {showClose && (
               <button
                 onClick={onClose}
-                className="p-1 hover:bg-slate-700 rounded-lg transition-colors ml-auto"
+                className="p-1 hover:bg-shade rounded-sharp transition-colors ml-auto"
               >
-                <XMarkIcon className="w-5 h-5 text-slate-400" />
+                <XMarkIcon className="w-5 h-5 text-mute" />
               </button>
             )}
           </div>
@@ -114,13 +114,13 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   const variants = {
     danger: 'btn-danger',
-    warning: 'bg-amber-600 hover:bg-amber-700',
+    warning: 'bg-brand hover:bg-brand',
     primary: 'btn-primary'
   };
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={title} size="sm">
-      <p className="text-slate-300 mb-6">{message}</p>
+      <p className="text-body mb-6">{message}</p>
       <div className="flex gap-3">
         <button
           onClick={onClose}
@@ -131,7 +131,7 @@ export function ConfirmDialog({
         </button>
         <button
           onClick={onConfirm}
-          className={clsx('btn flex-1 text-white', variants[variant])}
+          className={clsx('btn flex-1 text-ink', variants[variant])}
           disabled={isLoading}
         >
           {isLoading ? (

@@ -257,8 +257,8 @@ export function Suppliers() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Suppliers</h1>
-          <p className="text-slate-400 mt-1">
+          <h1 className="text-2xl font-bold text-ink">Suppliers</h1>
+          <p className="text-mute mt-1">
             {suppliers.length} supplier{suppliers.length !== 1 ? 's' : ''}
           </p>
         </div>
@@ -282,13 +282,13 @@ export function Suppliers() {
       {/* Suppliers List */}
       {loading ? (
         <div className="text-center py-12">
-          <ArrowPathIcon className="w-8 h-8 animate-spin mx-auto text-slate-400" />
-          <p className="text-slate-400 mt-2">Loading suppliers...</p>
+          <ArrowPathIcon className="w-8 h-8 animate-spin mx-auto text-mute" />
+          <p className="text-mute mt-2">Loading suppliers...</p>
         </div>
       ) : filteredSuppliers.length === 0 ? (
         <Card className="text-center py-12">
-          <BuildingStorefrontIcon className="w-12 h-12 mx-auto text-slate-500 mb-3" />
-          <p className="text-slate-400 mb-4">No suppliers found</p>
+          <BuildingStorefrontIcon className="w-12 h-12 mx-auto text-mist mb-3" />
+          <p className="text-mute mb-4">No suppliers found</p>
           <Button variant="primary" onClick={() => handleOpenModal()}>
             Add Your First Supplier
           </Button>
@@ -301,20 +301,20 @@ export function Suppliers() {
               <div className="absolute top-3 right-3 flex gap-1">
                 <button
                   onClick={() => handleOpenProductsModal(supplier)}
-                  className="p-1.5 rounded-lg bg-amber-600/20 hover:bg-amber-600/40 text-amber-400"
+                  className="p-1.5 rounded-sharp bg-wash hover:bg-brand/40 text-brick"
                   title="Manage Products"
                 >
                   <CubeIcon className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => handleOpenModal(supplier)}
-                  className="p-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300"
+                  className="p-1.5 rounded-sharp bg-shade hover:bg-shade text-body"
                 >
                   <PencilIcon className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setDeleteId(supplier.id)}
-                  className="p-1.5 rounded-lg bg-slate-700 hover:bg-red-600 text-slate-300"
+                  className="p-1.5 rounded-sharp bg-shade hover:bg-bad text-body"
                 >
                   <TrashIcon className="w-4 h-4" />
                 </button>
@@ -322,36 +322,36 @@ export function Suppliers() {
 
               <div className="pr-28">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center">
-                    <BuildingStorefrontIcon className="w-5 h-5 text-white" />
+                  <div className="w-10 h-10 bg-brand rounded-sharp flex items-center justify-center">
+                    <BuildingStorefrontIcon className="w-5 h-5 text-ink" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-white">{supplier.name}</h3>
+                    <h3 className="font-semibold text-ink">{supplier.name}</h3>
                     {supplier.contactName && (
-                      <p className="text-sm text-slate-400">{supplier.contactName}</p>
+                      <p className="text-sm text-mute">{supplier.contactName}</p>
                     )}
                   </div>
                 </div>
 
                 <div className="space-y-2 text-sm">
                   {supplier.phone && (
-                    <div className="flex items-center gap-2 text-slate-400">
+                    <div className="flex items-center gap-2 text-mute">
                       <PhoneIcon className="w-4 h-4" />
-                      <a href={`tel:${supplier.phone}`} className="hover:text-amber-400">
+                      <a href={`tel:${supplier.phone}`} className="hover:text-brick">
                         {supplier.phone}
                       </a>
                     </div>
                   )}
                   {supplier.email && (
-                    <div className="flex items-center gap-2 text-slate-400">
+                    <div className="flex items-center gap-2 text-mute">
                       <EnvelopeIcon className="w-4 h-4" />
-                      <a href={`mailto:${supplier.email}`} className="hover:text-amber-400 truncate">
+                      <a href={`mailto:${supplier.email}`} className="hover:text-brick truncate">
                         {supplier.email}
                       </a>
                     </div>
                   )}
                   {(supplier.address || supplier.country) && (
-                    <div className="flex items-center gap-2 text-slate-400">
+                    <div className="flex items-center gap-2 text-mute">
                       <MapPinIcon className="w-4 h-4 shrink-0" />
                       <span className="truncate">
                         {supplier.city && `${supplier.city}, `}
@@ -382,7 +382,7 @@ export function Suppliers() {
                 </div>
 
                 {supplier._count && (
-                  <div className="mt-3 pt-3 border-t border-slate-700 flex gap-4 text-xs text-slate-500">
+                  <div className="mt-3 pt-3 border-t border-line flex gap-4 text-xs text-mist">
                     <span className="flex items-center gap-1">
                       <CubeIcon className="w-3.5 h-3.5" />
                       {supplier._count.products} products
@@ -405,10 +405,10 @@ export function Suppliers() {
         <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
           {/* Accounts payable — what this shop currently owes the supplier. */}
           {editingSupplier && (
-            <div className="bg-slate-800 rounded-xl p-3 flex items-center justify-between">
-              <span className="text-sm text-slate-400">Balance owed</span>
+            <div className="bg-sand rounded-sharp p-3 flex items-center justify-between">
+              <span className="text-sm text-mute">Balance owed</span>
               <span
-                className={`font-bold ${editingSupplier.balance > 0 ? 'text-red-400' : 'text-emerald-400'}`}
+                className={`font-bold ${editingSupplier.balance > 0 ? 'text-bad' : 'text-ok'}`}
               >
                 {editingSupplier.balance > 0 ? formatCurrency(editingSupplier.balance) : 'Settled'}
               </span>
@@ -419,30 +419,30 @@ export function Suppliers() {
               PAYMENT entries from Record Payment on a PO's detail view. */}
           {editingSupplier && (ledgerLoading || ledgerError || supplierLedger.length > 0) && (
             <div>
-              <p className="text-sm font-medium text-white mb-2">Account Ledger</p>
+              <p className="text-sm font-medium text-ink mb-2">Account Ledger</p>
               {ledgerLoading ? (
                 <div className="text-center py-3">
-                  <ArrowPathIcon className="w-5 h-5 animate-spin mx-auto text-slate-400" />
+                  <ArrowPathIcon className="w-5 h-5 animate-spin mx-auto text-mute" />
                 </div>
               ) : ledgerError ? (
-                <p className="text-sm text-red-400">{ledgerError}</p>
+                <p className="text-sm text-bad">{ledgerError}</p>
               ) : (
                 <div className="space-y-2">
                   {supplierLedger.map((entry) => (
                     <div
                       key={entry.id}
-                      className="flex justify-between items-center bg-slate-800 rounded-lg p-3"
+                      className="flex justify-between items-center bg-sand rounded-sharp p-3"
                     >
                       <div>
-                        <p className="text-sm text-white">{LEDGER_TYPE_LABEL[entry.type]}</p>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-sm text-ink">{LEDGER_TYPE_LABEL[entry.type]}</p>
+                        <p className="text-xs text-mist">
                           {new Date(entry.createdAt).toLocaleDateString()}
                           {entry.note ? ` · ${entry.note}` : ''}
                         </p>
                       </div>
                       <p
                         className={`font-semibold ${
-                          entry.type === 'PAYMENT' ? 'text-emerald-400' : 'text-slate-300'
+                          entry.type === 'PAYMENT' ? 'text-ok' : 'text-body'
                         }`}
                       >
                         {formatCurrency(entry.amount)}
@@ -456,7 +456,7 @@ export function Suppliers() {
 
           {/* Company Details */}
           <div className="space-y-4">
-            <p className="text-xs text-amber-400 mb-1 uppercase tracking-wider font-semibold">Company Details</p>
+            <p className="text-xs text-brick mb-1 uppercase tracking-wider font-semibold">Company Details</p>
             <Input
               label="Supplier / Company Name *"
               value={formData.name}
@@ -472,8 +472,8 @@ export function Suppliers() {
           </div>
           
           {/* Contact Information */}
-          <div className="pt-3 border-t border-slate-700">
-            <p className="text-xs text-amber-400 mb-3 uppercase tracking-wider font-semibold">Contact Information</p>
+          <div className="pt-3 border-t border-line">
+            <p className="text-xs text-brick mb-3 uppercase tracking-wider font-semibold">Contact Information</p>
             <div className="grid grid-cols-2 gap-4">
               <Input
                 label="Phone Number"
@@ -501,8 +501,8 @@ export function Suppliers() {
           </div>
           
           {/* Location */}
-          <div className="pt-3 border-t border-slate-700">
-            <p className="text-xs text-amber-400 mb-3 uppercase tracking-wider font-semibold">Location</p>
+          <div className="pt-3 border-t border-line">
+            <p className="text-xs text-brick mb-3 uppercase tracking-wider font-semibold">Location</p>
             <Input
               label="Street Address"
               value={formData.address}
@@ -526,8 +526,8 @@ export function Suppliers() {
           </div>
           
           {/* Trade Terms */}
-          <div className="pt-3 border-t border-slate-700">
-            <p className="text-xs text-amber-400 mb-3 uppercase tracking-wider font-semibold">Trade Terms</p>
+          <div className="pt-3 border-t border-line">
+            <p className="text-xs text-brick mb-3 uppercase tracking-wider font-semibold">Trade Terms</p>
             <div className="grid grid-cols-3 gap-4">
               <Input
                 label="Trading Currency"
@@ -555,11 +555,11 @@ export function Suppliers() {
           </div>
 
           <div>
-            <label className="block text-sm text-slate-400 mb-1.5">Additional Notes</label>
+            <label className="block text-sm text-mute mb-1.5">Additional Notes</label>
             <textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+              className="w-full bg-sand border border-line rounded-sharp px-4 py-3 text-ink placeholder-mist focus:border-ink focus:ring-1 focus:ring-ink"
               rows={2}
               placeholder="MOQ requirements, shipping methods, quality notes, trade shows met at..."
             />
@@ -587,7 +587,7 @@ export function Suppliers() {
         title={`Products from ${selectedSupplier?.name || 'Supplier'}`}
       >
         <div className="space-y-4">
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-mute">
             Select products that this supplier provides
           </p>
           
@@ -600,7 +600,7 @@ export function Suppliers() {
           />
           
           {/* Selected count */}
-          <div className="text-sm text-amber-400">
+          <div className="text-sm text-brick">
             {selectedProductIds.size} product{selectedProductIds.size !== 1 ? 's' : ''} selected
           </div>
 
@@ -612,28 +612,28 @@ export function Suppliers() {
                 <div
                   key={product.id}
                   onClick={() => toggleProduct(product.id)}
-                  className={`p-3 rounded-lg border cursor-pointer transition-colors flex items-center justify-between ${
+                  className={`p-3 rounded-sharp border cursor-pointer transition-colors flex items-center justify-between ${
                     isSelected
-                      ? 'bg-amber-500/10 border-amber-500/50'
-                      : 'bg-slate-800 border-slate-700 hover:border-slate-600'
+                      ? 'bg-wash border-ink/50'
+                      : 'bg-sand border-line hover:border-line-strong'
                   }`}
                 >
                   <div>
-                    <p className="font-medium text-white">{product.name}</p>
+                    <p className="font-medium text-ink">{product.name}</p>
                     {product.barcode && (
-                      <p className="text-xs text-slate-500">{product.barcode}</p>
+                      <p className="text-xs text-mist">{product.barcode}</p>
                     )}
                   </div>
                   {isSelected && (
-                    <div className="w-6 h-6 bg-amber-500 rounded-full flex items-center justify-center">
-                      <CheckIcon className="w-4 h-4 text-white" />
+                    <div className="w-6 h-6 bg-brand rounded-full flex items-center justify-center">
+                      <CheckIcon className="w-4 h-4 text-ink" />
                     </div>
                   )}
                 </div>
               );
             })}
             {filteredProducts.length === 0 && (
-              <p className="text-center text-slate-500 py-4">No products found</p>
+              <p className="text-center text-mist py-4">No products found</p>
             )}
           </div>
 

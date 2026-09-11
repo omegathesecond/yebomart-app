@@ -11,26 +11,46 @@ import {
   ReceiptPercentIcon,
   Cog6ToothIcon,
   ArrowRightOnRectangleIcon,
-  SparklesIcon,
-  ExclamationTriangleIcon,
   ArrowUturnLeftIcon,
   BuildingStorefrontIcon,
   ClipboardDocumentListIcon,
   ChatBubbleLeftRightIcon,
   CreditCardIcon,
   CalculatorIcon,
-  ShieldExclamationIcon
+  ShieldExclamationIcon,
 } from '@heroicons/react/24/outline';
-import { SparklesIcon as SparklesSolid } from '@heroicons/react/24/solid';
 import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
+import { YeboLogo } from '@/components/ui/YeboLogo';
 
-const navigation = [
+/**
+ * The one ink band in the app. Nav is a rail: the active screen is marked by a
+ * 2px orange rule on its leading edge rather than a filled pill — it reads at
+ * a glance on a dark ground and costs no extra weight.
+ *
+ * Grouped because the list is long. "Till" is what a cashier touches all day,
+ * "Shop" is what an owner opens occasionally. The assistant is a row like any
+ * other; it used to be a violet gradient card with animated sparkles, which is
+ * neither a Yebo colour nor a thing that needs to shout.
+ */
+
+type NavItem = {
+  name: string;
+  href: string;
+  icon: typeof HomeIcon;
+  /** Renders a count chip on the right of the row. */
+  badge?: 'alerts' | 'insights';
+};
+
+const TILL: NavItem[] = [
   { name: 'Dashboard', href: '/', icon: HomeIcon },
-  { name: 'POS', href: '/pos', icon: ShoppingCartIcon },
+  { name: 'Point of Sale', href: '/pos', icon: ShoppingCartIcon },
   { name: 'Cash Up', href: '/cash-up', icon: CalculatorIcon },
+];
+
+const SHOP: NavItem[] = [
   { name: 'Products', href: '/products', icon: CubeIcon },
-  { name: 'Stock', href: '/stock', icon: ArchiveBoxIcon },
+  { name: 'Stock', href: '/stock', icon: ArchiveBoxIcon, badge: 'alerts' },
   { name: 'Sales', href: '/sales', icon: BanknotesIcon },
   { name: 'Returns', href: '/returns', icon: ArrowUturnLeftIcon },
   { name: 'Suppliers', href: '/suppliers', icon: BuildingStorefrontIcon },
@@ -39,167 +59,123 @@ const navigation = [
   { name: 'Expenses', href: '/expenses', icon: ReceiptPercentIcon },
   { name: 'Reports', href: '/reports', icon: ChartBarIcon },
   { name: 'Staff', href: '/staff', icon: UsersIcon },
+];
+
+const ADMIN: NavItem[] = [
   { name: 'Billing', href: '/billing', icon: CreditCardIcon },
-  { name: 'Settings', href: '/settings', icon: Cog6ToothIcon }
+  { name: 'Settings', href: '/settings', icon: Cog6ToothIcon },
 ];
 
 // Owner-only nav item — the API's GET /api/audit is ownerAuth-gated (see
 // api/src/routes/audit.routes.ts), so hide the entry point rather than let a
 // non-owner click through to a 403.
-const OWNER_ONLY_NAVIGATION = [
+const OWNER_ONLY: NavItem[] = [
   { name: 'Audit Log', href: '/audit-log', icon: ShieldExclamationIcon },
 ];
+
+const ROW_BASE =
+  'flex items-center gap-3 border-l-2 px-3 py-2.5 text-[13.5px] transition-colors';
+const ROW_REST = 'border-transparent text-mist hover:bg-ink-2 hover:text-cream';
+const ROW_ACTIVE = 'border-brand bg-ink-2 font-medium text-cream';
+
+function Section({ label }: { label: string }) {
+  return <p className="eyebrow px-3 pb-2 pt-5">{label}</p>;
+}
 
 export function Sidebar() {
   const { user, shop, authMode, logout } = useAuthStore();
   const { alerts, insights } = useInventoryStore();
   const isOwner = authMode === 'owner' || user?.role === 'owner';
 
-  // Get assistant name from shop settings
-  const assistantName = shop?.assistantName || 'AI Assistant';
+  const assistantName = shop?.assistantName || 'the assistant';
+  const counts = { alerts: alerts.length, insights: insights.length };
+
+  const renderRow = (item: NavItem) => {
+    const count = item.badge ? counts[item.badge] : 0;
+    return (
+      <NavLink
+        key={item.href}
+        to={item.href}
+        end={item.href === '/'}
+        className={({ isActive }) => `${ROW_BASE} ${isActive ? ROW_ACTIVE : ROW_REST}`}
+      >
+        {({ isActive }) => (
+          <>
+            <item.icon
+              className={`h-[17px] w-[17px] shrink-0 ${isActive ? 'text-brand-hot' : ''}`}
+            />
+            <span className="truncate">{item.name}</span>
+            {count > 0 && (
+              <span className="m ml-auto bg-bad px-1.5 py-px text-[10px] text-cream">
+                {count > 99 ? '99+' : count}
+              </span>
+            )}
+          </>
+        )}
+      </NavLink>
+    );
+  };
 
   return (
-    <aside className="hidden md:flex fixed left-0 top-0 h-screen w-64 bg-slate-900 border-r border-slate-800 flex-col z-50">
-      {/* Logo */}
-      <div className="p-6 border-b border-slate-800">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center glow-amber">
-            <ShoppingCartIcon className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-white">YeboMart</h1>
-            <p className="text-xs text-slate-500 truncate max-w-32">
-              {shop?.name || 'My Shop'}
-            </p>
-          </div>
-        </div>
+    <aside className="on-ink fixed left-0 top-0 z-50 hidden h-screen w-64 flex-col bg-ink md:flex">
+      {/* Identity */}
+      <div className="border-b border-line-ink px-5 py-4">
+        <YeboLogo onDark size="md" />
+        <p className="m mt-2 truncate text-[10px] uppercase tracking-[0.1em] text-mist">
+          {shop?.name || 'My Shop'}
+        </p>
       </div>
 
-      {/* AI Assistant CTA - Main Action */}
-      <div className="p-4">
-        <NavLink
-          to="/assistant"
-          className={({ isActive }) => `
-            relative group block w-full p-4 rounded-2xl transition-all duration-300 overflow-hidden
-            ${isActive 
-              ? 'bg-gradient-to-r from-violet-600 to-purple-600 shadow-lg shadow-purple-500/30' 
-              : 'bg-gradient-to-r from-violet-600/80 to-purple-600/80 hover:from-violet-500 hover:to-purple-500 shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40'
-            }
-          `}
-        >
-          {/* Animated background effect */}
-          <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-          
-          {/* Sparkle decorations */}
-          <div className="absolute top-2 right-2 opacity-60">
-            <SparklesSolid className="w-4 h-4 text-yellow-300 animate-pulse" />
-          </div>
-          <div className="absolute bottom-3 right-8 opacity-40">
-            <SparklesSolid className="w-3 h-3 text-pink-300 animate-pulse delay-300" />
-          </div>
-          
-          <div className="relative flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center group-hover:scale-110 transition-transform">
-              <ChatBubbleLeftRightIcon className="w-6 h-6 text-white" />
-            </div>
-            <div className="flex-1 text-left">
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-white text-lg">Ask {assistantName}</span>
+      <nav className="flex-1 overflow-y-auto px-3 pb-4">
+        <Section label="Till" />
+        {TILL.map(renderRow)}
+
+        <Section label="Shop" />
+        {SHOP.map(renderRow)}
+
+        <Section label="Admin" />
+        {ADMIN.map(renderRow)}
+        {isOwner && OWNER_ONLY.map(renderRow)}
+
+        {/* The assistant, as a row. */}
+        <div className="mt-5 border-t border-line-ink pt-3">
+          <NavLink
+            to="/assistant"
+            className={({ isActive }) => `${ROW_BASE} ${isActive ? ROW_ACTIVE : ROW_REST}`}
+          >
+            {({ isActive }) => (
+              <>
+                <ChatBubbleLeftRightIcon
+                  className={`h-[17px] w-[17px] shrink-0 ${isActive ? 'text-brand-hot' : ''}`}
+                />
+                <span className="truncate">Ask {assistantName}</span>
                 {insights.length > 0 && (
-                  <span className="px-1.5 py-0.5 text-[10px] font-bold bg-yellow-400 text-purple-900 rounded-full">
+                  <span className="m ml-auto bg-brand px-1.5 py-px text-[10px] text-ink">
                     {insights.length}
                   </span>
                 )}
-              </div>
-              <p className="text-xs text-white/70 mt-0.5">
-                Manage your shop with AI
-              </p>
-            </div>
-          </div>
-          
-          {/* Glowing border effect */}
-          <div className="absolute inset-0 rounded-2xl border border-white/20 pointer-events-none" />
-        </NavLink>
-      </div>
-
-      {/* Navigation */}
-      <nav className="flex-1 px-4 pb-4 space-y-1 overflow-y-auto">
-        <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider px-4 py-2">
-          Menu
-        </p>
-        {navigation.map((item) => (
-          <NavLink
-            key={item.name}
-            to={item.href}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 group ${
-                isActive
-                  ? 'bg-amber-600/20 text-amber-400 border border-amber-500/30'
-                  : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-              }`
-            }
-          >
-            <item.icon className="w-5 h-5" />
-            <span className="font-medium text-sm">{item.name}</span>
-
-            {/* Badge for alerts */}
-            {item.name === 'Stock' && alerts.length > 0 && (
-              <span className="ml-auto px-1.5 py-0.5 text-[10px] font-bold bg-red-500 text-white rounded-full">
-                {alerts.length}
-              </span>
+              </>
             )}
           </NavLink>
-        ))}
-
-        {isOwner && OWNER_ONLY_NAVIGATION.map((item) => (
-          <NavLink
-            key={item.name}
-            to={item.href}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-200 group ${
-                isActive
-                  ? 'bg-amber-600/20 text-amber-400 border border-amber-500/30'
-                  : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-              }`
-            }
-          >
-            <item.icon className="w-5 h-5" />
-            <span className="font-medium text-sm">{item.name}</span>
-          </NavLink>
-        ))}
+        </div>
       </nav>
 
-      {/* Alerts Summary */}
-      {alerts.length > 0 && (
-        <div className="mx-4 mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30">
-          <div className="flex items-center gap-2 text-red-400">
-            <ExclamationTriangleIcon className="w-5 h-5" />
-            <span className="text-sm font-medium">
-              {alerts.length} stock alert{alerts.length > 1 ? 's' : ''}
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* User Section */}
-      <div className="p-4 border-t border-slate-800">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
-            <span className="text-white font-semibold text-sm">
-              {user?.name?.charAt(0) || 'U'}
-            </span>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-white truncate">{user?.name}</p>
-            <p className="text-xs text-slate-500 capitalize">{user?.role}</p>
-          </div>
+      {/* Who is signed in */}
+      <div className="flex items-center gap-2.5 border-t border-line-ink px-5 py-4">
+        <span className="grid h-[30px] w-[30px] shrink-0 place-items-center border border-cream/30 text-xs font-semibold text-cream">
+          {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[12.5px] font-medium text-cream">{user?.name}</p>
+          <p className="m text-[10px] uppercase tracking-[0.1em] text-mist">{user?.role}</p>
         </div>
         <button
           onClick={logout}
-          className="flex items-center gap-2 w-full px-4 py-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+          aria-label="Sign out"
+          title="Sign out"
+          className="grid h-8 w-8 shrink-0 place-items-center text-mist transition-colors hover:text-cream"
         >
-          <ArrowRightOnRectangleIcon className="w-5 h-5" />
-          <span className="text-sm">Logout</span>
+          <ArrowRightOnRectangleIcon className="h-[18px] w-[18px]" />
         </button>
       </div>
     </aside>

@@ -380,8 +380,8 @@ export function PurchaseOrders() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Purchase Orders</h1>
-          <p className="text-slate-400 mt-1">
+          <h1 className="text-2xl font-bold text-ink">Purchase Orders</h1>
+          <p className="text-mute mt-1">
             {orders.length} order{orders.length !== 1 ? 's' : ''}
           </p>
         </div>
@@ -396,10 +396,10 @@ export function PurchaseOrders() {
           <button
             key={s}
             onClick={() => setStatusFilter(s)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+            className={`px-3 py-1.5 rounded-sharp text-sm font-medium transition-colors ${
               statusFilter === s
-                ? 'bg-amber-500 text-white'
-                : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                ? 'bg-brand text-ink'
+                : 'bg-sand text-mute hover:bg-shade'
             }`}
           >
             {s === 'ALL' ? 'All' : s.charAt(0) + s.slice(1).toLowerCase()}
@@ -410,13 +410,13 @@ export function PurchaseOrders() {
       {/* List */}
       {loading ? (
         <div className="text-center py-12">
-          <ArrowPathIcon className="w-8 h-8 animate-spin mx-auto text-slate-400" />
-          <p className="text-slate-400 mt-2">Loading purchase orders...</p>
+          <ArrowPathIcon className="w-8 h-8 animate-spin mx-auto text-mute" />
+          <p className="text-mute mt-2">Loading purchase orders...</p>
         </div>
       ) : orders.length === 0 ? (
         <Card className="text-center py-12">
-          <ClipboardDocumentListIcon className="w-12 h-12 mx-auto text-slate-500 mb-3" />
-          <p className="text-slate-400 mb-4">No purchase orders yet</p>
+          <ClipboardDocumentListIcon className="w-12 h-12 mx-auto text-mist mb-3" />
+          <p className="text-mute mb-4">No purchase orders yet</p>
           <Button variant="primary" onClick={openCreate}>
             Raise Your First Purchase Order
           </Button>
@@ -429,36 +429,36 @@ export function PurchaseOrders() {
             return (
               <Card
                 key={po.id}
-                className="cursor-pointer hover:bg-slate-800/50 transition-colors"
+                className="cursor-pointer hover:bg-sand/50 transition-colors"
                 onClick={() => openDetail(po.id)}
               >
                 <div className="flex items-start justify-between mb-3">
                   <div>
-                    <h3 className="font-semibold text-white">{po.orderNumber || po.id.slice(0, 8)}</h3>
-                    <p className="text-sm text-slate-400">{po.supplier?.name || 'Unknown supplier'}</p>
+                    <h3 className="font-semibold text-ink">{po.orderNumber || po.id.slice(0, 8)}</h3>
+                    <p className="text-sm text-mute">{po.supplier?.name || 'Unknown supplier'}</p>
                   </div>
                   <Badge variant={STATUS_VARIANT[po.status]}>
                     {po.status.charAt(0) + po.status.slice(1).toLowerCase()}
                   </Badge>
                 </div>
 
-                <div className="space-y-1 text-sm text-slate-400">
+                <div className="space-y-1 text-sm text-mute">
                   <div className="flex justify-between">
                     <span>Items</span>
-                    <span className="text-slate-300">{po._count?.items ?? po.items?.length ?? 0}</span>
+                    <span className="text-body">{po._count?.items ?? po.items?.length ?? 0}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Total</span>
-                    <span className="text-white font-semibold">{formatCurrency(po.totalAmount)}</span>
+                    <span className="m text-ink font-semibold">{formatCurrency(po.totalAmount)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Ordered</span>
-                    <span className="text-slate-300">{formatDate(po.orderDate)}</span>
+                    <span className="text-body">{formatDate(po.orderDate)}</span>
                   </div>
                   {po.amountReceived > 0 && (
                     <div className="flex justify-between">
                       <span>Owed</span>
-                      <span className={balanceDue > 0 ? 'text-red-400 font-semibold' : 'text-emerald-400'}>
+                      <span className={balanceDue > 0 ? 'text-bad font-semibold' : 'text-ok'}>
                         {balanceDue > 0 ? formatCurrency(balanceDue) : 'Settled'}
                       </span>
                     </div>
@@ -489,11 +489,11 @@ export function PurchaseOrders() {
         <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
           {/* Supplier */}
           <div>
-            <label className="block text-sm text-slate-400 mb-1.5">Supplier *</label>
+            <label className="block text-sm text-mute mb-1.5">Supplier *</label>
             <select
               value={supplierId}
               onChange={(e) => setSupplierId(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+              className="w-full bg-sand border border-line rounded-sharp px-4 py-3 text-ink focus:border-ink focus:ring-1 focus:ring-ink"
             >
               <option value="">Select a supplier…</option>
               {suppliers.map((s) => (
@@ -503,13 +503,13 @@ export function PurchaseOrders() {
               ))}
             </select>
             {suppliers.length === 0 && (
-              <p className="text-xs text-amber-400 mt-1">Add a supplier first on the Suppliers page.</p>
+              <p className="text-xs text-brick mt-1">Add a supplier first on the Suppliers page.</p>
             )}
           </div>
 
           {/* Product picker */}
-          <div className="pt-3 border-t border-slate-700">
-            <p className="text-xs text-amber-400 mb-2 uppercase tracking-wider font-semibold">Add Products</p>
+          <div className="pt-3 border-t border-line">
+            <p className="text-xs text-brick mb-2 uppercase tracking-wider font-semibold">Add Products</p>
             <Input
               placeholder="Search products to add..."
               value={productSearch}
@@ -525,23 +525,23 @@ export function PurchaseOrders() {
                       key={p.id}
                       onClick={() => addLine(p)}
                       disabled={added}
-                      className={`w-full text-left p-2.5 rounded-lg border flex items-center justify-between transition-colors ${
+                      className={`w-full text-left p-2.5 rounded-sharp border flex items-center justify-between transition-colors ${
                         added
-                          ? 'bg-amber-500/10 border-amber-500/40 text-amber-300'
-                          : 'bg-slate-800 border-slate-700 hover:border-slate-600 text-white'
+                          ? 'bg-wash border-ink/40 text-brick'
+                          : 'bg-sand border-line hover:border-line-strong text-ink'
                       }`}
                     >
                       <span className="text-sm">{p.name}</span>
                       {added ? (
                         <CheckIcon className="w-4 h-4" />
                       ) : (
-                        <PlusIcon className="w-4 h-4 text-slate-400" />
+                        <PlusIcon className="w-4 h-4 text-mute" />
                       )}
                     </button>
                   );
                 })}
                 {filteredProducts.length === 0 && (
-                  <p className="text-center text-slate-500 py-3 text-sm">No products found</p>
+                  <p className="text-center text-mist py-3 text-sm">No products found</p>
                 )}
               </div>
             )}
@@ -550,7 +550,7 @@ export function PurchaseOrders() {
           {/* Line items */}
           {lines.length > 0 && (
             <div className="space-y-2">
-              <div className="grid grid-cols-12 gap-2 text-xs text-slate-500 px-1">
+              <div className="grid grid-cols-12 gap-2 text-xs text-mist px-1">
                 <span className="col-span-5">Product</span>
                 <span className="col-span-3">Qty</span>
                 <span className="col-span-3">Unit Cost</span>
@@ -558,13 +558,13 @@ export function PurchaseOrders() {
               </div>
               {lines.map((l) => (
                 <div key={l.productId} className="grid grid-cols-12 gap-2 items-center">
-                  <span className="col-span-5 text-sm text-white truncate">{l.productName}</span>
+                  <span className="col-span-5 text-sm text-ink truncate">{l.productName}</span>
                   <input
                     type="number"
                     min={1}
                     value={l.qtyOrdered}
                     onChange={(e) => updateLine(l.productId, 'qtyOrdered', parseInt(e.target.value) || 0)}
-                    className="col-span-3 bg-slate-800 border border-slate-700 rounded-lg px-2 py-2 text-white text-sm focus:border-amber-500"
+                    className="col-span-3 bg-sand border border-line rounded-sharp px-2 py-2 text-ink text-sm focus:border-ink"
                   />
                   <input
                     type="number"
@@ -572,11 +572,11 @@ export function PurchaseOrders() {
                     step="0.01"
                     value={l.unitCost}
                     onChange={(e) => updateLine(l.productId, 'unitCost', parseFloat(e.target.value) || 0)}
-                    className="col-span-3 bg-slate-800 border border-slate-700 rounded-lg px-2 py-2 text-white text-sm focus:border-amber-500"
+                    className="col-span-3 bg-sand border border-line rounded-sharp px-2 py-2 text-ink text-sm focus:border-ink"
                   />
                   <button
                     onClick={() => removeLine(l.productId)}
-                    className="col-span-1 flex justify-center text-slate-400 hover:text-red-400"
+                    className="col-span-1 flex justify-center text-mute hover:text-bad"
                   >
                     <TrashIcon className="w-4 h-4" />
                   </button>
@@ -586,7 +586,7 @@ export function PurchaseOrders() {
           )}
 
           {/* Tax + expected date */}
-          <div className="grid grid-cols-2 gap-4 pt-3 border-t border-slate-700">
+          <div className="grid grid-cols-2 gap-4 pt-3 border-t border-line">
             <Input
               label="Tax"
               type="number"
@@ -603,30 +603,30 @@ export function PurchaseOrders() {
           </div>
 
           <div>
-            <label className="block text-sm text-slate-400 mb-1.5">Notes</label>
+            <label className="block text-sm text-mute mb-1.5">Notes</label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
-              className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+              className="w-full bg-sand border border-line rounded-sharp px-4 py-3 text-ink placeholder-mist focus:border-ink focus:ring-1 focus:ring-ink"
               placeholder="Delivery instructions, reference numbers..."
             />
           </div>
 
-          <label className="flex items-center gap-2 text-sm text-slate-300">
+          <label className="flex items-center gap-2 text-sm text-body">
             <input
               type="checkbox"
               checked={placeOrder}
               onChange={(e) => setPlaceOrder(e.target.checked)}
-              className="rounded border-slate-600 bg-slate-800 text-amber-500 focus:ring-amber-500"
+              className="rounded border-line-strong bg-sand text-brick focus:ring-ink"
             />
             Mark as ordered (sent to supplier) — uncheck to keep as draft
           </label>
 
           {/* Totals */}
-          <div className="flex justify-between items-center pt-3 border-t border-slate-700">
-            <span className="text-slate-400">Total</span>
-            <span className="text-xl font-bold text-white">{formatCurrency(draftTotal)}</span>
+          <div className="flex justify-between items-center pt-3 border-t border-line">
+            <span className="text-mute">Total</span>
+            <span className="m text-xl font-bold text-ink">{formatCurrency(draftTotal)}</span>
           </div>
 
           <div className="flex gap-3 pt-1">
@@ -654,11 +654,11 @@ export function PurchaseOrders() {
       >
         {receivePo && (
           <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
-            <p className="text-sm text-slate-400">
+            <p className="text-sm text-mute">
               Enter the quantity received per line. Stock increases and an audit entry is logged for each.
             </p>
 
-            <div className="grid grid-cols-12 gap-2 text-xs text-slate-500 px-1">
+            <div className="grid grid-cols-12 gap-2 text-xs text-mist px-1">
               <span className="col-span-5">Product</span>
               <span className="col-span-2 text-right">Ordered</span>
               <span className="col-span-2 text-right">Received</span>
@@ -669,9 +669,9 @@ export function PurchaseOrders() {
               const outstanding = Math.max(0, item.quantity - item.receivedQty);
               return (
                 <div key={item.id} className="grid grid-cols-12 gap-2 items-center">
-                  <span className="col-span-5 text-sm text-white truncate">{item.productName}</span>
-                  <span className="col-span-2 text-right text-sm text-slate-300">{item.quantity}</span>
-                  <span className="col-span-2 text-right text-sm text-slate-300">{item.receivedQty}</span>
+                  <span className="col-span-5 text-sm text-ink truncate">{item.productName}</span>
+                  <span className="col-span-2 text-right text-sm text-body">{item.quantity}</span>
+                  <span className="col-span-2 text-right text-sm text-body">{item.receivedQty}</span>
                   <input
                     type="number"
                     min={0}
@@ -682,18 +682,18 @@ export function PurchaseOrders() {
                       const v = Math.min(outstanding, Math.max(0, parseInt(e.target.value) || 0));
                       setReceiveQty((prev) => ({ ...prev, [item.id]: v }));
                     }}
-                    className="col-span-3 bg-slate-800 border border-slate-700 rounded-lg px-2 py-2 text-white text-sm text-right focus:border-amber-500 disabled:opacity-50"
+                    className="col-span-3 bg-sand border border-line rounded-sharp px-2 py-2 text-ink text-sm text-right focus:border-ink disabled:opacity-50"
                   />
                 </div>
               );
             })}
 
-            <label className="flex items-center gap-2 text-sm text-slate-300 pt-2 border-t border-slate-700">
+            <label className="flex items-center gap-2 text-sm text-body pt-2 border-t border-line">
               <input
                 type="checkbox"
                 checked={updateCost}
                 onChange={(e) => setUpdateCost(e.target.checked)}
-                className="rounded border-slate-600 bg-slate-800 text-amber-500 focus:ring-amber-500"
+                className="rounded border-line-strong bg-sand text-brick focus:ring-ink"
               />
               Update product cost prices to this PO's unit costs
             </label>
@@ -719,12 +719,12 @@ export function PurchaseOrders() {
       >
         {detailLoading ? (
           <div className="text-center py-10">
-            <ArrowPathIcon className="w-8 h-8 animate-spin mx-auto text-slate-400" />
+            <ArrowPathIcon className="w-8 h-8 animate-spin mx-auto text-mute" />
           </div>
         ) : detail ? (
           <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-1">
             <div className="flex items-center justify-between">
-              <p className="text-sm text-slate-400">{detail.supplier?.name || 'Unknown supplier'}</p>
+              <p className="text-sm text-mute">{detail.supplier?.name || 'Unknown supplier'}</p>
               <Badge variant={STATUS_VARIANT[detail.status]}>
                 {detail.status.charAt(0) + detail.status.slice(1).toLowerCase()}
               </Badge>
@@ -736,13 +736,13 @@ export function PurchaseOrders() {
                 PO would show a green "Settled" for a debt that does not exist.
                 Mirrors the `po.amountReceived > 0` gate on the list card. */}
             {detail.amountReceived > 0 && (
-              <div className="bg-slate-800 rounded-xl p-4">
-                <p className="text-sm text-slate-300">
+              <div className="bg-sand rounded-sharp p-4">
+                <p className="text-sm text-body">
                   Paid {formatCurrency(detail.amountPaid)} of {formatCurrency(detail.amountReceived)}
                 </p>
                 <p
                   className={`text-2xl font-bold mt-1 ${
-                    computeBalanceDue(detail) > 0 ? 'text-red-400' : 'text-emerald-400'
+                    computeBalanceDue(detail) > 0 ? 'text-bad' : 'text-ok'
                   }`}
                 >
                   {computeBalanceDue(detail) > 0
@@ -755,7 +755,7 @@ export function PurchaseOrders() {
             {/* Line items */}
             {detail.items && detail.items.length > 0 && (
               <div className="space-y-2">
-                <div className="grid grid-cols-12 gap-2 text-xs text-slate-500 px-1">
+                <div className="grid grid-cols-12 gap-2 text-xs text-mist px-1">
                   <span className="col-span-6">Product</span>
                   <span className="col-span-2 text-right">Ordered</span>
                   <span className="col-span-2 text-right">Received</span>
@@ -763,10 +763,10 @@ export function PurchaseOrders() {
                 </div>
                 {detail.items.map((item) => (
                   <div key={item.id} className="grid grid-cols-12 gap-2 items-center text-sm">
-                    <span className="col-span-6 text-white truncate">{item.productName}</span>
-                    <span className="col-span-2 text-right text-slate-300">{item.quantity}</span>
-                    <span className="col-span-2 text-right text-slate-300">{item.receivedQty}</span>
-                    <span className="col-span-2 text-right text-slate-300">
+                    <span className="col-span-6 text-ink truncate">{item.productName}</span>
+                    <span className="col-span-2 text-right text-body">{item.quantity}</span>
+                    <span className="col-span-2 text-right text-body">{item.receivedQty}</span>
+                    <span className="m col-span-2 text-right text-body">
                       {formatCurrency(item.totalCost)}
                     </span>
                   </div>
@@ -774,18 +774,18 @@ export function PurchaseOrders() {
               </div>
             )}
 
-            <div className="space-y-1 text-sm pt-3 border-t border-slate-700">
-              <div className="flex justify-between text-slate-400">
+            <div className="space-y-1 text-sm pt-3 border-t border-line">
+              <div className="flex justify-between text-mute">
                 <span>Subtotal</span>
-                <span className="text-slate-300">{formatCurrency(detail.subtotal)}</span>
+                <span className="m text-body">{formatCurrency(detail.subtotal)}</span>
               </div>
-              <div className="flex justify-between text-slate-400">
+              <div className="flex justify-between text-mute">
                 <span>Tax</span>
-                <span className="text-slate-300">{formatCurrency(detail.tax)}</span>
+                <span className="m text-body">{formatCurrency(detail.tax)}</span>
               </div>
               <div className="flex justify-between font-semibold">
-                <span className="text-slate-300">Total</span>
-                <span className="text-white">{formatCurrency(detail.totalAmount)}</span>
+                <span className="text-body">Total</span>
+                <span className="m text-ink">{formatCurrency(detail.totalAmount)}</span>
               </div>
             </div>
 
@@ -805,27 +805,27 @@ export function PurchaseOrders() {
             {/* Payment history — the BILL booked on receive plus every PAYMENT
                 recorded against this PO, newest first. */}
             {(poPaymentsError || poPayments.length > 0) && (
-              <div className="pt-3 border-t border-slate-700">
-                <p className="text-sm font-medium text-white mb-2">Payment History</p>
+              <div className="pt-3 border-t border-line">
+                <p className="text-sm font-medium text-ink mb-2">Payment History</p>
                 {poPaymentsError ? (
-                  <p className="text-sm text-red-400">{poPaymentsError}</p>
+                  <p className="text-sm text-bad">{poPaymentsError}</p>
                 ) : (
                 <div className="space-y-2">
                   {poPayments.map((entry) => (
                     <div
                       key={entry.id}
-                      className="flex justify-between items-center bg-slate-800 rounded-lg p-3"
+                      className="flex justify-between items-center bg-sand rounded-sharp p-3"
                     >
                       <div>
-                        <p className="text-sm text-white">{LEDGER_TYPE_LABEL[entry.type]}</p>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-sm text-ink">{LEDGER_TYPE_LABEL[entry.type]}</p>
+                        <p className="text-xs text-mist">
                           {new Date(entry.createdAt).toLocaleDateString()}
                           {entry.note ? ` · ${entry.note}` : ''}
                         </p>
                       </div>
                       <p
                         className={`font-semibold ${
-                          entry.type === 'PAYMENT' ? 'text-emerald-400' : 'text-slate-300'
+                          entry.type === 'PAYMENT' ? 'text-ok' : 'text-body'
                         }`}
                       >
                         {formatCurrency(entry.amount)}
@@ -849,9 +849,9 @@ export function PurchaseOrders() {
       >
         {detail && (
           <div className="space-y-4">
-            <div className="bg-slate-800 rounded-xl p-3 flex items-center justify-between">
-              <span className="text-sm text-slate-400">Balance due</span>
-              <span className="font-bold text-red-400">{formatCurrency(computeBalanceDue(detail))}</span>
+            <div className="bg-sand rounded-sharp p-3 flex items-center justify-between">
+              <span className="text-sm text-mute">Balance due</span>
+              <span className="m font-bold text-bad">{formatCurrency(computeBalanceDue(detail))}</span>
             </div>
 
             <Input

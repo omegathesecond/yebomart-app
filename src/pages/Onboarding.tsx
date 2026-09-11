@@ -15,6 +15,7 @@ import {
   GlobeAltIcon,
   BuildingStorefrontIcon
 } from '@heroicons/react/24/outline';
+import { YeboLogo } from '@/components/ui/YeboLogo';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { PhoneInput } from '@/components/ui/PhoneInput';
@@ -177,24 +178,22 @@ export function Onboarding() {
   // any stale URL/bookmark. (createShop() in the store also fails loudly now.)
   if (isNewShop) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-cream flex items-center justify-center p-4">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl" />
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl" />
         </div>
 
         <div className="relative w-full max-w-md text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 shadow-lg shadow-amber-500/25 mb-4">
-            <BuildingStorefrontIcon className="w-10 h-10 text-white" />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-sharp bg-brand shadow-lg mb-4">
+            <BuildingStorefrontIcon className="w-10 h-10 text-ink" />
           </div>
-          <h1 className="text-2xl font-bold text-white">Multiple shops are coming soon</h1>
+          <h1 className="text-2xl font-bold text-ink">Multiple shops are coming soon</h1>
 
-          <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-8 mt-6">
-            <p className="text-slate-300">
+          <div className="bg-sand/50 rounded-sharp border border-line/50 p-8 mt-6">
+            <p className="text-body">
               Your account currently supports one shop. Running several shops
               from a single login isn't available yet — we're building it.
             </p>
-            <p className="text-slate-400 text-sm mt-4">
+            <p className="text-mute text-sm mt-4">
               Nothing was created. You can keep using your current shop in the
               meantime.
             </p>
@@ -205,8 +204,8 @@ export function Onboarding() {
             </Button>
           </div>
 
-          <p className="text-slate-500 text-sm mt-6">
-            © 2026 YeboMart by Omevision. Available across Africa 🌍
+          <p className="text-mist text-sm mt-6">
+            © 2026 YeboMart by Omevision. Available across Africa
           </p>
         </div>
       </div>
@@ -216,24 +215,19 @@ export function Onboarding() {
   // Entry screen
   if (step === 'entry') {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-cream flex items-center justify-center p-4">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl" />
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl" />
         </div>
 
         <div className="relative w-full max-w-md text-center">
           <div className="mb-8">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 shadow-lg shadow-amber-500/25 mb-4">
-              <ShoppingCartIcon className="w-12 h-12 text-white" />
-            </div>
-            <h1 className="text-3xl font-bold text-white">YeboMart</h1>
-            <p className="text-slate-400 mt-2">AI-Powered Shop Management</p>
+            <YeboLogo size="lg" className="mb-4" />
+            <p className="text-mute">Point of sale for African shops</p>
           </div>
 
-          <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-8 mb-6">
-            <h2 className="text-xl font-semibold text-white mb-3">Welcome!</h2>
-            <p className="text-slate-400 mb-8">
+          <div className="bg-sand/50 rounded-sharp border border-line/50 p-8 mb-6">
+            <h2 className="text-xl font-semibold text-ink mb-3">Welcome!</h2>
+            <p className="text-mute mb-8">
               Ready to take control of your shop? Set up in just 2 minutes and start tracking every sale.
             </p>
 
@@ -245,22 +239,22 @@ export function Onboarding() {
               Setup Your Shop
             </Button>
 
-            <div className="flex items-center gap-3 text-sm text-slate-500">
-              <div className="flex-1 h-px bg-slate-700" />
+            <div className="flex items-center gap-3 text-sm text-mist">
+              <div className="flex-1 h-px bg-shade" />
               <span>or</span>
-              <div className="flex-1 h-px bg-slate-700" />
+              <div className="flex-1 h-px bg-shade" />
             </div>
           </div>
 
           <button 
             onClick={() => navigate('/login')}
-            className="text-amber-400 hover:text-amber-300 text-sm font-medium transition-colors"
+            className="text-brick hover:text-brick text-sm font-medium transition-colors"
           >
             Already have an account? Login →
           </button>
 
-          <p className="text-slate-500 text-sm mt-8">
-            © 2026 YeboMart by Omevision. Available across Africa 🌍
+          <p className="text-mist text-sm mt-8">
+            © 2026 YeboMart by Omevision. Available across Africa
           </p>
         </div>
       </div>
@@ -270,69 +264,65 @@ export function Onboarding() {
   // Instructions screen
   if (step === 'instructions') {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-cream flex items-center justify-center p-4">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl" />
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl" />
         </div>
 
         <div className="relative w-full max-w-lg">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 shadow-lg shadow-amber-500/25 mb-4">
-              <ShoppingCartIcon className="w-10 h-10 text-white" />
-            </div>
-            <h1 className="text-2xl font-bold text-white">Let's Get You Started</h1>
-            <p className="text-slate-400 mt-2">Here's what you need to know</p>
+            <YeboLogo size="lg" className="mb-4" />
+            <h1 className="text-2xl font-bold text-ink">Let's Get You Started</h1>
+            <p className="text-mute mt-2">Here's what you need to know</p>
           </div>
 
-          <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-8 mb-6">
-            <div className="flex items-center gap-3 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 mb-6">
-              <ClockIcon className="w-8 h-8 text-amber-400" />
+          <div className="bg-sand/50 rounded-sharp border border-line/50 p-8 mb-6">
+            <div className="flex items-center gap-3 p-4 rounded-sharp bg-wash border border-ink/20 mb-6">
+              <ClockIcon className="w-8 h-8 text-brick" />
               <div>
-                <p className="text-white font-medium">Just 2 minutes</p>
-                <p className="text-slate-400 text-sm">Quick setup, then you're ready to go</p>
+                <p className="text-ink font-medium">Just 2 minutes</p>
+                <p className="text-mute text-sm">Quick setup, then you're ready to go</p>
               </div>
             </div>
 
             <div className="mb-6">
-              <h3 className="text-white font-medium mb-3">What you'll need:</h3>
+              <h3 className="text-ink font-medium mb-3">What you'll need:</h3>
               <ul className="space-y-3">
-                <li className="flex items-center gap-3 text-slate-300">
-                  <CheckCircleIcon className="w-5 h-5 text-green-400 shrink-0" />
+                <li className="flex items-center gap-3 text-body">
+                  <CheckCircleIcon className="w-5 h-5 text-ok shrink-0" />
                   <span>Your shop name & type</span>
                 </li>
-                <li className="flex items-center gap-3 text-slate-300">
-                  <CheckCircleIcon className="w-5 h-5 text-green-400 shrink-0" />
+                <li className="flex items-center gap-3 text-body">
+                  <CheckCircleIcon className="w-5 h-5 text-ok shrink-0" />
                   <span>Your shop's country (for currency)</span>
                 </li>
-                <li className="flex items-center gap-3 text-slate-300">
-                  <CheckCircleIcon className="w-5 h-5 text-green-400 shrink-0" />
+                <li className="flex items-center gap-3 text-body">
+                  <CheckCircleIcon className="w-5 h-5 text-ok shrink-0" />
                   <span>Your name & phone number</span>
                 </li>
-                <li className="flex items-center gap-3 text-slate-300">
-                  <CheckCircleIcon className="w-5 h-5 text-green-400 shrink-0" />
+                <li className="flex items-center gap-3 text-body">
+                  <CheckCircleIcon className="w-5 h-5 text-ok shrink-0" />
                   <span>A 6-digit PIN (for login)</span>
                 </li>
               </ul>
             </div>
 
-            <div className="border-t border-slate-700 pt-6">
-              <h3 className="text-white font-medium mb-3">What you'll get:</h3>
+            <div className="border-t border-line pt-6">
+              <h3 className="text-ink font-medium mb-3">What you'll get:</h3>
               <div className="grid grid-cols-2 gap-3">
-                <div className="flex items-center gap-2 text-slate-400 text-sm">
-                  <DevicePhoneMobileIcon className="w-4 h-4 text-amber-400" />
+                <div className="flex items-center gap-2 text-mute text-sm">
+                  <DevicePhoneMobileIcon className="w-4 h-4 text-brick" />
                   <span>Point of Sale</span>
                 </div>
-                <div className="flex items-center gap-2 text-slate-400 text-sm">
-                  <ChartBarIcon className="w-4 h-4 text-amber-400" />
+                <div className="flex items-center gap-2 text-mute text-sm">
+                  <ChartBarIcon className="w-4 h-4 text-brick" />
                   <span>Sales Tracking</span>
                 </div>
-                <div className="flex items-center gap-2 text-slate-400 text-sm">
-                  <ShoppingCartIcon className="w-4 h-4 text-amber-400" />
+                <div className="flex items-center gap-2 text-mute text-sm">
+                  <ShoppingCartIcon className="w-4 h-4 text-brick" />
                   <span>Stock Management</span>
                 </div>
-                <div className="flex items-center gap-2 text-slate-400 text-sm">
-                  <ChatBubbleLeftRightIcon className="w-4 h-4 text-amber-400" />
+                <div className="flex items-center gap-2 text-mute text-sm">
+                  <ChatBubbleLeftRightIcon className="w-4 h-4 text-brick" />
                   <span>AI Assistant</span>
                 </div>
               </div>
@@ -356,22 +346,20 @@ export function Onboarding() {
   // Country Picker Step (NOW FIRST)
   if (step === 'country') {
     return (
-      <div className="min-h-screen bg-slate-900 p-4 pb-24">
+      <div className="min-h-screen bg-cream p-4 pb-24">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl" />
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl" />
         </div>
 
         <div className="relative max-w-lg mx-auto pt-8">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 shadow-lg shadow-amber-500/25 mb-4">
-              <GlobeAltIcon className="w-10 h-10 text-white" />
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-sharp bg-brand shadow-lg mb-4">
+              <GlobeAltIcon className="w-10 h-10 text-ink" />
             </div>
-            <h1 className="text-2xl font-bold text-white">Where is your shop?</h1>
-            <p className="text-slate-400 mt-2">This determines your currency and settings</p>
+            <h1 className="text-2xl font-bold text-ink">Where is your shop?</h1>
+            <p className="text-mute mt-2">This determines your currency and settings</p>
           </div>
 
-          <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-6 mb-6">
+          <div className="bg-sand/50 rounded-sharp border border-line/50 p-6 mb-6">
             <ShopCountryPicker
               label="Shop Country"
               value={shopCountryCode}
@@ -380,18 +368,18 @@ export function Onboarding() {
             />
 
             {shopCountry && (
-              <div className="mt-6 p-4 bg-slate-700/30 rounded-xl">
-                <h4 className="text-sm font-medium text-slate-300 mb-3">Your shop will use:</h4>
+              <div className="mt-6 p-4 bg-shade/30 rounded-sharp">
+                <h4 className="text-sm font-medium text-body mb-3">Your shop will use:</h4>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-xs text-slate-400">Currency</p>
-                    <p className="text-white font-medium">
+                    <p className="text-xs text-mute">Currency</p>
+                    <p className="text-ink font-medium">
                       {shopCountry.currencySymbol} {shopCountry.currencyName}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-slate-400">Currency Code</p>
-                    <p className="text-white font-medium">{shopCountry.currency}</p>
+                    <p className="text-xs text-mute">Currency Code</p>
+                    <p className="text-ink font-medium">{shopCountry.currency}</p>
                   </div>
                 </div>
               </div>
@@ -422,17 +410,15 @@ export function Onboarding() {
 
   if (step === 'shopType') {
     return (
-      <div className="min-h-screen bg-slate-900 p-4 pb-24">
+      <div className="min-h-screen bg-cream p-4 pb-24">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl" />
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl" />
         </div>
 
         <div className="relative max-w-2xl mx-auto pt-8">
           <div className="text-center mb-6">
-            <h1 className="text-2xl font-bold text-white">What type of shop do you have?</h1>
-            <p className="text-slate-400 mt-2">
-              {shopCountry && <span className="text-amber-400">{shopCountry.flag} {shopCountry.name}</span>}
+            <h1 className="text-2xl font-bold text-ink">What type of shop do you have?</h1>
+            <p className="text-mute mt-2">
+              {shopCountry && <span className="text-brick">{shopCountry.flag} {shopCountry.name}</span>}
               {' • '}We'll customize categories and features for your business
             </p>
           </div>
@@ -443,16 +429,16 @@ export function Onboarding() {
               placeholder="Search shop types..."
               value={shopTypeSearch}
               onChange={(e) => setShopTypeSearch(e.target.value)}
-              className="bg-slate-800/80"
+              className="bg-sand/80"
             />
           </div>
 
           {filteredShopTypes.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-slate-400 text-lg">No shop types match "{shopTypeSearch}"</p>
+              <p className="text-mute text-lg">No shop types match "{shopTypeSearch}"</p>
               <button 
                 onClick={() => setShopTypeSearch('')}
-                className="text-amber-400 hover:text-amber-300 mt-2 text-sm"
+                className="text-brick hover:text-brick mt-2 text-sm"
               >
                 Clear search
               </button>
@@ -463,22 +449,22 @@ export function Onboarding() {
               <button
                 key={type.id}
                 onClick={() => setSelectedShopType(type.id)}
-                className={`relative p-4 rounded-2xl border-2 transition-all text-left ${
+                className={`relative p-4 rounded-sharp border-2 transition-all text-left ${
                   selectedShopType === type.id
-                    ? 'border-amber-500 bg-amber-500/10'
-                    : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
+                    ? 'border-ink bg-wash'
+                    : 'border-line bg-sand/50 hover:border-line-strong'
                 }`}
               >
                 {selectedShopType === type.id && (
-                  <div className="absolute top-2 right-2 w-6 h-6 bg-amber-500 rounded-full flex items-center justify-center">
-                    <CheckIcon className="w-4 h-4 text-white" />
+                  <div className="absolute top-2 right-2 w-6 h-6 bg-brand rounded-full flex items-center justify-center">
+                    <CheckIcon className="w-4 h-4 text-ink" />
                   </div>
                 )}
-                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${type.color} flex items-center justify-center mb-3`}>
-                  <type.icon className="w-6 h-6 text-white" />
+                <div className="w-12 h-12 rounded-sharp bg-sand border border-line flex items-center justify-center mb-3">
+                  <type.icon className="w-6 h-6 text-ink" />
                 </div>
-                <h3 className="font-semibold text-white text-sm">{type.name}</h3>
-                <p className="text-slate-400 text-xs mt-1 line-clamp-2">{type.description}</p>
+                <h3 className="font-semibold text-ink text-sm">{type.name}</h3>
+                <p className="text-mute text-xs mt-1 line-clamp-2">{type.description}</p>
               </button>
             ))}
           </div>
@@ -486,27 +472,27 @@ export function Onboarding() {
 
           {/* Selected type preview */}
           {selectedType && (
-            <div className="mt-6 p-4 bg-slate-800/50 rounded-2xl border border-slate-700">
-              <h3 className="text-white font-medium mb-2">Categories for {selectedType.name}:</h3>
+            <div className="mt-6 p-4 bg-sand/50 rounded-sharp border border-line">
+              <h3 className="text-ink font-medium mb-2">Categories for {selectedType.name}:</h3>
               <div className="flex flex-wrap gap-2">
                 {selectedType.categories.slice(0, 8).map((cat) => (
-                  <span key={cat} className="px-3 py-1 bg-slate-700 rounded-full text-xs text-slate-300">
+                  <span key={cat} className="px-3 py-1 bg-shade rounded-full text-xs text-body">
                     {cat}
                   </span>
                 ))}
                 {selectedType.categories.length > 8 && (
-                  <span className="px-3 py-1 bg-slate-700 rounded-full text-xs text-slate-400">
+                  <span className="px-3 py-1 bg-shade rounded-full text-xs text-mute">
                     +{selectedType.categories.length - 8} more
                   </span>
                 )}
               </div>
-              <p className="text-slate-500 text-xs mt-3">You can customize these later in settings</p>
+              <p className="text-mist text-xs mt-3">You can customize these later in settings</p>
             </div>
           )}
         </div>
 
         {/* Fixed bottom actions */}
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-slate-900/90 backdrop-blur-lg border-t border-slate-800">
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-cream/90 border-t border-line">
           <div className="max-w-2xl mx-auto flex gap-3">
             <Button variant="ghost" onClick={() => setStep('country')} className="flex-1">
               <ArrowLeftIcon className="w-4 h-4 mr-2" />
@@ -528,32 +514,30 @@ export function Onboarding() {
 
   // Setup form
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-cream flex items-center justify-center p-4">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl" />
       </div>
 
       <div className="relative w-full max-w-md">
         <div className="text-center mb-8">
           {selectedType && (
-            <div className={`inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br ${selectedType.color} shadow-lg mb-4`}>
-              <selectedType.icon className="w-10 h-10 text-white" />
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-sharp bg-ink mb-4">
+              <selectedType.icon className="w-10 h-10 text-cream" />
             </div>
           )}
-          <h1 className="text-2xl font-bold text-white">Set Up Your {selectedType?.name || 'Shop'}</h1>
-          <p className="text-slate-400 mt-2">
+          <h1 className="text-2xl font-bold text-ink">Set Up Your {selectedType?.name || 'Shop'}</h1>
+          <p className="text-mute mt-2">
             {shopCountry && (
               <span className="inline-flex items-center gap-1">
                 <span>{shopCountry.flag}</span>
                 <span>{shopCountry.name}</span>
-                <span className="text-amber-400">• {shopCountry.currencySymbol} {shopCountry.currency}</span>
+                <span className="text-brick">• {shopCountry.currencySymbol} {shopCountry.currency}</span>
               </span>
             )}
           </p>
         </div>
 
-        <div className="bg-slate-800/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 p-8">
+        <div className="bg-sand/50 rounded-sharp border border-line/50 p-8">
           <form onSubmit={handleSetup} className="space-y-4">
             <Input
               label="Shop Name"
@@ -595,15 +579,15 @@ export function Onboarding() {
             />
 
             {!isNewShop && (
-              <p className="text-xs text-slate-400 px-1">
+              <p className="text-xs text-mute px-1">
                 Next, you'll verify your phone number with YeboID. Your daily
                 WhatsApp reports will go to that number.
               </p>
             )}
 
             {error && (
-              <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30">
-                <p className="text-sm text-red-400">{error}</p>
+              <div className="p-3 rounded-sharp bg-bad/10 border border-bad/30">
+                <p className="text-sm text-bad">{error}</p>
               </div>
             )}
 
@@ -619,8 +603,8 @@ export function Onboarding() {
           </form>
         </div>
 
-        <p className="text-center text-slate-500 text-sm mt-6">
-          © 2026 YeboMart by Omevision. Available across Africa 🌍
+        <p className="text-center text-mist text-sm mt-6">
+          © 2026 YeboMart by Omevision. Available across Africa
         </p>
       </div>
     </div>

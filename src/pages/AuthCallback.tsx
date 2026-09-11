@@ -56,29 +56,29 @@ export function AuthCallback() {
   }, [params, navigate, exchangeYeboidToken]);
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-cream flex items-center justify-center p-4">
       <div className="text-center">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 shadow-lg shadow-amber-500/25 mb-4">
-          <ShoppingCartIcon className="w-10 h-10 text-white" />
+        <div className="inline-flex items-center justify-center w-16 h-16 rounded-sharp bg-brand shadow-lg mb-4">
+          <ShoppingCartIcon className="w-10 h-10 text-ink" />
         </div>
 
         {error ? (
           <>
-            <h1 className="text-xl font-semibold text-white">Sign-in failed</h1>
-            <p className="text-sm text-red-400 mt-2 max-w-sm mx-auto">
+            <h1 className="text-xl font-semibold text-ink">Sign-in failed</h1>
+            <p className="text-sm text-bad mt-2 max-w-sm mx-auto">
               {error}
             </p>
             <button
               onClick={() => navigate('/login', { replace: true })}
-              className="mt-6 text-amber-400 hover:text-amber-300 text-sm"
+              className="mt-6 text-brick hover:text-brick text-sm"
             >
               ← Back to sign in
             </button>
           </>
         ) : (
           <>
-            <div className="w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-slate-300">Signing you in…</p>
+            <div className="w-12 h-12 border-4 border-ink border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-body">Signing you in…</p>
           </>
         )}
       </div>

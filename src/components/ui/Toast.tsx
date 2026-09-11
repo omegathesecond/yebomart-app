@@ -53,7 +53,7 @@ export function Toast({
       <span className="flex-1 font-medium text-sm">{toast.message}</span>
       <button
         onClick={onDismiss}
-        className="p-1 rounded-lg hover:bg-white/20 transition-colors"
+        className="p-1 rounded-sharp hover:bg-cream/20 transition-colors"
         aria-label="Dismiss"
       >
         <XMarkIcon className="w-5 h-5" />

@@ -1,0 +1,15 @@
+{
+  "name": "YeboMart",
+  "short_name": "YeboMart",
+  "description": "Point of sale and shop management. Works offline.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#fdfbf7",
+  "theme_color": "#FF6B00",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png", "purpose": "any" }
+  ]
+}

@@ -102,10 +102,10 @@ export function CustomerPicker({ isOpen, onClose, onSelect }: CustomerPickerProp
             <div className="max-h-72 overflow-y-auto space-y-2">
               {loading ? (
                 <div className="text-center py-8">
-                  <ArrowPathIcon className="w-7 h-7 animate-spin mx-auto text-slate-400" />
+                  <ArrowPathIcon className="w-7 h-7 animate-spin mx-auto text-mute" />
                 </div>
               ) : customers.length === 0 ? (
-                <p className="text-center text-slate-500 py-8 text-sm">
+                <p className="text-center text-mist py-8 text-sm">
                   No customers found
                 </p>
               ) : (
@@ -113,19 +113,19 @@ export function CustomerPicker({ isOpen, onClose, onSelect }: CustomerPickerProp
                   <button
                     key={c.id}
                     onClick={() => onSelect(c)}
-                    className="w-full text-left p-3 rounded-xl bg-slate-800 border border-slate-700 hover:border-amber-500/50 hover:bg-slate-800/70 transition-colors flex items-center gap-3"
+                    className="w-full text-left p-3 rounded-sharp bg-sand border border-line hover:border-ink/50 hover:bg-sand/70 transition-colors flex items-center gap-3"
                   >
-                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shrink-0">
-                      <span className="text-white text-sm font-semibold">
+                    <div className="w-9 h-9 rounded-full bg-brand flex items-center justify-center shrink-0">
+                      <span className="text-ink text-sm font-semibold">
                         {c.name.charAt(0).toUpperCase()}
                       </span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-white truncate">{c.name}</p>
-                      {c.phone && <p className="text-xs text-slate-400">{c.phone}</p>}
+                      <p className="font-medium text-ink truncate">{c.name}</p>
+                      {c.phone && <p className="text-xs text-mute">{c.phone}</p>}
                     </div>
                     {c.balance > 0 && (
-                      <span className="text-xs text-red-400 font-medium shrink-0">
+                      <span className="text-xs text-bad font-medium shrink-0">
                         owes {c.balance.toFixed(2)}
                       </span>
                     )}

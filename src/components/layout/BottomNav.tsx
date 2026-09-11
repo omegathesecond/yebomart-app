@@ -4,74 +4,53 @@ import {
   ShoppingCartIcon,
   CubeIcon,
   BanknotesIcon,
-  Cog6ToothIcon
+  Bars3Icon,
 } from '@heroicons/react/24/outline';
-import {
-  HomeIcon as HomeIconSolid,
-  ShoppingCartIcon as ShoppingCartIconSolid,
-  CubeIcon as CubeIconSolid,
-  BanknotesIcon as BanknotesIconSolid,
-  Cog6ToothIcon as Cog6ToothIconSolid
-} from '@heroicons/react/24/solid';
+
+/**
+ * Phone navigation. The active tab is marked by a 2px orange rule along its
+ * top edge — the same device the desktop rail uses on its leading edge, so the
+ * two surfaces read as one system.
+ *
+ * The POS tab used to be a raised gradient pill floating above the bar. It is
+ * a flat tab now: on a phone held one-handed the raised pill sat under the
+ * thumb's own shadow, and the extra 16px it stole came out of the list above.
+ */
 
 const navItems = [
-  { 
-    name: 'Home', 
-    href: '/', 
-    icon: HomeIcon, 
-    activeIcon: HomeIconSolid 
-  },
-  { 
-    name: 'POS', 
-    href: '/pos', 
-    icon: ShoppingCartIcon, 
-    activeIcon: ShoppingCartIconSolid,
-    primary: true
-  },
-  { 
-    name: 'Products', 
-    href: '/products', 
-    icon: CubeIcon, 
-    activeIcon: CubeIconSolid 
-  },
-  { 
-    name: 'Sales', 
-    href: '/sales', 
-    icon: BanknotesIcon, 
-    activeIcon: BanknotesIconSolid 
-  },
-  { 
-    name: 'More', 
-    href: '/settings', 
-    icon: Cog6ToothIcon, 
-    activeIcon: Cog6ToothIconSolid 
-  }
+  { name: 'Home', href: '/', icon: HomeIcon, end: true },
+  { name: 'Till', href: '/pos', icon: ShoppingCartIcon },
+  { name: 'Stock', href: '/products', icon: CubeIcon },
+  { name: 'Sales', href: '/sales', icon: BanknotesIcon },
+  { name: 'More', href: '/settings', icon: Bars3Icon },
 ];
 
 export function BottomNav() {
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-xl border-t border-slate-800 z-50 safe-area-bottom">
-      <div className="flex items-center justify-around px-2 py-2">
+    <nav className="safe-area-bottom fixed bottom-0 left-0 right-0 z-50 border-t border-line bg-cream md:hidden">
+      <div className="flex items-stretch">
         {navItems.map((item) => (
           <NavLink
-            key={item.name}
+            key={item.href}
             to={item.href}
-            className={({ isActive }) => `
-              flex flex-col items-center justify-center min-w-[56px] py-2 px-3 rounded-xl transition-all duration-200
-              ${item.primary && !isActive ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-lg shadow-amber-600/30 -mt-4' : ''}
-              ${item.primary && isActive ? 'bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-lg shadow-amber-600/40 -mt-4 scale-105' : ''}
-              ${!item.primary && isActive ? 'text-amber-400' : ''}
-              ${!item.primary && !isActive ? 'text-slate-500' : ''}
-            `}
+            end={item.end}
+            className={({ isActive }) =>
+              `flex min-h-[62px] flex-1 flex-col items-center justify-center gap-1 border-t-2 -mt-px transition-colors ${
+                isActive ? 'border-brand text-ink' : 'border-transparent text-mute'
+              }`
+            }
           >
             {({ isActive }) => (
               <>
-                {isActive ? (
-                  <item.activeIcon className={`${item.primary ? 'w-6 h-6' : 'w-5 h-5'}`} />
-                ) : (
-                  <item.icon className={`${item.primary ? 'w-6 h-6' : 'w-5 h-5'}`} />
-                )}
-                <span className={`text-[10px] font-medium mt-0.5 ${item.primary ? 'text-white' : ''}`}>
+                <item.icon
+                  className="h-5 w-5"
+                  strokeWidth={isActive ? 1.9 : 1.6}
+                />
+                <span
+                  className={`m text-[9px] uppercase tracking-[0.08em] ${
+                    isActive ? 'font-semibold' : ''
+                  }`}
+                >
                   {item.name}
                 </span>
               </>

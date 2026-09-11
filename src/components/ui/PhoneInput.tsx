@@ -97,7 +97,7 @@ export const PhoneInput = forwardRef<HTMLInputElement, PhoneInputProps>(
     return (
       <div className="w-full">
         {label && (
-          <label className="block text-sm font-medium text-slate-300 mb-1.5">
+          <label className="block text-sm font-medium text-body mb-1.5">
             {label}
           </label>
         )}
@@ -107,15 +107,15 @@ export const PhoneInput = forwardRef<HTMLInputElement, PhoneInputProps>(
             type="button"
             onClick={() => setIsOpen(true)}
             className={clsx(
-              'flex items-center gap-2 px-3 py-3 bg-slate-700 border border-slate-600 rounded-l-xl',
-              'hover:bg-slate-600 transition-colors',
-              'focus:outline-none focus:ring-2 focus:ring-amber-500/50',
-              error && 'border-red-500'
+              'flex items-center gap-2 px-3 py-3 bg-shade border border-line-strong rounded-l-sharp',
+              'hover:bg-shade transition-colors',
+              'focus:outline-none focus:ring-2 focus:ring-ink/50',
+              error && 'border-bad'
             )}
           >
             <span className="text-xl">{selectedCountry.flag}</span>
-            <span className="text-sm text-slate-300">{selectedCountry.phonePrefix}</span>
-            <ChevronDownIcon className="w-4 h-4 text-slate-400" />
+            <span className="text-sm text-body">{selectedCountry.phonePrefix}</span>
+            <ChevronDownIcon className="w-4 h-4 text-mute" />
           </button>
 
           {/* Phone input */}
@@ -126,51 +126,51 @@ export const PhoneInput = forwardRef<HTMLInputElement, PhoneInputProps>(
             onChange={handlePhoneChange}
             placeholder={placeholder}
             className={clsx(
-              'flex-1 px-4 py-3 bg-slate-800 border border-l-0 border-slate-600 rounded-r-xl',
-              'text-white placeholder-slate-400',
-              'focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500',
-              error && 'border-red-500 focus:border-red-500 focus:ring-red-500/20',
+              'flex-1 px-4 py-3 bg-sand border border-l-0 border-line-strong rounded-r-sharp',
+              'text-ink placeholder-mist',
+              'focus:outline-none focus:ring-2 focus:ring-ink/50 focus:border-ink',
+              error && 'border-bad focus:border-bad focus:ring-bad/20',
               className
             )}
           />
         </div>
 
         {error && (
-          <p className="mt-1.5 text-sm text-red-400">{error}</p>
+          <p className="mt-1.5 text-sm text-bad">{error}</p>
         )}
         {hint && !error && (
-          <p className="mt-1.5 text-sm text-slate-500">{hint}</p>
+          <p className="mt-1.5 text-sm text-mist">{hint}</p>
         )}
 
         {/* Country picker modal */}
         {isOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 animate-in fade-in duration-200">
             <div
               ref={modalRef}
-              className="w-full max-w-lg max-h-[85vh] bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
+              className="w-full max-w-lg max-h-[85vh] bg-cream border border-line rounded-sharp shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
             >
               {/* Header */}
-              <div className="sticky top-0 bg-slate-900 border-b border-slate-700 p-4 z-10">
+              <div className="sticky top-0 bg-cream border-b border-line p-4 z-10">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-bold text-white">Select Country Code</h2>
+                  <h2 className="text-xl font-bold text-ink">Select Country Code</h2>
                   <button
                     onClick={() => setIsOpen(false)}
-                    className="p-2 hover:bg-slate-700 rounded-lg transition"
+                    className="p-2 hover:bg-shade rounded-sharp transition"
                   >
-                    <XMarkIcon className="w-5 h-5 text-slate-400" />
+                    <XMarkIcon className="w-5 h-5 text-mute" />
                   </button>
                 </div>
 
                 {/* Search */}
                 <div className="relative">
-                  <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                  <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-mute" />
                   <input
                     ref={searchRef}
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search countries..."
-                    className="w-full pl-10 pr-4 py-3 bg-slate-800 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                    className="w-full pl-10 pr-4 py-3 bg-sand border border-line-strong rounded-sharp text-ink placeholder-mist focus:outline-none focus:border-ink focus:ring-1 focus:ring-ink"
                   />
                 </div>
               </div>
@@ -178,7 +178,7 @@ export const PhoneInput = forwardRef<HTMLInputElement, PhoneInputProps>(
               {/* Country list */}
               <div className="overflow-y-auto max-h-[calc(85vh-140px)] p-2">
                 {!hasResults ? (
-                  <div className="text-center py-8 text-slate-400">
+                  <div className="text-center py-8 text-mute">
                     No countries found
                   </div>
                 ) : (
@@ -188,7 +188,7 @@ export const PhoneInput = forwardRef<HTMLInputElement, PhoneInputProps>(
                     
                     return (
                       <div key={region} className="mb-2">
-                        <div className="px-3 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wide">
+                        <div className="px-3 py-2 text-xs font-semibold text-mute uppercase tracking-wide">
                           {REGION_LABELS[region].en}
                         </div>
                         <div className="space-y-1">
@@ -199,22 +199,22 @@ export const PhoneInput = forwardRef<HTMLInputElement, PhoneInputProps>(
                                 key={country.code}
                                 onClick={() => handleSelectCountry(country)}
                                 className={clsx(
-                                  'w-full flex items-center gap-3 px-3 py-3 rounded-xl transition',
+                                  'w-full flex items-center gap-3 px-3 py-3 rounded-sharp transition',
                                   isSelected
-                                    ? 'bg-amber-500/20 border border-amber-500/50'
-                                    : 'hover:bg-slate-800 border border-transparent'
+                                    ? 'bg-wash border border-ink/50'
+                                    : 'hover:bg-sand border border-transparent'
                                 )}
                               >
                                 <span className="text-2xl">{country.flag}</span>
                                 <div className="flex-1 text-left">
                                   <p className={clsx(
                                     'font-medium',
-                                    isSelected ? 'text-amber-400' : 'text-white'
+                                    isSelected ? 'text-brick' : 'text-ink'
                                   )}>
                                     {country.name}
                                   </p>
                                 </div>
-                                <span className="text-sm text-slate-400">
+                                <span className="text-sm text-mute">
                                   {country.phonePrefix}
                                 </span>
                               </button>

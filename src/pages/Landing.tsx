@@ -45,12 +45,9 @@ export function Landing() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 flex flex-col">
+    <div className="min-h-screen bg-cream flex flex-col">
       {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-amber-500/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 right-0 w-72 h-72 bg-amber-600/10 rounded-full blur-3xl" />
       </div>
 
       {/* Content */}
@@ -59,19 +56,19 @@ export function Landing() {
         <div className="flex-1 flex flex-col justify-center text-center">
           {/* Logo */}
           <div className="mb-6">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 shadow-lg shadow-amber-500/25 mb-4">
-              <ShoppingCartIcon className="w-12 h-12 text-white" />
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-sharp bg-brand shadow-lg mb-4">
+              <ShoppingCartIcon className="w-12 h-12 text-ink" />
             </div>
-            <h1 className="text-4xl font-bold text-white">YeboMart</h1>
-            <p className="text-amber-400 font-medium mt-1">Smart Shop Management</p>
+            <h1 className="text-4xl font-bold text-ink">YeboMart</h1>
+            <p className="text-brick font-medium mt-1">Smart Shop Management</p>
           </div>
 
           {/* Welcome message */}
           <div className="mb-8">
-            <h2 className="text-xl text-white font-semibold mb-3">
+            <h2 className="text-xl text-ink font-semibold mb-3">
               Run your shop like a pro
             </h2>
-            <p className="text-slate-400 text-base leading-relaxed">
+            <p className="text-mute text-base leading-relaxed">
               The simple POS & inventory app built for Eswatini's tuck shops, 
               spaza stores, and small businesses. Everything you need in your pocket.
             </p>
@@ -82,14 +79,14 @@ export function Landing() {
             {benefits.map((benefit) => (
               <div 
                 key={benefit.title}
-                className="flex items-start gap-4 p-4 rounded-xl bg-slate-800/50 border border-slate-700/50 text-left"
+                className="flex items-start gap-4 p-4 rounded-sharp bg-sand/50 border border-line/50 text-left"
               >
-                <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center">
-                  <benefit.icon className="w-5 h-5 text-amber-400" />
+                <div className="flex-shrink-0 w-10 h-10 rounded-sharp bg-brand flex items-center justify-center">
+                  <benefit.icon className="w-5 h-5 text-brick" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-white">{benefit.title}</h3>
-                  <p className="text-sm text-slate-400 mt-0.5">{benefit.description}</p>
+                  <h3 className="font-semibold text-ink">{benefit.title}</h3>
+                  <p className="text-sm text-mute mt-0.5">{benefit.description}</p>
                 </div>
               </div>
             ))}
@@ -101,9 +98,9 @@ export function Landing() {
               {features.map((feature) => (
                 <span 
                   key={feature}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-slate-800/50 border border-slate-700/50 text-sm text-slate-300"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-sand/50 border border-line/50 text-sm text-body"
                 >
-                  <CheckCircleIcon className="w-4 h-4 text-emerald-400" />
+                  <CheckCircleIcon className="w-4 h-4 text-ok" />
                   {feature}
                 </span>
               ))}
@@ -122,15 +119,15 @@ export function Landing() {
             Get Started — It's Free
           </Button>
           
-          <p className="text-center text-slate-500 text-sm">
+          <p className="text-center text-mist text-sm">
             Set up in under 2 minutes. No credit card needed.
           </p>
         </div>
 
         {/* Footer */}
-        <div className="mt-6 pt-6 border-t border-slate-800">
-          <p className="text-center text-slate-500 text-xs">
-            © 2026 YeboMart by Omevision • Made with ❤️ in Eswatini 🇸🇿
+        <div className="mt-6 pt-6 border-t border-line">
+          <p className="text-center text-mist text-xs">
+            © 2026 YeboMart by Omevision · Made in Eswatini
           </p>
         </div>
       </div>

@@ -77,9 +77,9 @@ const STATUS_CONFIG = {
 };
 
 const TYPE_CONFIG = {
-  REFUND: { label: 'Refund', icon: BanknotesIcon, color: 'text-green-400' },
-  EXCHANGE: { label: 'Exchange', icon: ArrowsRightLeftIcon, color: 'text-blue-400' },
-  STORE_CREDIT: { label: 'Store Credit', icon: ArrowUturnLeftIcon, color: 'text-purple-400' },
+  REFUND: { label: 'Refund', icon: BanknotesIcon, color: 'text-ok' },
+  EXCHANGE: { label: 'Exchange', icon: ArrowsRightLeftIcon, color: 'text-body' },
+  STORE_CREDIT: { label: 'Store Credit', icon: ArrowUturnLeftIcon, color: 'text-brick' },
 };
 
 export function Returns() {
@@ -249,8 +249,8 @@ export function Returns() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Returns</h1>
-          <p className="text-slate-400 mt-1">
+          <h1 className="text-2xl font-bold text-ink">Returns</h1>
+          <p className="text-mute mt-1">
             Manage refunds and exchanges
           </p>
         </div>
@@ -286,7 +286,7 @@ export function Returns() {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white"
+          className="bg-sand border border-line rounded-sharp px-4 py-2.5 text-ink"
         >
           <option value="">All Status</option>
           <option value="PENDING">Pending</option>
@@ -299,13 +299,13 @@ export function Returns() {
       {/* Returns List */}
       {loading ? (
         <div className="text-center py-12">
-          <ArrowPathIcon className="w-8 h-8 animate-spin mx-auto text-slate-400" />
-          <p className="text-slate-400 mt-2">Loading returns...</p>
+          <ArrowPathIcon className="w-8 h-8 animate-spin mx-auto text-mute" />
+          <p className="text-mute mt-2">Loading returns...</p>
         </div>
       ) : filteredReturns.length === 0 ? (
         <Card className="text-center py-12">
-          <ArrowUturnLeftIcon className="w-12 h-12 mx-auto text-slate-500 mb-3" />
-          <p className="text-slate-400 mb-4">No returns found</p>
+          <ArrowUturnLeftIcon className="w-12 h-12 mx-auto text-mist mb-3" />
+          <p className="text-mute mb-4">No returns found</p>
           <Button variant="primary" onClick={() => setShowNewReturn(true)}>
             Create First Return
           </Button>
@@ -320,30 +320,30 @@ export function Returns() {
             return (
               <Card
                 key={ret.id}
-                className="cursor-pointer hover:bg-slate-800/50 transition-colors"
+                className="cursor-pointer hover:bg-sand/50 transition-colors"
                 onClick={() => setSelectedReturn(ret)}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
                       <TypeIcon className={`w-5 h-5 ${typeConfig.color}`} />
-                      <span className="font-medium text-white">{typeConfig.label}</span>
+                      <span className="font-medium text-ink">{typeConfig.label}</span>
                       <Badge variant={statusConfig.color as any}>
                         {statusConfig.label}
                       </Badge>
                     </div>
-                    <p className="text-slate-400 text-sm mb-2">{ret.reason}</p>
-                    <div className="text-sm text-slate-500">
+                    <p className="text-mute text-sm mb-2">{ret.reason}</p>
+                    <div className="text-sm text-mist">
                       {ret.items?.length || 0} item{(ret.items?.length || 0) !== 1 ? 's' : ''} •{' '}
                       {new Date(ret.createdAt).toLocaleDateString()}
                     </div>
                   </div>
                   {ret.type === 'REFUND' && (
                     <div className="text-right">
-                      <p className="text-lg font-bold text-green-400">
+                      <p className="m text-lg font-bold text-ok">
                         {formatCurrency(ret.refundAmount)}
                       </p>
-                      <p className="text-xs text-slate-500">Refund</p>
+                      <p className="text-xs text-mist">Refund</p>
                     </div>
                   )}
                 </div>
@@ -370,7 +370,7 @@ export function Returns() {
         <div className="space-y-6">
           {/* Receipt Search */}
           <div>
-            <label className="block text-sm text-slate-400 mb-2">
+            <label className="block text-sm text-mute mb-2">
               Search by Receipt Number
             </label>
             <div className="flex gap-2">
@@ -394,34 +394,34 @@ export function Returns() {
               </Button>
             </div>
             {saleError && (
-              <p className="text-red-400 text-sm mt-2">{saleError}</p>
+              <p className="text-bad text-sm mt-2">{saleError}</p>
             )}
           </div>
 
           {/* Found Sale */}
           {foundSale && (
             <>
-              <div className="p-4 bg-slate-800 rounded-xl border border-slate-700">
+              <div className="p-4 bg-sand rounded-sharp border border-line">
                 <div className="flex justify-between items-start mb-3">
                   <div>
-                    <p className="font-mono text-amber-400 font-semibold">
+                    <p className="font-mono text-brick font-semibold">
                       {foundSale.receiptNumber}
                     </p>
-                    <p className="text-sm text-slate-400">
+                    <p className="text-sm text-mute">
                       {new Date(foundSale.createdAt).toLocaleString()}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-lg font-bold text-white">
+                    <p className="m text-lg font-bold text-ink">
                       {formatCurrency(foundSale.totalAmount)}
                     </p>
-                    <p className="text-xs text-slate-500 uppercase">
+                    <p className="text-xs text-mist uppercase">
                       {foundSale.paymentMethod}
                     </p>
                   </div>
                 </div>
                 {foundSale.user && (
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-mist">
                     Cashier: {foundSale.user.name}
                   </p>
                 )}
@@ -429,7 +429,7 @@ export function Returns() {
 
               {/* Select Items to Return */}
               <div>
-                <label className="block text-sm text-slate-400 mb-2">
+                <label className="block text-sm text-mute mb-2">
                   Select Items to Return
                 </label>
                 <div className="space-y-2 max-h-48 overflow-y-auto">
@@ -440,17 +440,17 @@ export function Returns() {
                     return (
                       <div
                         key={item.id}
-                        className={`p-3 rounded-lg border transition-colors cursor-pointer ${
+                        className={`p-3 rounded-sharp border transition-colors cursor-pointer ${
                           isSelected
-                            ? 'bg-amber-500/10 border-amber-500/50'
-                            : 'bg-slate-800 border-slate-700 hover:border-slate-600'
+                            ? 'bg-wash border-ink/50'
+                            : 'bg-sand border-line hover:border-line-strong'
                         }`}
                         onClick={() => toggleItemSelection(item.id, item.quantity)}
                       >
                         <div className="flex justify-between items-center">
                           <div className="flex-1">
-                            <p className="font-medium text-white">{item.productName}</p>
-                            <p className="text-sm text-slate-400">
+                            <p className="font-medium text-ink">{item.productName}</p>
+                            <p className="text-sm text-mute">
                               {formatCurrency(item.unitPrice)} × {item.quantity}
                             </p>
                           </div>
@@ -462,9 +462,9 @@ export function Returns() {
                                 max={item.quantity}
                                 value={selectedQty}
                                 onChange={(e) => updateItemQty(item.id, parseInt(e.target.value) || 0, item.quantity)}
-                                className="w-16 bg-slate-700 border border-slate-600 rounded px-2 py-1 text-white text-center"
+                                className="w-16 bg-shade border border-line-strong rounded px-2 py-1 text-ink text-center"
                               />
-                              <span className="text-slate-500">/ {item.quantity}</span>
+                              <span className="text-mist">/ {item.quantity}</span>
                             </div>
                           )}
                         </div>
@@ -476,7 +476,7 @@ export function Returns() {
 
               {/* Return Type */}
               <div>
-                <label className="block text-sm text-slate-400 mb-2">
+                <label className="block text-sm text-mute mb-2">
                   Return Type
                 </label>
                 <div className="grid grid-cols-3 gap-2">
@@ -487,14 +487,14 @@ export function Returns() {
                       <button
                         key={type}
                         onClick={() => setReturnType(type)}
-                        className={`p-3 rounded-xl border flex flex-col items-center gap-1 transition-colors ${
+                        className={`p-3 rounded-sharp border flex flex-col items-center gap-1 transition-colors ${
                           returnType === type
-                            ? 'bg-amber-500/20 border-amber-500'
-                            : 'bg-slate-800 border-slate-700 hover:border-slate-600'
+                            ? 'bg-wash border-ink'
+                            : 'bg-sand border-line hover:border-line-strong'
                         }`}
                       >
                         <Icon className={`w-5 h-5 ${config.color}`} />
-                        <span className="text-xs text-white">{config.label}</span>
+                        <span className="text-xs text-ink">{config.label}</span>
                       </button>
                     );
                   })}
@@ -503,39 +503,39 @@ export function Returns() {
 
               {/* Reason */}
               <div>
-                <label className="block text-sm text-slate-400 mb-2">
+                <label className="block text-sm text-mute mb-2">
                   Reason for Return *
                 </label>
                 <textarea
                   value={returnReason}
                   onChange={(e) => setReturnReason(e.target.value)}
                   placeholder="e.g., Customer changed mind, Defective product, Wrong item..."
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                  className="w-full bg-sand border border-line rounded-sharp px-4 py-3 text-ink placeholder-mist focus:border-ink focus:ring-1 focus:ring-ink"
                   rows={2}
                 />
               </div>
 
               {/* Customer (optional) */}
               <div>
-                <label className="block text-sm text-slate-400 mb-2">
+                <label className="block text-sm text-mute mb-2">
                   Customer (optional)
                 </label>
                 {selectedCustomer ? (
-                  <div className="flex items-center gap-2 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2">
-                    <UserCircleIcon className="w-5 h-5 text-amber-400 shrink-0" />
+                  <div className="flex items-center gap-2 bg-sand border border-line rounded-sharp px-3 py-2">
+                    <UserCircleIcon className="w-5 h-5 text-brick shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-white truncate">
+                      <p className="text-sm font-medium text-ink truncate">
                         {selectedCustomer.name}
                       </p>
                       {selectedCustomer.phone && (
-                        <p className="text-xs text-slate-400 truncate">
+                        <p className="text-xs text-mute truncate">
                           {selectedCustomer.phone}
                         </p>
                       )}
                     </div>
                     <button
                       onClick={() => setSelectedCustomer(null)}
-                      className="p-1 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-red-400"
+                      className="p-1 rounded-sharp hover:bg-shade text-mute hover:text-bad"
                       title="Remove customer"
                     >
                       <XMarkIcon className="w-4 h-4" />
@@ -544,7 +544,7 @@ export function Returns() {
                 ) : (
                   <button
                     onClick={() => setShowCustomerPicker(true)}
-                    className="flex items-center gap-2 w-full px-3 py-2 rounded-xl border border-dashed border-slate-600 text-slate-400 hover:border-amber-500/50 hover:text-amber-400 transition-colors text-sm"
+                    className="flex items-center gap-2 w-full px-3 py-2 rounded-sharp border border-dashed border-line-strong text-mute hover:border-ink/50 hover:text-brick transition-colors text-sm"
                   >
                     <UserPlusIcon className="w-5 h-5" />
                     Attach customer
@@ -554,9 +554,9 @@ export function Returns() {
 
               {/* Refund Amount */}
               {returnType === 'REFUND' && selectedItems.size > 0 && (
-                <div className="p-4 bg-green-900/30 border border-green-800 rounded-xl">
-                  <p className="text-sm text-green-400 mb-1">Refund Amount</p>
-                  <p className="text-2xl font-bold text-green-400">
+                <div className="p-4 bg-ok/30 border border-ok rounded-sharp">
+                  <p className="text-sm text-ok mb-1">Refund Amount</p>
+                  <p className="m text-2xl font-bold text-ok">
                     {formatCurrency(calculateRefundAmount())}
                   </p>
                 </div>
@@ -600,21 +600,21 @@ export function Returns() {
 
             {/* Reason */}
             <div>
-              <p className="text-sm text-slate-400 mb-1">Reason</p>
-              <p className="text-white">{selectedReturn.reason}</p>
+              <p className="text-sm text-mute mb-1">Reason</p>
+              <p className="text-ink">{selectedReturn.reason}</p>
             </div>
 
             {/* Items */}
             <div>
-              <p className="text-sm text-slate-400 mb-2">Returned Items</p>
+              <p className="text-sm text-mute mb-2">Returned Items</p>
               <div className="space-y-2">
                 {selectedReturn.items?.map((item) => (
-                  <div key={item.id} className="flex justify-between items-center bg-slate-800 rounded-lg p-3">
+                  <div key={item.id} className="flex justify-between items-center bg-sand rounded-sharp p-3">
                     <div>
-                      <p className="text-white font-medium">{item.productName}</p>
-                      <p className="text-sm text-slate-400">Qty: {item.quantity}</p>
+                      <p className="text-ink font-medium">{item.productName}</p>
+                      <p className="text-sm text-mute">Qty: {item.quantity}</p>
                     </div>
-                    <p className="text-white">{formatCurrency(item.unitPrice * item.quantity)}</p>
+                    <p className="m text-ink">{formatCurrency(item.unitPrice * item.quantity)}</p>
                   </div>
                 ))}
               </div>
@@ -622,9 +622,9 @@ export function Returns() {
 
             {/* Refund Amount */}
             {selectedReturn.type === 'REFUND' && (
-              <div className="bg-green-900/30 border border-green-800 rounded-xl p-4">
-                <p className="text-sm text-green-400 mb-1">Refund Amount</p>
-                <p className="text-2xl font-bold text-green-400">
+              <div className="bg-ok/30 border border-ok rounded-sharp p-4">
+                <p className="text-sm text-ok mb-1">Refund Amount</p>
+                <p className="m text-2xl font-bold text-ok">
                   {formatCurrency(selectedReturn.refundAmount)}
                 </p>
               </div>

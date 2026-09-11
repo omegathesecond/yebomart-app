@@ -16,6 +16,7 @@ import { useInventoryStore } from '@/stores/inventoryStore';
 import { useCartStore, useCartSubtotal, useCartTaxBreakdown } from '@/stores/cartStore';
 import { computeChange } from '@/lib/money';
 import { formatCurrency, type Product, type PaymentMethod, PAYMENT_METHODS } from '@/types';
+import { PaymentMethodIcon } from '@/components/ui/PaymentMethodIcon';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { ReceiptModal, type ReceiptSale } from '@/components/pos/ReceiptModal';
@@ -315,9 +316,9 @@ export function MobilePOS() {
   const totalItemsCount = items.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
-    <div className="h-screen flex flex-col bg-slate-900 overflow-hidden">
+    <div className="h-screen flex flex-col bg-cream overflow-hidden">
       {/* Scanner Section - ~25% of screen */}
-      <div className="relative h-[28vh] min-h-[180px] bg-black flex-shrink-0">
+      <div className="on-ink relative h-[28vh] min-h-[180px] shrink-0 bg-ink-2">
         {/* Scanner container */}
         <div 
           ref={scannerContainerRef}
@@ -328,39 +329,42 @@ export function MobilePOS() {
         {/* Scanner overlay UI */}
         <div className="absolute inset-0 pointer-events-none">
           {/* Top bar with back button and flashlight */}
-          <div className="absolute top-0 left-0 right-0 flex items-center justify-between p-3 bg-gradient-to-b from-black/70 to-transparent pointer-events-auto">
+          <div className="pointer-events-auto absolute inset-x-0 top-0 flex items-center justify-between bg-ink/70 p-3">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => navigate('/pos')}
-                className="p-2 rounded-full bg-white/20 text-white hover:bg-white/30 transition-colors"
+                aria-label="Back to the till"
+                className="grid h-11 w-11 place-items-center border border-cream/30 text-cream transition-colors hover:bg-cream/10"
               >
-                <ArrowLeftIcon className="w-5 h-5" />
+                <ArrowLeftIcon className="h-5 w-5" />
               </button>
-              <span className="text-white text-sm font-medium">Scan Product Code</span>
+              <span className="text-[14px] font-medium text-cream">Scan a barcode</span>
             </div>
             <button
               onClick={toggleFlashlight}
-              className={`p-2 rounded-full transition-colors ${
-                flashlightOn 
-                  ? 'bg-amber-500 text-white' 
-                  : 'bg-white/20 text-white hover:bg-white/30'
+              aria-label={flashlightOn ? 'Turn the light off' : 'Turn the light on'}
+              aria-pressed={flashlightOn}
+              className={`grid h-11 w-11 place-items-center border transition-colors ${
+                flashlightOn
+                  ? 'border-brand bg-brand text-ink'
+                  : 'border-cream/30 text-cream hover:bg-cream/10'
               }`}
             >
-              <BoltIcon className="w-5 h-5" />
+              <BoltIcon className="h-5 w-5" />
             </button>
           </div>
 
           {/* Scanning frame overlay */}
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="relative w-64 h-28 border-2 border-teal-400/50 rounded-lg">
+            <div className="relative h-28 w-64">
               {/* Corner accents */}
-              <div className="absolute -top-0.5 -left-0.5 w-6 h-6 border-t-3 border-l-3 border-teal-400 rounded-tl-lg" />
-              <div className="absolute -top-0.5 -right-0.5 w-6 h-6 border-t-3 border-r-3 border-teal-400 rounded-tr-lg" />
-              <div className="absolute -bottom-0.5 -left-0.5 w-6 h-6 border-b-3 border-l-3 border-teal-400 rounded-bl-lg" />
-              <div className="absolute -bottom-0.5 -right-0.5 w-6 h-6 border-b-3 border-r-3 border-teal-400 rounded-br-lg" />
+              <div className="absolute -top-0.5 -left-0.5 h-[30px] w-[30px] border-t-3 border-l-3 border-brand" />
+              <div className="absolute -top-0.5 -right-0.5 h-[30px] w-[30px] border-t-3 border-r-3 border-brand" />
+              <div className="absolute -bottom-0.5 -left-0.5 h-[30px] w-[30px] border-b-3 border-l-3 border-brand" />
+              <div className="absolute -bottom-0.5 -right-0.5 h-[30px] w-[30px] border-b-3 border-r-3 border-brand" />
               
               {/* Scanning line animation */}
-              <div className="absolute inset-x-2 top-1/2 h-0.5 bg-teal-400 animate-pulse" />
+              <div className="absolute inset-x-2 top-1/2 h-0.5 bg-brand animate-pulse" />
             </div>
           </div>
 
@@ -368,8 +372,8 @@ export function MobilePOS() {
           {scanFeedback && (
             <div className={`absolute bottom-3 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full text-sm font-medium shadow-lg pointer-events-auto ${
               scanFeedback.type === 'success' 
-                ? 'bg-teal-500 text-white' 
-                : 'bg-red-500 text-white'
+                ? 'bg-brand text-ink' 
+                : 'bg-bad text-cream'
             }`}>
               {scanFeedback.message}
             </div>
@@ -378,25 +382,25 @@ export function MobilePOS() {
 
         {/* Scanner error state */}
         {scannerError && (
-          <div className="absolute inset-0 flex items-center justify-center bg-slate-800/90 p-4">
+          <div className="absolute inset-0 flex items-center justify-center bg-sand/90 p-4">
             <div className="text-center">
-              <p className="text-slate-300 text-sm mb-2">{scannerError}</p>
-              <p className="text-slate-500 text-xs">Use manual search below</p>
+              <p className="text-body text-sm mb-2">{scannerError}</p>
+              <p className="text-mist text-xs">Use manual search below</p>
             </div>
           </div>
         )}
       </div>
 
       {/* Search Section */}
-      <div className="relative px-4 py-3 bg-slate-800 border-b border-slate-700 flex-shrink-0">
+      <div className="relative px-4 py-3 bg-sand border-b border-line flex-shrink-0">
         <div className="relative">
-          <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+          <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-mute" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
             placeholder="Search product name or code..."
-            className="w-full pl-10 pr-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500"
+            className="w-full pl-10 pr-4 py-3 bg-shade border border-line-strong rounded-sharp text-ink placeholder-mist focus:outline-none focus:ring-2 focus:ring-ink"
           />
           {searchQuery && (
             <button
@@ -404,7 +408,7 @@ export function MobilePOS() {
                 setSearchQuery('');
                 setShowSearchResults(false);
               }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-white"
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-mute hover:text-ink"
             >
               <XMarkIcon className="w-5 h-5" />
             </button>
@@ -413,22 +417,22 @@ export function MobilePOS() {
 
         {/* Search Results Dropdown */}
         {showSearchResults && searchResults.length > 0 && (
-          <div className="absolute left-4 right-4 top-full mt-1 bg-slate-700 border border-slate-600 rounded-xl shadow-xl z-50 overflow-hidden">
+          <div className="absolute left-4 right-4 top-full mt-1 bg-shade border border-line-strong rounded-sharp shadow-xl z-50 overflow-hidden">
             {searchResults.map((product) => (
               <button
                 key={product.id}
                 onClick={() => handleAddFromSearch(product)}
-                className="w-full flex items-center gap-3 p-3 hover:bg-slate-600 transition-colors border-b border-slate-600 last:border-0"
+                className="w-full flex items-center gap-3 p-3 hover:bg-shade transition-colors border-b border-line-strong last:border-0"
               >
                 {/* Product thumbnail placeholder */}
-                <div className="w-10 h-10 rounded-full bg-slate-500 flex items-center justify-center flex-shrink-0">
+                <div className="w-10 h-10 rounded-full bg-mist flex items-center justify-center flex-shrink-0">
                   <span className="text-lg">{product.name.charAt(0).toUpperCase()}</span>
                 </div>
                 <div className="flex-1 text-left">
-                  <p className="text-white font-medium text-sm">{product.name}</p>
-                  <p className="text-amber-400 text-sm">{formatCurrency(product.sellPrice)}</p>
+                  <p className="text-ink font-medium text-sm">{product.name}</p>
+                  <p className="m text-brick text-sm">{formatCurrency(product.sellPrice)}</p>
                 </div>
-                <PlusIcon className="w-5 h-5 text-teal-400" />
+                <PlusIcon className="w-5 h-5 text-brick" />
               </button>
             ))}
           </div>
@@ -436,14 +440,14 @@ export function MobilePOS() {
       </div>
 
       {/* Order Items Section */}
-      <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
+      <div className="flex-1 flex flex-col min-h-0 bg-cream">
         {/* Section Header */}
-        <div className="px-4 py-2 flex items-center justify-between bg-slate-800/50 border-b border-slate-700 flex-shrink-0">
+        <div className="px-4 py-2 flex items-center justify-between bg-sand/50 border-b border-line flex-shrink-0">
           <div className="flex items-center gap-2">
-            <ShoppingCartIcon className="w-5 h-5 text-slate-400" />
-            <span className="text-white font-medium">Order Items</span>
+            <ShoppingCartIcon className="w-5 h-5 text-mute" />
+            <span className="text-ink font-medium">Order Items</span>
             {totalItemsCount > 0 && (
-              <span className="px-2 py-0.5 bg-teal-500 text-white text-xs font-bold rounded-full">
+              <span className="px-2 py-0.5 bg-brand text-ink text-xs font-bold rounded-full">
                 {totalItemsCount}
               </span>
             )}
@@ -451,7 +455,7 @@ export function MobilePOS() {
           {items.length > 0 && (
             <button
               onClick={clear}
-              className="text-red-400 text-sm hover:text-red-300"
+              className="text-bad text-sm hover:text-bad"
             >
               Clear all
             </button>
@@ -462,11 +466,11 @@ export function MobilePOS() {
         <div className="flex-1 overflow-y-auto px-4 py-2 space-y-2">
           {items.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center py-8">
-              <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center mb-3">
-                <ShoppingCartIcon className="w-8 h-8 text-slate-600" />
+              <div className="w-16 h-16 rounded-full bg-sand flex items-center justify-center mb-3">
+                <ShoppingCartIcon className="w-8 h-8 text-mist" />
               </div>
-              <p className="text-slate-400 text-sm">No items yet</p>
-              <p className="text-slate-500 text-xs mt-1">Scan products to add them</p>
+              <p className="text-mute text-sm">No items yet</p>
+              <p className="text-mist text-xs mt-1">Scan products to add them</p>
             </div>
           ) : (
             items.map((item) => {
@@ -478,10 +482,10 @@ export function MobilePOS() {
               return (
                 <div 
                   key={itemKey} 
-                  className="flex items-center gap-3 p-3 bg-slate-800 rounded-xl border border-slate-700"
+                  className="flex items-center gap-3 p-3 bg-sand rounded-sharp border border-line"
                 >
                   {/* Product thumbnail */}
-                  <div className="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                  <div className="w-12 h-12 rounded-full bg-shade flex items-center justify-center flex-shrink-0 overflow-hidden">
                     {item.product.imageUrl ? (
                       <img 
                         src={item.product.imageUrl} 
@@ -489,7 +493,7 @@ export function MobilePOS() {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <span className="text-xl text-slate-400">
+                      <span className="text-xl text-mute">
                         {item.product.name.charAt(0).toUpperCase()}
                       </span>
                     )}
@@ -497,13 +501,13 @@ export function MobilePOS() {
 
                   {/* Product info */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-white font-medium text-sm truncate">
+                    <p className="text-ink font-medium text-sm truncate">
                       {item.product.name}
                       {item.isPack && item.product.packSize && (
-                        <span className="text-teal-400 ml-1">({item.product.packSize}-Pack)</span>
+                        <span className="text-brick ml-1">({item.product.packSize}-Pack)</span>
                       )}
                     </p>
-                    <p className="text-amber-400 text-sm font-medium">
+                    <p className="m text-brick text-sm font-medium">
                       {formatCurrency(unitPrice)}
                     </p>
                   </div>
@@ -512,16 +516,16 @@ export function MobilePOS() {
                   <div className="flex items-center gap-1 flex-shrink-0">
                     <button
                       onClick={() => updateQuantity(item.productId, item.quantity - 1, item.isPack)}
-                      className="w-8 h-8 rounded-lg bg-teal-500/20 text-teal-400 flex items-center justify-center hover:bg-teal-500/30 transition-colors"
+                      className="grid h-11 w-11 shrink-0 place-items-center border border-line-strong bg-cream transition-colors hover:border-ink"
                     >
                       <MinusIcon className="w-4 h-4" />
                     </button>
-                    <span className="w-8 text-center text-white font-medium">
+                    <span className="m w-9 text-center text-[15px] font-semibold">
                       {item.quantity}
                     </span>
                     <button
                       onClick={() => updateQuantity(item.productId, item.quantity + 1, item.isPack)}
-                      className="w-8 h-8 rounded-lg bg-teal-500/20 text-teal-400 flex items-center justify-center hover:bg-teal-500/30 transition-colors"
+                      className="grid h-11 w-11 shrink-0 place-items-center border border-line-strong bg-cream transition-colors hover:border-ink"
                     >
                       <PlusIcon className="w-4 h-4" />
                     </button>
@@ -534,13 +538,13 @@ export function MobilePOS() {
       </div>
 
       {/* Fixed Bottom Section */}
-      <div className="flex-shrink-0 p-4 bg-slate-800 border-t border-slate-700 safe-area-bottom">
+      <div className="flex-shrink-0 p-4 bg-sand border-t border-line safe-area-bottom">
         {/* Attached customer — required for a credit sale, optional otherwise
             (it just files the sale under their purchase history). */}
         <div className="flex items-center justify-between mb-3">
           <button
             onClick={() => setShowCustomerPicker(true)}
-            className="flex items-center gap-2 text-sm text-slate-300 hover:text-white transition-colors"
+            className="flex items-center gap-2 text-sm text-body hover:text-ink transition-colors"
           >
             <UserIcon className="w-4 h-4" />
             {customer ? customer.name : 'Attach customer'}
@@ -548,7 +552,7 @@ export function MobilePOS() {
           {customer && (
             <button
               onClick={() => setCustomer(null)}
-              className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
+              className="text-xs text-mist hover:text-body transition-colors"
             >
               Remove
             </button>
@@ -559,22 +563,22 @@ export function MobilePOS() {
         {taxBreakdown.tax > 0 && (
           <div className="space-y-1 mb-2 text-sm">
             <div className="flex items-center justify-between">
-              <span className="text-slate-400">Subtotal</span>
-              <span className="text-slate-300">{formatCurrency(cartSubtotal)}</span>
+              <span className="text-mute">Subtotal</span>
+              <span className="m text-body">{formatCurrency(cartSubtotal)}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-slate-400">
+              <span className="text-mute">
                 VAT ({shop?.taxRate}%{shop?.taxInclusive ? ' incl.' : ''})
               </span>
-              <span className="text-slate-300">{formatCurrency(taxBreakdown.tax)}</span>
+              <span className="m text-body">{formatCurrency(taxBreakdown.tax)}</span>
             </div>
           </div>
         )}
 
         {/* Total */}
         <div className="flex items-center justify-between mb-4">
-          <span className="text-slate-400">Total</span>
-          <span className="text-2xl font-bold text-white">
+          <span className="text-mute">Total</span>
+          <span className="m text-2xl font-bold text-ink">
             {formatCurrency(cartTotal)}
           </span>
         </div>
@@ -586,19 +590,19 @@ export function MobilePOS() {
               key={method.value}
               onClick={() => handlePayment(method.value)}
               disabled={items.length === 0 || isProcessing}
-              className={`py-4 rounded-2xl font-semibold text-base flex items-center justify-center gap-2 transition-all ${
+              className={`py-4 rounded-sharp font-semibold text-base flex items-center justify-center gap-2 transition-all ${
                 items.length === 0 || isProcessing
-                  ? 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                  ? 'bg-shade text-mist cursor-not-allowed'
                   : method.value === 'cash'
-                    ? 'bg-emerald-500 text-white hover:bg-emerald-400 active:scale-[0.98]'
-                    : 'bg-teal-500 text-white hover:bg-teal-400 active:scale-[0.98]'
+                    ? 'bg-ok text-cream hover:bg-ok active:scale-[0.98]'
+                    : 'bg-brand text-ink hover:bg-brand active:scale-[0.98]'
               }`}
             >
               {isProcessing ? (
-                <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span className="w-5 h-5 border-2 border-cream border-t-transparent rounded-full animate-spin" />
               ) : (
                 <>
-                  <span>{method.icon}</span>
+                  <PaymentMethodIcon method={method.value} />
                   <span>{method.label}</span>
                 </>
               )}
@@ -616,18 +620,18 @@ export function MobilePOS() {
       >
         <div className="space-y-6">
           {/* Total Due */}
-          <div className="bg-slate-700/50 rounded-xl p-4 text-center">
-            <p className="text-sm text-slate-400 mb-1">Total Due</p>
-            <p className="text-3xl font-bold text-white">{formatCurrency(cartTotal)}</p>
+          <div className="bg-shade/50 rounded-sharp p-4 text-center">
+            <p className="text-sm text-mute mb-1">Total Due</p>
+            <p className="m text-3xl font-bold text-ink">{formatCurrency(cartTotal)}</p>
           </div>
 
           {/* Cash Received Input */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-body mb-2">
               Cash Received
             </label>
             <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">E</span>
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-mute font-medium">E</span>
               <input
                 type="number"
                 inputMode="decimal"
@@ -637,7 +641,7 @@ export function MobilePOS() {
                 onChange={(e) => handleCashReceivedChange(e.target.value)}
                 placeholder="0.00"
                 autoFocus
-                className="w-full pl-8 pr-4 py-4 text-2xl font-bold bg-slate-700 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 text-center"
+                className="w-full pl-8 pr-4 py-4 text-2xl font-bold bg-shade border border-line-strong rounded-sharp text-ink placeholder-mist focus:outline-none focus:ring-2 focus:ring-ink text-center"
               />
             </div>
           </div>
@@ -648,10 +652,10 @@ export function MobilePOS() {
               <button
                 key={amount}
                 onClick={() => handleCashReceivedChange(amount.toString())}
-                className={`py-2 px-3 rounded-lg text-sm font-medium border transition-colors ${
+                className={`py-2 px-3 rounded-sharp text-sm font-medium border transition-colors ${
                   parseFloat(cashReceived) === amount
-                    ? 'bg-amber-500/20 border-amber-500 text-amber-400'
-                    : 'border-slate-600 text-slate-300 hover:border-slate-500'
+                    ? 'bg-wash border-ink text-brick'
+                    : 'border-line-strong text-body hover:border-line-strong'
                 }`}
               >
                 E{amount}
@@ -662,10 +666,10 @@ export function MobilePOS() {
           {/* Exact Amount Button */}
           <button
             onClick={() => handleCashReceivedChange(cartTotal.toFixed(2))}
-            className={`w-full py-2 rounded-lg text-sm font-medium border transition-colors ${
+            className={`w-full py-2 rounded-sharp text-sm font-medium border transition-colors ${
               parseFloat(cashReceived) === cartTotal
-                ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400'
-                : 'border-slate-600 text-slate-300 hover:border-slate-500'
+                ? 'bg-ok/20 border-ok text-ok'
+                : 'border-line-strong text-body hover:border-line-strong'
             }`}
           >
             Exact Amount ({formatCurrency(cartTotal)})
@@ -673,16 +677,16 @@ export function MobilePOS() {
 
           {/* Change Display */}
           {parseFloat(cashReceived) >= cartTotal && (
-            <div className="bg-emerald-500/20 border border-emerald-500/30 rounded-xl p-4 text-center">
-              <p className="text-sm text-emerald-400 mb-1">Change Due</p>
-              <p className="text-3xl font-bold text-emerald-400">{formatCurrency(changeAmount)}</p>
+            <div className="bg-ok/20 border border-ok/30 rounded-sharp p-4 text-center">
+              <p className="text-sm text-ok mb-1">Change Due</p>
+              <p className="m text-3xl font-bold text-ok">{formatCurrency(changeAmount)}</p>
             </div>
           )}
 
           {/* Insufficient Warning */}
           {cashReceived && parseFloat(cashReceived) < cartTotal && (
-            <div className="bg-red-500/20 border border-red-500/30 rounded-xl p-3 text-center">
-              <p className="text-red-400 text-sm">
+            <div className="bg-bad/20 border border-bad/30 rounded-sharp p-3 text-center">
+              <p className="text-bad text-sm">
                 Insufficient amount. Need {formatCurrency(cartTotal - (parseFloat(cashReceived) || 0))} more.
               </p>
             </div>
@@ -706,7 +710,8 @@ export function MobilePOS() {
               disabled={!cashReceived || parseFloat(cashReceived) < cartTotal}
               isLoading={isProcessing}
             >
-              💵 Complete Sale
+              <PaymentMethodIcon method="cash" />
+              Complete Sale
             </Button>
           </div>
         </div>

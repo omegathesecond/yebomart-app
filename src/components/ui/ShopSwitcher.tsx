@@ -70,21 +70,18 @@ export function ShopSwitcher({ variant = 'header', className }: ShopSwitcherProp
         <button
           onClick={() => setIsOpen(!isOpen)}
           className={clsx(
-            'flex items-center gap-2 px-3 py-2 rounded-lg',
-            'bg-slate-800 hover:bg-slate-700 border border-slate-700',
+            'flex items-center gap-2 px-3 py-2 rounded-sharp',
+            'bg-sand hover:bg-shade border border-line',
             'transition-colors'
           )}
         >
-          <span className="text-lg">{currentShop.countryCode ? 
-            (shops.find(s => s.id === currentShopId)?.countryCode === currentShop.countryCode ? 
-              getFlag(currentShop.countryCode) : '🏪') 
-            : '🏪'}</span>
-          <span className="text-sm font-medium text-white max-w-[120px] truncate">
+          <span className="text-lg">{getFlag(currentShop.countryCode)}</span>
+          <span className="text-sm font-medium text-ink max-w-[120px] truncate">
             {currentShop.name}
           </span>
           {shops.length > 1 && (
             <ChevronDownIcon className={clsx(
-              'w-4 h-4 text-slate-400 transition-transform',
+              'w-4 h-4 text-mute transition-transform',
               isOpen && 'rotate-180'
             )} />
           )}
@@ -92,9 +89,9 @@ export function ShopSwitcher({ variant = 'header', className }: ShopSwitcherProp
 
         {/* Dropdown */}
         {isOpen && (
-          <div className="absolute top-full left-0 mt-2 w-72 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl z-50 overflow-hidden">
-            <div className="p-2 border-b border-slate-700">
-              <p className="px-2 py-1 text-xs font-semibold text-slate-400 uppercase tracking-wide">
+          <div className="absolute top-full left-0 mt-2 w-72 bg-sand border border-line rounded-sharp shadow-2xl z-50 overflow-hidden">
+            <div className="p-2 border-b border-line">
+              <p className="px-2 py-1 text-xs font-semibold text-mute uppercase tracking-wide">
                 Your Shops
               </p>
             </div>
@@ -105,28 +102,28 @@ export function ShopSwitcher({ variant = 'header', className }: ShopSwitcherProp
                   key={shop.id}
                   onClick={() => handleSelectShop(shop)}
                   className={clsx(
-                    'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition',
+                    'w-full flex items-center gap-3 px-3 py-2.5 rounded-sharp transition',
                     shop.id === currentShopId
-                      ? 'bg-amber-500/20 border border-amber-500/30'
-                      : 'hover:bg-slate-700 border border-transparent'
+                      ? 'bg-wash border border-ink/30'
+                      : 'hover:bg-shade border border-transparent'
                   )}
                 >
-                  <div className="w-8 h-8 bg-slate-700 rounded-lg flex items-center justify-center text-lg">
+                  <div className="w-8 h-8 bg-shade rounded-sharp flex items-center justify-center text-lg">
                     {getFlag(shop.countryCode)}
                   </div>
                   <div className="flex-1 text-left">
                     <p className={clsx(
                       'font-medium text-sm',
-                      shop.id === currentShopId ? 'text-amber-400' : 'text-white'
+                      shop.id === currentShopId ? 'text-brick' : 'text-ink'
                     )}>
                       {shop.name}
                     </p>
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-mute">
                       {shop.currencySymbol} • {shop.userRole}
                     </p>
                   </div>
                   {shop.id === currentShopId && (
-                    <CheckIcon className="w-5 h-5 text-amber-400" />
+                    <CheckIcon className="w-5 h-5 text-brick" />
                   )}
                 </button>
               ))}
@@ -142,7 +139,7 @@ export function ShopSwitcher({ variant = 'header', className }: ShopSwitcherProp
     return (
       <div className={clsx('space-y-4', className)}>
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-white">Your Shops</h3>
+          <h3 className="text-lg font-semibold text-ink">Your Shops</h3>
         </div>
 
         <div className="space-y-2">
@@ -150,13 +147,13 @@ export function ShopSwitcher({ variant = 'header', className }: ShopSwitcherProp
             <div
               key={shop.id}
               className={clsx(
-                'flex items-center gap-4 p-4 rounded-xl border transition',
+                'flex items-center gap-4 p-4 rounded-sharp border transition',
                 shop.id === currentShopId
-                  ? 'bg-amber-500/10 border-amber-500/30'
-                  : 'bg-slate-800/50 border-slate-700 hover:border-slate-600'
+                  ? 'bg-wash border-ink/30'
+                  : 'bg-sand/50 border-line hover:border-line-strong'
               )}
             >
-              <div className="w-12 h-12 bg-slate-700 rounded-xl flex items-center justify-center text-2xl">
+              <div className="w-12 h-12 bg-shade rounded-sharp flex items-center justify-center text-2xl">
                 {getFlag(shop.countryCode)}
               </div>
               
@@ -164,17 +161,17 @@ export function ShopSwitcher({ variant = 'header', className }: ShopSwitcherProp
                 <div className="flex items-center gap-2">
                   <h4 className={clsx(
                     'font-semibold',
-                    shop.id === currentShopId ? 'text-amber-400' : 'text-white'
+                    shop.id === currentShopId ? 'text-brick' : 'text-ink'
                   )}>
                     {shop.name}
                   </h4>
                   {shop.id === currentShopId && (
-                    <span className="px-2 py-0.5 text-xs bg-amber-500/20 text-amber-400 rounded-full">
+                    <span className="px-2 py-0.5 text-xs bg-wash text-brick rounded-full">
                       Active
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-slate-400">
+                <p className="text-sm text-mute">
                   {shop.businessType} • {shop.currencySymbol} {shop.currency}
                 </p>
               </div>
@@ -183,7 +180,7 @@ export function ShopSwitcher({ variant = 'header', className }: ShopSwitcherProp
                 {shop.id !== currentShopId && (
                   <button
                     onClick={() => handleSelectShop(shop)}
-                    className="px-3 py-1.5 text-sm bg-slate-700 hover:bg-slate-600 rounded-lg transition"
+                    className="px-3 py-1.5 text-sm bg-shade hover:bg-shade rounded-sharp transition"
                   >
                     Switch
                   </button>
@@ -191,9 +188,9 @@ export function ShopSwitcher({ variant = 'header', className }: ShopSwitcherProp
                 <button
                   onClick={() => handleManageShop(shop)}
                   aria-label={`Manage ${shop.name} settings`}
-                  className="p-2 hover:bg-slate-700 rounded-lg transition"
+                  className="p-2 hover:bg-shade rounded-sharp transition"
                 >
-                  <Cog6ToothIcon className="w-5 h-5 text-slate-400" />
+                  <Cog6ToothIcon className="w-5 h-5 text-mute" />
                 </button>
               </div>
             </div>
@@ -202,8 +199,8 @@ export function ShopSwitcher({ variant = 'header', className }: ShopSwitcherProp
 
         {shops.length === 0 && (
           <div className="text-center py-8">
-            <BuildingStorefrontIcon className="w-12 h-12 text-slate-600 mx-auto mb-4" />
-            <p className="text-slate-400">No shops yet</p>
+            <BuildingStorefrontIcon className="w-12 h-12 text-mist mx-auto mb-4" />
+            <p className="text-mute">No shops yet</p>
           </div>
         )}
       </div>
@@ -215,7 +212,7 @@ export function ShopSwitcher({ variant = 'header', className }: ShopSwitcherProp
 
 // Helper to get country flag emoji
 function getFlag(countryCode?: string): string {
-  if (!countryCode) return '🏪';
+  if (!countryCode) return '';
   
   const flags: Record<string, string> = {
     SZ: '🇸🇿', ZA: '🇿🇦', BW: '🇧🇼', ZM: '🇿🇲', ZW: '🇿🇼',
@@ -225,5 +222,5 @@ function getFlag(countryCode?: string): string {
     MA: '🇲🇦', EG: '🇪🇬', TN: '🇹🇳', DZ: '🇩🇿'
   };
   
-  return flags[countryCode] || '🏪';
+  return flags[countryCode] || '';
 }
