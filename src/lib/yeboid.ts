@@ -13,16 +13,63 @@
  *     yebomart-api /api/auth/yeboid/exchange.
  */
 
-const CLIENT_ID =
-  (import.meta.env.VITE_YEBOID_CLIENT_ID as string | undefined) ?? 'yebomart';
+/**
+ * Every YeboID endpoint and the client_id are read from the build env with NO
+ * fallback. A fallback here isn't a convenience, it's an environment leak: the
+ * URLs used to be hardcoded to prod, so `vite dev` sent the dev-registered
+ * client_id to the PROD authorization server (invalid_client), and any build
+ * that forgot an override would quietly authenticate real users against prod.
+ * Failing at module load turns that into a named error instead of a mystery.
+ *
+ * Values mirror the target environment's OIDC discovery document:
+ *   prod -> https://api.yeboid.com/.well-known/openid-configuration
+ *   dev  -> https://dev-api.yeboid.com/.well-known/openid-configuration
+ * Authorize is the HTML login UI (yeboid.com / dev.yeboid.com); token and
+ * userinfo are on the JSON API host (api. / dev-api.). Different hosts in BOTH
+ * environments — pointing authorize at the API host serves JSON and dead-ends
+ * the flow on a blank screen.
+ */
+function requireEnv(name: string, value: string | undefined): string {
+  if (!value) {
+    throw new Error(
+      `${name} is not set — refusing to start rather than fall back to a ` +
+        'different YeboID environment. Set it in .env.development / .env.production.',
+    );
+  }
+  return value;
+}
+
+// `import.meta.env` must be read as a STATIC member expression: Vite does a
+// compile-time string substitution, so a dynamic `import.meta.env[name]` lookup
+// is never replaced and reads undefined in the production bundle. The name is
+// passed alongside purely so the error can say which variable is missing.
+const CLIENT_ID = requireEnv(
+  'VITE_YEBOID_CLIENT_ID',
+  import.meta.env.VITE_YEBOID_CLIENT_ID,
+);
+const AUTH_URL = requireEnv(
+  'VITE_YEBOID_AUTH_URL',
+  import.meta.env.VITE_YEBOID_AUTH_URL,
+);
+const TOKEN_URL = requireEnv(
+  'VITE_YEBOID_TOKEN_URL',
+  import.meta.env.VITE_YEBOID_TOKEN_URL,
+);
+const USERINFO_URL = requireEnv(
+  'VITE_YEBOID_USERINFO_URL',
+  import.meta.env.VITE_YEBOID_USERINFO_URL,
+);
+
+// Derived from the actual runtime origin, so it's correct by construction on
+// localhost, Pages previews and app.yebomart.com alike. An explicit override is
+// still honoured for the rare case where the callback lives on another host.
+// Unlike the endpoints above this can't select the wrong YeboID environment,
+// so deriving it is not an environment fallback.
 const REDIRECT_URI =
   (import.meta.env.VITE_YEBOID_REDIRECT_URI as string | undefined) ??
   (typeof window !== 'undefined'
     ? `${window.location.origin}/auth/callback`
     : '');
-const AUTH_URL = 'https://yeboid.com/oauth/authorize';
-const TOKEN_URL = 'https://api.yeboid.com/oauth/token';
-const USERINFO_URL = 'https://api.yeboid.com/oauth/userinfo';
 
 const SCOPES = 'openid profile phone email offline_access kyc';
 
