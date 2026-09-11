@@ -579,13 +579,13 @@ export function Reports() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-mute border-b border-line">
-                    <th className="py-2 pr-4 font-medium">Product</th>
-                    <th className="py-2 px-4 font-medium">Category</th>
-                    <th className="py-2 px-4 font-medium text-right">Qty</th>
-                    <th className="py-2 px-4 font-medium text-right">Revenue</th>
-                    <th className="py-2 px-4 font-medium text-right">Profit</th>
-                    <th className="py-2 pl-4 font-medium text-right">Margin</th>
+                  <tr className="text-left border-b border-line-strong">
+                    <th className="eyebrow py-2 pr-4">Product</th>
+                    <th className="eyebrow py-2 px-4">Category</th>
+                    <th className="eyebrow py-2 px-4 text-right">Qty</th>
+                    <th className="eyebrow py-2 px-4 text-right">Revenue</th>
+                    <th className="eyebrow py-2 px-4 text-right">Profit</th>
+                    <th className="eyebrow py-2 pl-4 text-right">Margin</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -595,7 +595,7 @@ export function Reports() {
                       <td className="py-2 px-4 text-mute">{p.category}</td>
                       <td className="py-2 px-4 text-right text-body">{p.quantitySold}</td>
                       <td className="m py-2 px-4 text-right text-ok">{formatCurrency(p.revenue)}</td>
-                      <td className={`py-2 px-4 text-right ${p.profit >= 0 ? 'text-ink' : 'text-bad'}`}>{formatCurrency(p.profit)}</td>
+                      <td className={`m py-2 px-4 text-right ${p.profit >= 0 ? 'text-ink' : 'text-bad'}`}>{formatCurrency(p.profit)}</td>
                       <td className="py-2 pl-4 text-right text-body">{p.margin.toFixed(1)}%</td>
                     </tr>
                   ))}
@@ -631,13 +631,13 @@ export function Reports() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-mute border-b border-line">
-                    <th className="py-2 pr-4 font-medium">Staff</th>
-                    <th className="py-2 px-4 font-medium">Role</th>
-                    <th className="py-2 px-4 font-medium text-right">Sales</th>
-                    <th className="py-2 px-4 font-medium text-right">Txns</th>
-                    <th className="py-2 px-4 font-medium text-right">Avg</th>
-                    <th className="py-2 pl-4 font-medium text-right">Voids</th>
+                  <tr className="text-left border-b border-line-strong">
+                    <th className="eyebrow py-2 pr-4">Staff</th>
+                    <th className="eyebrow py-2 px-4">Role</th>
+                    <th className="eyebrow py-2 px-4 text-right">Sales</th>
+                    <th className="eyebrow py-2 px-4 text-right">Txns</th>
+                    <th className="eyebrow py-2 px-4 text-right">Avg</th>
+                    <th className="eyebrow py-2 pl-4 text-right">Voids</th>
                   </tr>
                 </thead>
                 <tbody>
