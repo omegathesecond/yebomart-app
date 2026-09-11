@@ -10,6 +10,7 @@ stale branch needs converting. It is NOT part of the build.
 
     python3 scripts/restyle-sweep.py --dry-run     # report only
     python3 scripts/restyle-sweep.py               # write
+    python3 scripts/restyle-sweep.py --root ../admin-dashboard/src
 
 Two things make this safe to run over real source:
 
@@ -33,7 +34,7 @@ import re
 import sys
 from collections import Counter
 
-ROOT = pathlib.Path(__file__).resolve().parent.parent / "src"
+DEFAULT_ROOT = pathlib.Path(__file__).resolve().parent.parent / "src"
 
 # ── Per-utility-family shade maps ─────────────────────────────────────────
 # On dark, a higher slate number sits further back; on cream that inverts, but
@@ -191,13 +192,13 @@ def token(util: str, family: str, step: str):
 
 
 # Removals eat one leading space (never a newline) so no tidy pass is needed.
-SHADOW_RE = re.compile(r"[ \t]*(?<![\w-])shadow-(" + FAM + r")-\d{2,3}(/\d{1,3})?(?![\w-])")
-GRAD_RE = re.compile(r"[ \t]*(?<![\w-])bg-(?:gradient|linear)-to-[trblxy]{1,2}(?![\w-])")
-STOP_RE = re.compile(r"[ \t]*(?<![\w-])(from|via|to)-(" + FAM + r")-(\d{2,3})(/\d{1,3})?(?![\w-])")
-BLUR_RE = re.compile(r"[ \t]*(?<![\w-])backdrop-blur(-[a-z0-9]+)?(?![\w-])")
+SHADOW_RE = re.compile(r"[ \t]*(?<![\w-])(?:[a-z][\w-]*:)*shadow-(" + FAM + r")-\d{2,3}(/\d{1,3})?(?![\w-])")
+GRAD_RE = re.compile(r"[ \t]*(?<![\w-])(?:[a-z][\w-]*:)*bg-(?:gradient|linear)-to-[trblxy]{1,2}(?![\w-])")
+STOP_RE = re.compile(r"[ \t]*(?<![\w-])(?:[a-z][\w-]*:)*(from|via|to)-(" + FAM + r")-(\d{2,3})(/\d{1,3})?(?![\w-])")
+BLUR_RE = re.compile(r"[ \t]*(?<![\w-])(?:[a-z][\w-]*:)*backdrop-blur(-[a-z0-9]+)?(?![\w-])")
 GLASS_RE = re.compile(r"[ \t]*(?<![\w-])glass(?![\w-])")
 GRADCLS_RE = re.compile(r"[ \t]*(?<![\w-])gradient-(?:primary|success)(?![\w-])")
-GLOW_RE = re.compile(r"[ \t]*(?<![\w-])glow-[a-z]+(?![\w-])")
+GLOW_RE = re.compile(r"[ \t]*(?<![\w-])(?:[a-z][\w-]*:)*glow-[a-z]+(?![\w-])")
 
 CLASS_RE = re.compile(r"(?<![\w-])(" + UTL + r")-(" + FAM + r")-(\d{2,3})(/\d{1,3})?(?![\w-])")
 RADIUS_RE = re.compile(r"(?<![\w-])rounded(-[trbl]{1,2}|-[a-z]+-[trbl]{1,2})?-(?:sm|md|lg|xl|2xl|3xl)(?![\w-])")
@@ -280,6 +281,7 @@ def convert_segment(seg: str) -> str:
 
     seg = RADIUS_RE.sub(rad, seg)
 
+
     # Removals can leave a space the original did not have. Only tidy the
     # exact artefacts this pass introduced — never reflow prose strings.
     if seg != original:
@@ -303,11 +305,20 @@ def convert(src: str) -> str:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument(
+        "--root",
+        type=pathlib.Path,
+        default=DEFAULT_ROOT,
+        help="src directory to convert (defaults to this repo's). The admin "
+             "dashboard shares the same @theme, so it shares this table.",
+    )
     args = ap.parse_args()
+    root = args.root.resolve()
 
+    # AppleDouble siblings (._Foo.tsx) match a *.tsx glob and are binary.
     files = sorted(
-        [p for p in ROOT.rglob("*.tsx") if ".test." not in p.name]
-        + [p for p in ROOT.rglob("*.ts") if ".test." not in p.name]
+        p for p in list(root.rglob("*.tsx")) + list(root.rglob("*.ts"))
+        if ".test." not in p.name and not p.name.startswith("._")
     )
 
     touched = 0

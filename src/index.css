@@ -142,6 +142,8 @@ h1, h2, h3, h4 {
 
 /* Anything countable — money, quantities, counts, codes, times. Tabular
    figures so a column of prices lines up like a receipt. */
+@layer components {
+
 .m {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
@@ -159,6 +161,8 @@ h1, h2, h3, h4 {
 
 .on-ink .eyebrow {
   color: var(--color-mist);
+}
+
 }
 
 /* Diagonal hairline stripes for ink panels (scanner viewport, auth panel). */
@@ -203,6 +207,8 @@ h1, h2, h3, h4 {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+@layer components {
 
 /* ── Buttons ──────────────────────────────────────────────────────────── */
 /* Hover swaps fill and text rather than dimming. One primary per screen. */
@@ -539,6 +545,8 @@ input[type="number"] {
 .toast-warning {
   background-color: var(--color-warn);
   color: var(--color-ink);
+}
+
 }
 
 /* ── Barcode scanner ──────────────────────────────────────────────────── */
