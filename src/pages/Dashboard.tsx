@@ -228,8 +228,8 @@ export function Dashboard() {
                     key={i}
                     className="p-3 rounded-sharp bg-sand/50 border border-line/50 animate-pulse"
                   >
-                    <div className="h-3 w-1/2 rounded bg-shade" />
-                    <div className="h-2.5 w-3/4 rounded bg-shade/70 mt-2" />
+                    <div className="h-3 w-1/2 rounded-sharp bg-shade" />
+                    <div className="h-2.5 w-3/4 rounded-sharp bg-shade/70 mt-2" />
                   </div>
                 ))}
               </div>

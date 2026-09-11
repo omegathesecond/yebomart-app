@@ -198,7 +198,7 @@ export function CountryPicker({
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-shade rounded"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-shade rounded-sharp"
                   >
                     <XMarkIcon className="w-4 h-4 text-mute" />
                   </button>

@@ -201,7 +201,7 @@ GRADCLS_RE = re.compile(r"[ \t]*(?<![\w-])gradient-(?:primary|success)(?![\w-])"
 GLOW_RE = re.compile(r"[ \t]*(?<![\w-])(?:[a-z][\w-]*:)*glow-[a-z]+(?![\w-])")
 
 CLASS_RE = re.compile(r"(?<![\w-])(" + UTL + r")-(" + FAM + r")-(\d{2,3})(/\d{1,3})?(?![\w-])")
-RADIUS_RE = re.compile(r"(?<![\w-])rounded(-[trbl]{1,2}|-[a-z]+-[trbl]{1,2})?-(?:sm|md|lg|xl|2xl|3xl)(?![\w-])")
+RADIUS_RE = re.compile(r"(?<![\w-])rounded(-[trbl]{1,2}|-[a-z]+-[trbl]{1,2})?(?:-(?:sm|md|lg|xl|2xl|3xl))?(?![\w-])")
 
 # White stays white only on a fill that is still dark after the swap.
 DARK_FILL_RE = re.compile(

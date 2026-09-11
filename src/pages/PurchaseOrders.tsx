@@ -618,7 +618,7 @@ export function PurchaseOrders() {
               type="checkbox"
               checked={placeOrder}
               onChange={(e) => setPlaceOrder(e.target.checked)}
-              className="rounded border-line-strong bg-sand text-brick focus:ring-ink"
+              className="rounded-sharp border-line-strong bg-sand text-brick focus:ring-ink"
             />
             Mark as ordered (sent to supplier) — uncheck to keep as draft
           </label>
@@ -693,7 +693,7 @@ export function PurchaseOrders() {
                 type="checkbox"
                 checked={updateCost}
                 onChange={(e) => setUpdateCost(e.target.checked)}
-                className="rounded border-line-strong bg-sand text-brick focus:ring-ink"
+                className="rounded-sharp border-line-strong bg-sand text-brick focus:ring-ink"
               />
               Update product cost prices to this PO's unit costs
             </label>

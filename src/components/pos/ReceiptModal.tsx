@@ -198,7 +198,7 @@ export function ReceiptModal({ isOpen, onClose, sale, shop, customerPhone }: Rec
               </div>
 
               {sale.pendingSync && (
-                <div className="mb-3 rounded bg-brand border border-ink px-2 py-1.5 text-xs text-brick">
+                <div className="mb-3 rounded-sharp bg-brand border border-ink px-2 py-1.5 text-xs text-brick">
                   Saved offline — this sale will sync automatically when you're back online.
                 </div>
               )}

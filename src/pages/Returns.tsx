@@ -462,7 +462,7 @@ export function Returns() {
                                 max={item.quantity}
                                 value={selectedQty}
                                 onChange={(e) => updateItemQty(item.id, parseInt(e.target.value) || 0, item.quantity)}
-                                className="w-16 bg-shade border border-line-strong rounded px-2 py-1 text-ink text-center"
+                                className="w-16 bg-shade border border-line-strong rounded-sharp px-2 py-1 text-ink text-center"
                               />
                               <span className="text-mist">/ {item.quantity}</span>
                             </div>
