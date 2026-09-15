@@ -6,6 +6,7 @@ import { useInventoryStore } from '@/stores/inventoryStore';
 import { useCartStore } from '@/stores/cartStore';
 import { useSyncStore } from '@/stores/syncStore';
 import { useBillingStore } from '@/stores/billingStore';
+import { useShopStore } from '@/stores/shopStore';
 import { Layout } from '@/components/layout/Layout';
 import { InitialSync } from '@/components/InitialSync';
 import './index.css';
@@ -100,6 +101,16 @@ function AppRoutes() {
     loadUser();
   }, [loadUser]);
 
+  // Multi-shop: once authenticated, load the owner's full shop list so the
+  // ShopSwitcher (TopBar/Settings) has something to show. No-ops harmlessly
+  // for a staff PIN session (loadShops resolves that session's single shop
+  // via /api/auth/me instead of the owner-only /api/shops list).
+  useEffect(() => {
+    if (isAuthenticated) {
+      useShopStore.getState().loadShops();
+    }
+  }, [isAuthenticated]);
+
   // Offline outbox drain. Any sale rung up while offline is queued in Dexie;
   // replay it on app start and whenever the connection returns. The drain is
   // single-flight and no-ops when offline, so calling it eagerly is safe.
@@ -122,6 +133,7 @@ function AppRoutes() {
       clearInventory();
       clearCart();
       useBillingStore.getState().reset(); // Drop cached balance — never leak across shops
+      useShopStore.getState().clearShops(); // Drop the previous owner's shop list
       queryClient.clear(); // Clear React Query cache too
       console.log('[App] Cleared all stores and cache on logout');
     }

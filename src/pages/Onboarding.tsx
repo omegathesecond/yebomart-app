@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { 
-  ShoppingCartIcon, 
+import {
+  ShoppingCartIcon,
   RocketLaunchIcon,
   ClockIcon,
   DevicePhoneMobileIcon,
@@ -10,17 +10,15 @@ import {
   ArrowRightIcon,
   ArrowLeftIcon,
   CheckCircleIcon,
-  UserPlusIcon,
   CheckIcon,
-  GlobeAltIcon,
-  BuildingStorefrontIcon
+  GlobeAltIcon
 } from '@heroicons/react/24/outline';
 import { YeboLogo } from '@/components/ui/YeboLogo';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { PhoneInput } from '@/components/ui/PhoneInput';
 import { ShopCountryPicker } from '@/components/ui/ShopCountryPicker';
 import { useShopStore } from '@/stores/shopStore';
+import api from '@/api/client';
 import { shopTypes, ShopType } from '@/data/shopTypes';
 import { COUNTRIES, getCountryByCode, type Country } from '@/lib/countries';
 import * as yeboid from '@/lib/yeboid';
@@ -31,17 +29,18 @@ export function Onboarding() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { createShop } = useShopStore();
-  
+
   const isNewShop = searchParams.get('mode') === 'new-shop';
-  const [step, setStep] = useState<OnboardingStep>(isNewShop ? 'country' : 'entry');
-  
+  // An additional shop is created under the owner's existing YeboID identity
+  // (name/phone/email/country/currency all carry over — see
+  // AuthService.createAdditionalShop), so the country step doesn't apply.
+  const [step, setStep] = useState<OnboardingStep>(isNewShop ? 'shopType' : 'entry');
+
   // Setup form state
   const [selectedShopType, setSelectedShopType] = useState<string>('');
   const [shopTypeSearch, setShopTypeSearch] = useState<string>('');
   const [shopCountryCode, setShopCountryCode] = useState<string>('SZ');
   const [shopName, setShopName] = useState('');
-  const [ownerName, setOwnerName] = useState('');
-  const [ownerPhone, setOwnerPhone] = useState('');
   const [phoneCountryCode, setPhoneCountryCode] = useState('SZ');
   const [assistantName, setAssistantName] = useState('Yebo');
   
@@ -79,17 +78,6 @@ export function Onboarding() {
       errors.shopName = 'Shop name must be at least 2 characters';
     }
 
-    // For the additional-shop path (multi-shop owner) we still capture full
-    // owner contact details — that endpoint doesn't go through YeboID. For
-    // the first-time signup, owner identity (name/phone/PIN) comes from
-    // YeboID's hosted UI, so those fields are skipped here.
-    if (isNewShop) {
-      if (!ownerName.trim()) errors.ownerName = 'Your name is required';
-      if (!ownerPhone.trim()) errors.ownerPhone = 'Phone number is required';
-      else if (ownerPhone.length < 7)
-        errors.ownerPhone = 'Enter a valid phone number';
-    }
-
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -100,18 +88,9 @@ export function Onboarding() {
     }
   };
 
-  const handlePhoneChange = (phone: string, countryCode: string, _fullNumber: string) => {
-    setOwnerPhone(phone);
-    setPhoneCountryCode(countryCode);
-    clearFieldError('ownerPhone');
-  };
-
   const handleShopCountryChange = (country: Country) => {
     setShopCountryCode(country.code);
-    // Also update phone country if user hasn't entered a phone yet
-    if (!ownerPhone) {
-      setPhoneCountryCode(country.code);
-    }
+    setPhoneCountryCode(country.code);
   };
 
   const handleSetup = async (e: React.FormEvent) => {
@@ -124,22 +103,26 @@ export function Onboarding() {
 
     try {
       if (isNewShop) {
-        // Creating an additional shop while already signed in. This endpoint
-        // is independent of YeboID auth and stays unchanged for now (multi-
-        // shop ownership is a future feature per the YeboID plan).
+        // Creating an additional shop under the already-signed-in owner's
+        // existing YeboID identity (POST /api/shops). Owner identity
+        // (name/phone/email) and country/currency carry over from the
+        // existing shop — see AuthService.createAdditionalShop.
         const result = await createShop({
           name: shopName,
-          ownerName,
-          ownerPhone,
-          phoneCountryCode,
-          countryCode: shopCountryCode,
           businessType: selectedShopType || 'general',
           assistantName,
         });
 
-        if (result.success) {
-          navigate('/');
+        if (result.success && result.shop) {
+          // Switch the active shop to the one just created (the new shop
+          // isn't in shopStore's `shops` list yet, so set it directly rather
+          // than via setCurrentShop's list-membership lookup), then a full
+          // reload re-scopes the whole app (products/sales/stock/etc.) —
+          // same pattern ShopSwitcher uses when switching shops.
+          api.setActiveShopId(result.shop.id);
+          window.location.href = '/';
         } else {
+          setIsLoading(false);
           setError(result.error || 'Failed to create shop');
         }
       } else {
@@ -168,49 +151,6 @@ export function Onboarding() {
 
   const selectedType = shopTypes.find(t => t.id === selectedShopType);
   const shopCountry = getCountryByCode(shopCountryCode);
-
-  // Adding an ADDITIONAL shop (reached via ShopSwitcher's "Add Shop" →
-  // ?mode=new-shop) is not supported: the backend keys each Shop to one YeboID
-  // owner (Shop.ownerYeboidSub/ownerPhone are @unique) and has no createShop
-  // endpoint, so the form below could never persist — it previously faked a
-  // success and dropped the user onto a phantom shop that vanished on reload.
-  // The ShopSwitcher entry points are removed; this is a defensive screen for
-  // any stale URL/bookmark. (createShop() in the store also fails loudly now.)
-  if (isNewShop) {
-    return (
-      <div className="min-h-screen bg-cream flex items-center justify-center p-4">
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        </div>
-
-        <div className="relative w-full max-w-md text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-sharp bg-brand shadow-lg mb-4">
-            <BuildingStorefrontIcon className="w-10 h-10 text-ink" />
-          </div>
-          <h1 className="text-2xl font-bold text-ink">Multiple shops are coming soon</h1>
-
-          <div className="bg-sand/50 rounded-sharp border border-line/50 p-8 mt-6">
-            <p className="text-body">
-              Your account currently supports one shop. Running several shops
-              from a single login isn't available yet — we're building it.
-            </p>
-            <p className="text-mute text-sm mt-4">
-              Nothing was created. You can keep using your current shop in the
-              meantime.
-            </p>
-
-            <Button onClick={() => navigate('/')} className="w-full mt-8">
-              <ArrowLeftIcon className="w-4 h-4 mr-2" />
-              Back to Dashboard
-            </Button>
-          </div>
-
-          <p className="text-mist text-sm mt-6">
-            © 2026 YeboMart by Omevision. Available across Africa
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   // Entry screen
   if (step === 'entry') {
@@ -387,7 +327,7 @@ export function Onboarding() {
           </div>
 
           <div className="flex gap-3">
-            <Button variant="ghost" onClick={() => isNewShop ? navigate(-1) : setStep('instructions')} className="flex-1">
+            <Button variant="ghost" onClick={() => setStep('instructions')} className="flex-1">
               <ArrowLeftIcon className="w-4 h-4 mr-2" />
               Back
             </Button>
@@ -418,8 +358,10 @@ export function Onboarding() {
           <div className="text-center mb-6">
             <h1 className="text-2xl font-bold text-ink">What type of shop do you have?</h1>
             <p className="text-mute mt-2">
-              {shopCountry && <span className="text-brick">{shopCountry.flag} {shopCountry.name}</span>}
-              {' • '}We'll customize categories and features for your business
+              {!isNewShop && shopCountry && (
+                <span className="text-brick">{shopCountry.flag} {shopCountry.name}{' • '}</span>
+              )}
+              We'll customize categories and features for your business
             </p>
           </div>
 
@@ -494,7 +436,7 @@ export function Onboarding() {
         {/* Fixed bottom actions */}
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-cream/90 border-t border-line">
           <div className="max-w-2xl mx-auto flex gap-3">
-            <Button variant="ghost" onClick={() => setStep('country')} className="flex-1">
+            <Button variant="ghost" onClick={() => isNewShop ? navigate(-1) : setStep('country')} className="flex-1">
               <ArrowLeftIcon className="w-4 h-4 mr-2" />
               Back
             </Button>
@@ -527,12 +469,16 @@ export function Onboarding() {
           )}
           <h1 className="text-2xl font-bold text-ink">Set Up Your {selectedType?.name || 'Shop'}</h1>
           <p className="text-mute mt-2">
-            {shopCountry && (
-              <span className="inline-flex items-center gap-1">
-                <span>{shopCountry.flag}</span>
-                <span>{shopCountry.name}</span>
-                <span className="text-brick">• {shopCountry.currencySymbol} {shopCountry.currency}</span>
-              </span>
+            {isNewShop ? (
+              <span>Under your existing account — same owner details</span>
+            ) : (
+              shopCountry && (
+                <span className="inline-flex items-center gap-1">
+                  <span>{shopCountry.flag}</span>
+                  <span>{shopCountry.name}</span>
+                  <span className="text-brick">• {shopCountry.currencySymbol} {shopCountry.currency}</span>
+                </span>
+              )
             )}
           </p>
         </div>
@@ -546,29 +492,6 @@ export function Onboarding() {
               placeholder={selectedType?.id === 'tyre' ? "e.g., Quick Fit Tyres" : "e.g., Thandi's Tuck Shop"}
               error={fieldErrors.shopName}
             />
-
-            {isNewShop && (
-              <>
-                <Input
-                  label="Your Name"
-                  value={ownerName}
-                  onChange={(e) => { setOwnerName(e.target.value); clearFieldError('ownerName'); }}
-                  placeholder="Your full name"
-                  leftIcon={<UserPlusIcon className="w-5 h-5" />}
-                  error={fieldErrors.ownerName}
-                />
-
-                <PhoneInput
-                  label="Phone Number"
-                  value={ownerPhone}
-                  onChange={handlePhoneChange}
-                  defaultCountryCode={phoneCountryCode}
-                  placeholder="Phone number"
-                  error={fieldErrors.ownerPhone}
-                  hint={!fieldErrors.ownerPhone ? "We'll send daily reports here via WhatsApp" : undefined}
-                />
-              </>
-            )}
 
             <Input
               label="AI Assistant Name"

@@ -19,6 +19,14 @@ const API_URL = import.meta.env.VITE_API_URL || 'https://api.yebomart.com';
 const STAFF_TOKEN_KEY = 'yebomart_staff_token';
 
 /**
+ * The owner's currently-active shop (multi-shop). Read fresh from
+ * localStorage on every request — not cached on the instance — so it's
+ * correct immediately on a cold load, before any store has rehydrated.
+ * shopStore.setCurrentShop is the only writer.
+ */
+const ACTIVE_SHOP_ID_KEY = 'yebomart_active_shop_id';
+
+/**
  * Sentinel returned by `request()` when the fetch itself fails (offline / DNS /
  * connection reset) rather than the server returning an error response. The
  * offline outbox keys off this to decide "queue + retry" vs "surface to user":
@@ -456,10 +464,28 @@ class ApiClient {
     localStorage.removeItem(STAFF_TOKEN_KEY);
   }
 
-  /** Wipe everything — call from logout. */
+  /**
+   * Set/clear which shop (multi-shop) requests act on. Persisted so it
+   * survives the reload ShopSwitcher does after a switch. Sent as X-Shop-Id
+   * on every request; the API 403s a value that isn't one of the owner's own
+   * shops rather than silently falling back.
+   */
+  setActiveShopId(shopId: string | null) {
+    if (shopId) localStorage.setItem(ACTIVE_SHOP_ID_KEY, shopId);
+    else localStorage.removeItem(ACTIVE_SHOP_ID_KEY);
+  }
+
+  getActiveShopId(): string | null {
+    return localStorage.getItem(ACTIVE_SHOP_ID_KEY);
+  }
+
+  /** Wipe everything — call from logout. A stale X-Shop-Id must never survive
+   *  into the next session (a different owner signing in on the same device
+   *  would otherwise send a foreign shop id and get hard-403'd). */
   clearAllTokens() {
     yeboid.clearTokens();
     this.clearStaffToken();
+    this.setActiveShopId(null);
   }
 
   private onSessionExpired: (() => void) | null = null;
@@ -482,6 +508,7 @@ class ApiClient {
   ): Promise<ApiResponse<T>> {
     const url = `${API_URL}${endpoint}`;
     const token = await this.getActiveToken();
+    const activeShopId = this.getActiveShopId();
 
     // FormData bodies (multipart uploads) must NOT get a manual Content-Type:
     // the browser needs to set its own with the multipart boundary.
@@ -490,6 +517,7 @@ class ApiClient {
     const headers: HeadersInit = {
       ...(!isFormData && { 'Content-Type': 'application/json' }),
       ...(token && { Authorization: `Bearer ${token}` }),
+      ...(activeShopId && { 'X-Shop-Id': activeShopId }),
       ...options.headers,
     };
 
@@ -634,6 +662,28 @@ class ApiClient {
   ) {
     return this.request<any>(`/api/shops/${id}`, {
       method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // ── Multi-shop ────────────────────────────────────────────────────────
+
+  /**
+   * GET /api/shops — every shop owned by the authenticated YeboID identity,
+   * oldest first. Owner-only; 403s for a staff-PIN session (no YeboID
+   * identity to list shops with).
+   */
+  async getShops() {
+    return this.request<any[]>('/api/shops');
+  }
+
+  /**
+   * POST /api/shops — create an additional shop under the authenticated
+   * owner's existing YeboID identity. `shopName` is required.
+   */
+  async createShop(data: { shopName: string; businessType?: string; assistantName?: string }) {
+    return this.request<any>('/api/shops', {
+      method: 'POST',
       body: JSON.stringify(data),
     });
   }

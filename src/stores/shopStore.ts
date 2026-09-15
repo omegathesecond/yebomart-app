@@ -3,9 +3,22 @@ import { persist } from 'zustand/middleware';
 import type { Shop, UserShop, ShopRole } from '@/types';
 import { getCountryByCode } from '@/lib/countries';
 import api from '@/api/client';
+import { useAuthStore } from '@/stores/authStore';
 
 export interface ShopWithRole extends Shop {
   userRole: ShopRole;
+}
+
+function toShopWithRole(shop: Shop, userRole: ShopRole): ShopWithRole {
+  const country = getCountryByCode(shop.countryCode || 'SZ');
+  return {
+    ...shop,
+    countryCode: shop.countryCode || 'SZ',
+    currency: shop.currency || country?.currency || 'SZL',
+    currencySymbol: shop.currencySymbol || country?.currencySymbol || 'E',
+    phoneCountryCode: shop.phoneCountryCode || 'SZ',
+    userRole,
+  };
 }
 
 interface ShopState {
@@ -29,10 +42,6 @@ interface ShopState {
 
 export interface CreateShopData {
   name: string;
-  ownerName: string;
-  ownerPhone: string;
-  phoneCountryCode: string;
-  countryCode: string;
   businessType: string;
   assistantName?: string;
 }
@@ -49,37 +58,59 @@ export const useShopStore = create<ShopState>()(
       loadShops: async () => {
         set({ isLoading: true, error: null });
         try {
-          // For now, load from the auth store's shop
-          // In full implementation, this would call api.getShops()
-          const { data, error } = await api.getMe();
-          
+          const authMode = useAuthStore.getState().authMode;
+
+          if (authMode === 'staff') {
+            // Staff PIN sessions carry no YeboID identity to list shops with
+            // (GET /api/shops is owner-only) — they're pinned to the single
+            // shop their token was issued for, resolved via /api/auth/me.
+            const { data, error } = await api.getMe();
+            if (error || !data?.shop) {
+              set({ isLoading: false, error: error || 'Failed to load shop' });
+              return;
+            }
+            const shopWithRole = toShopWithRole(data.shop as Shop, 'staff');
+            set({
+              shops: [shopWithRole],
+              currentShopId: shopWithRole.id,
+              currentShop: shopWithRole,
+              isLoading: false,
+            });
+            return;
+          }
+
+          // Owner (YeboID): every shop this owner has, oldest first.
+          const { data, error } = await api.getShops();
           if (error || !data) {
             set({ isLoading: false, error: error || 'Failed to load shops' });
             return;
           }
 
-          if (data.shop) {
-            const shop = data.shop as Shop;
-            const country = getCountryByCode(shop.countryCode || 'SZ');
-            
-            const shopWithRole: ShopWithRole = {
-              ...shop,
-              countryCode: shop.countryCode || 'SZ',
-              currency: country?.currency || 'SZL',
-              currencySymbol: country?.currencySymbol || 'E',
-              phoneCountryCode: shop.phoneCountryCode || 'SZ',
-              userRole: 'owner'
-            };
-
-            set({
-              shops: [shopWithRole],
-              currentShopId: shop.id,
-              currentShop: shopWithRole,
-              isLoading: false
-            });
-          } else {
+          if (data.length === 0) {
             set({ shops: [], currentShopId: null, currentShop: null, isLoading: false });
+            return;
           }
+
+          const shopsWithRole = data.map((s) => toShopWithRole(s as Shop, 'owner'));
+
+          // Keep the previously-active shop selected if it's still in the
+          // list, else default to the oldest — the same default the API
+          // itself uses when no X-Shop-Id header is sent, so single-shop
+          // owners (and a fresh load with nothing persisted yet) land on the
+          // right shop without an extra round trip. api.getActiveShopId()
+          // (the actual X-Shop-Id source of truth) takes priority over the
+          // zustand-persisted id — it's what a just-created/just-switched
+          // shop is set through, ahead of this store's own state catching up.
+          const persistedId = api.getActiveShopId() ?? get().currentShopId;
+          const active = shopsWithRole.find((s) => s.id === persistedId) ?? shopsWithRole[0];
+
+          set({
+            shops: shopsWithRole,
+            currentShopId: active.id,
+            currentShop: active,
+            isLoading: false,
+          });
+          api.setActiveShopId(active.id);
         } catch (err) {
           console.error('Failed to load shops:', err);
           set({ isLoading: false, error: 'Failed to load shops' });
@@ -90,29 +121,32 @@ export const useShopStore = create<ShopState>()(
         const { shops } = get();
         const shop = shops.find(s => s.id === shopId);
         if (shop) {
+          api.setActiveShopId(shopId);
           set({ currentShopId: shopId, currentShop: shop });
         }
       },
 
-      createShop: async () => {
-        // Multi-shop ownership is NOT supported by the backend. Each Shop is
-        // keyed to a single YeboID owner (Shop.ownerYeboidSub and ownerPhone
-        // are both @unique) and the only shop-creation path is the YeboID
-        // first-signup exchange (auth.service.ts). There is no createShop
-        // endpoint, and every authed request is scoped to one req.user.shopId,
-        // so a second shop for the same owner can't be persisted or selected
-        // without a backend redesign (owner↔shops relation + per-request shop
-        // switching). That is tracked as a future feature.
-        //
-        // This function previously fabricated an in-memory shop with a random
-        // UUID and returned { success: true }, which silently lost the shop on
-        // the next getMe()/reload. Per the "fail loudly, never fake success"
-        // rule we now refuse plainly instead of returning a phantom shop. The
-        // entry points (ShopSwitcher "Add Shop", Onboarding ?mode=new-shop) are
-        // disabled, so this is a defensive guard for any stale URL/bookmark.
-        const error = 'Adding additional shops isn\'t available yet.';
-        set({ isLoading: false, error });
-        return { success: false, error };
+      createShop: async (data: CreateShopData) => {
+        set({ isLoading: true, error: null });
+        try {
+          const { data: created, error } = await api.createShop({
+            shopName: data.name,
+            businessType: data.businessType,
+            assistantName: data.assistantName,
+          });
+          if (error || !created) {
+            const message = error || 'Failed to create shop';
+            set({ isLoading: false, error: message });
+            return { success: false, error: message };
+          }
+          set({ isLoading: false });
+          return { success: true, shop: created as Shop };
+        } catch (err) {
+          console.error('Failed to create shop:', err);
+          const message = 'Failed to create shop';
+          set({ isLoading: false, error: message });
+          return { success: false, error: message };
+        }
       },
 
       updateShop: async (shopId: string, updates: Partial<Shop>) => {
