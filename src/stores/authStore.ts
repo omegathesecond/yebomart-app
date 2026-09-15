@@ -7,6 +7,7 @@ import { useLocaleStore } from '@/stores/localeStore';
 import { setCurrencyConfig } from '@/types';
 import * as yeboid from '@/lib/yeboid';
 import type { ShopBootstrap } from '@/lib/yeboid';
+import { useShopStore } from '@/stores/shopStore';
 
 // Sync currency/locale from shop's country
 function syncShopLocale(shop: Shop | null) {
@@ -85,6 +86,9 @@ export const useAuthStore = create<AuthState>()(
             authMode: 'owner',
           });
           syncShopLocale(data.shop);
+          // Populate the shop-switcher list (multi-shop owners) / active-shop
+          // id in the background — routing only depends on `shop` above.
+          void useShopStore.getState().loadShops();
           return { success: true, isNewShop: data.isNewShop };
         },
 
@@ -101,6 +105,7 @@ export const useAuthStore = create<AuthState>()(
               authMode: 'staff',
             });
             syncShopLocale(data.shop);
+            void useShopStore.getState().loadShops();
             return true;
           } catch (err) {
             console.error('Staff login failed:', err);
@@ -110,6 +115,7 @@ export const useAuthStore = create<AuthState>()(
 
         logout: async () => {
           api.clearAllTokens();
+          useShopStore.getState().clearShops();
           await clearDatabase();
           set({
             user: null,
@@ -149,6 +155,7 @@ export const useAuthStore = create<AuthState>()(
               authMode: staffToken ? 'staff' : 'owner',
             });
             syncShopLocale(data.shop);
+            void useShopStore.getState().loadShops();
           } catch (err) {
             console.error('Failed to load user:', err);
             api.clearAllTokens();

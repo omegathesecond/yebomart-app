@@ -1,5 +1,5 @@
 import { useEffect, useRef, lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useSearchParams } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
@@ -90,6 +90,22 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+// Onboarding is also the multi-shop "Add Shop" entry point
+// (?mode=new-shop) for an already-signed-in owner, so — unlike the
+// first-signup case — it must NOT bounce an authenticated+shop user back to
+// "/". Staff (PIN) sessions have no YeboID identity to create a shop under,
+// so they're excluded the same as any other authenticated+shop user.
+function OnboardingRoute() {
+  const { shop, isAuthenticated, authMode } = useAuthStore();
+  const [searchParams] = useSearchParams();
+  const isAddingShop = searchParams.get('mode') === 'new-shop';
+
+  if (isAuthenticated && shop && !(isAddingShop && authMode === 'owner')) {
+    return <Navigate to="/" replace />;
+  }
+  return <Onboarding />;
+}
+
 function AppRoutes() {
   const { loadUser, shop, isAuthenticated } = useAuthStore();
   const clearInventory = useInventoryStore(state => state.clearAll);
@@ -131,13 +147,9 @@ function AppRoutes() {
   return (
     <Suspense fallback={<AppLoader />}>
       <Routes>
-        {/* Onboarding - entry point for new users */}
-        <Route
-          path="/onboarding"
-          element={
-            isAuthenticated && shop ? <Navigate to="/" replace /> : <Onboarding />
-          }
-        />
+        {/* Onboarding - entry point for new users, and the "Add Shop"
+            (?mode=new-shop) flow for an already-signed-in owner */}
+        <Route path="/onboarding" element={<OnboardingRoute />} />
         
         {/* Login - for returning users */}
         <Route

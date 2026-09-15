@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   ChevronDownIcon,
   CheckIcon,
+  PlusIcon,
   BuildingStorefrontIcon,
   Cog6ToothIcon
 } from '@heroicons/react/24/outline';
@@ -40,11 +41,10 @@ export function ShopSwitcher({ variant = 'header', className }: ShopSwitcherProp
     window.location.reload();
   };
 
-  // Multi-shop ownership isn't supported yet — the backend keys each Shop to a
-  // single YeboID owner and has no createShop endpoint. The old "Add Shop"
-  // buttons routed to a flow that faked success and silently lost the shop, so
-  // they've been removed rather than left to mislead. Switching between shops
-  // the owner already has (via YeboID linking) still works below.
+  const handleAddShop = () => {
+    setIsOpen(false);
+    navigate('/onboarding?mode=new-shop');
+  };
 
   // Manage a shop's settings. Settings is scoped to the active shop, so switch
   // to the chosen shop first (a reload re-scopes the whole app, same as
@@ -128,6 +128,18 @@ export function ShopSwitcher({ variant = 'header', className }: ShopSwitcherProp
                 </button>
               ))}
             </div>
+
+            <div className="p-2 border-t border-line">
+              <button
+                onClick={handleAddShop}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-sharp hover:bg-shade transition"
+              >
+                <div className="w-8 h-8 bg-shade rounded-sharp flex items-center justify-center">
+                  <PlusIcon className="w-4 h-4 text-mute" />
+                </div>
+                <span className="text-sm font-medium text-ink">Add Shop</span>
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -140,6 +152,13 @@ export function ShopSwitcher({ variant = 'header', className }: ShopSwitcherProp
       <div className={clsx('space-y-4', className)}>
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold text-ink">Your Shops</h3>
+          <button
+            onClick={handleAddShop}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-shade hover:bg-shade rounded-sharp transition"
+          >
+            <PlusIcon className="w-4 h-4" />
+            Add Shop
+          </button>
         </div>
 
         <div className="space-y-2">

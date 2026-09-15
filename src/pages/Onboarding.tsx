@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { 
-  ShoppingCartIcon, 
+import {
+  ShoppingCartIcon,
   RocketLaunchIcon,
   ClockIcon,
   DevicePhoneMobileIcon,
@@ -10,15 +10,12 @@ import {
   ArrowRightIcon,
   ArrowLeftIcon,
   CheckCircleIcon,
-  UserPlusIcon,
   CheckIcon,
-  GlobeAltIcon,
-  BuildingStorefrontIcon
+  GlobeAltIcon
 } from '@heroicons/react/24/outline';
 import { YeboLogo } from '@/components/ui/YeboLogo';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { PhoneInput } from '@/components/ui/PhoneInput';
 import { ShopCountryPicker } from '@/components/ui/ShopCountryPicker';
 import { useShopStore } from '@/stores/shopStore';
 import { shopTypes, ShopType } from '@/data/shopTypes';
@@ -40,8 +37,8 @@ export function Onboarding() {
   const [shopTypeSearch, setShopTypeSearch] = useState<string>('');
   const [shopCountryCode, setShopCountryCode] = useState<string>('SZ');
   const [shopName, setShopName] = useState('');
-  const [ownerName, setOwnerName] = useState('');
-  const [ownerPhone, setOwnerPhone] = useState('');
+  // Only used for the first-time YeboID signup bootstrap — an additional
+  // shop under an already-signed-in owner needs no phone-country hint.
   const [phoneCountryCode, setPhoneCountryCode] = useState('SZ');
   const [assistantName, setAssistantName] = useState('Yebo');
   
@@ -79,16 +76,10 @@ export function Onboarding() {
       errors.shopName = 'Shop name must be at least 2 characters';
     }
 
-    // For the additional-shop path (multi-shop owner) we still capture full
-    // owner contact details — that endpoint doesn't go through YeboID. For
-    // the first-time signup, owner identity (name/phone/PIN) comes from
-    // YeboID's hosted UI, so those fields are skipped here.
-    if (isNewShop) {
-      if (!ownerName.trim()) errors.ownerName = 'Your name is required';
-      if (!ownerPhone.trim()) errors.ownerPhone = 'Phone number is required';
-      else if (ownerPhone.length < 7)
-        errors.ownerPhone = 'Enter a valid phone number';
-    }
+    // Owner identity (name/phone/PIN) is never collected here: for a
+    // first-time signup it comes from YeboID's hosted UI; for an additional
+    // shop under an already-signed-in owner, the backend carries it over
+    // from the owner's existing shop (POST /api/shops).
 
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;
@@ -100,18 +91,9 @@ export function Onboarding() {
     }
   };
 
-  const handlePhoneChange = (phone: string, countryCode: string, _fullNumber: string) => {
-    setOwnerPhone(phone);
-    setPhoneCountryCode(countryCode);
-    clearFieldError('ownerPhone');
-  };
-
   const handleShopCountryChange = (country: Country) => {
     setShopCountryCode(country.code);
-    // Also update phone country if user hasn't entered a phone yet
-    if (!ownerPhone) {
-      setPhoneCountryCode(country.code);
-    }
+    setPhoneCountryCode(country.code);
   };
 
   const handleSetup = async (e: React.FormEvent) => {
@@ -124,22 +106,25 @@ export function Onboarding() {
 
     try {
       if (isNewShop) {
-        // Creating an additional shop while already signed in. This endpoint
-        // is independent of YeboID auth and stays unchanged for now (multi-
-        // shop ownership is a future feature per the YeboID plan).
+        // Creating an additional shop under the caller's existing YeboID
+        // identity (POST /api/shops) — owner name/phone/email are carried
+        // over server-side, so only shop-branding fields go here.
         const result = await createShop({
           name: shopName,
-          ownerName,
-          ownerPhone,
-          phoneCountryCode,
           countryCode: shopCountryCode,
           businessType: selectedShopType || 'general',
           assistantName,
         });
 
         if (result.success) {
+          // createShop() already switched the active shop (X-Shop-Id +
+          // shopStore state). Reload so authStore.shop — read throughout the
+          // app — picks up the new shop via a fresh /api/auth/me, the same
+          // rescope ShopSwitcher does when switching shops.
           navigate('/');
+          window.location.reload();
         } else {
+          setIsLoading(false);
           setError(result.error || 'Failed to create shop');
         }
       } else {
@@ -168,49 +153,6 @@ export function Onboarding() {
 
   const selectedType = shopTypes.find(t => t.id === selectedShopType);
   const shopCountry = getCountryByCode(shopCountryCode);
-
-  // Adding an ADDITIONAL shop (reached via ShopSwitcher's "Add Shop" →
-  // ?mode=new-shop) is not supported: the backend keys each Shop to one YeboID
-  // owner (Shop.ownerYeboidSub/ownerPhone are @unique) and has no createShop
-  // endpoint, so the form below could never persist — it previously faked a
-  // success and dropped the user onto a phantom shop that vanished on reload.
-  // The ShopSwitcher entry points are removed; this is a defensive screen for
-  // any stale URL/bookmark. (createShop() in the store also fails loudly now.)
-  if (isNewShop) {
-    return (
-      <div className="min-h-screen bg-cream flex items-center justify-center p-4">
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        </div>
-
-        <div className="relative w-full max-w-md text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-sharp bg-brand shadow-lg mb-4">
-            <BuildingStorefrontIcon className="w-10 h-10 text-ink" />
-          </div>
-          <h1 className="text-2xl font-bold text-ink">Multiple shops are coming soon</h1>
-
-          <div className="bg-sand/50 rounded-sharp border border-line/50 p-8 mt-6">
-            <p className="text-body">
-              Your account currently supports one shop. Running several shops
-              from a single login isn't available yet — we're building it.
-            </p>
-            <p className="text-mute text-sm mt-4">
-              Nothing was created. You can keep using your current shop in the
-              meantime.
-            </p>
-
-            <Button onClick={() => navigate('/')} className="w-full mt-8">
-              <ArrowLeftIcon className="w-4 h-4 mr-2" />
-              Back to Dashboard
-            </Button>
-          </div>
-
-          <p className="text-mist text-sm mt-6">
-            © 2026 YeboMart by Omevision. Available across Africa
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   // Entry screen
   if (step === 'entry') {
@@ -547,29 +489,6 @@ export function Onboarding() {
               error={fieldErrors.shopName}
             />
 
-            {isNewShop && (
-              <>
-                <Input
-                  label="Your Name"
-                  value={ownerName}
-                  onChange={(e) => { setOwnerName(e.target.value); clearFieldError('ownerName'); }}
-                  placeholder="Your full name"
-                  leftIcon={<UserPlusIcon className="w-5 h-5" />}
-                  error={fieldErrors.ownerName}
-                />
-
-                <PhoneInput
-                  label="Phone Number"
-                  value={ownerPhone}
-                  onChange={handlePhoneChange}
-                  defaultCountryCode={phoneCountryCode}
-                  placeholder="Phone number"
-                  error={fieldErrors.ownerPhone}
-                  hint={!fieldErrors.ownerPhone ? "We'll send daily reports here via WhatsApp" : undefined}
-                />
-              </>
-            )}
-
             <Input
               label="AI Assistant Name"
               value={assistantName}
@@ -578,7 +497,12 @@ export function Onboarding() {
               hint="Give your shop's AI a name (optional)"
             />
 
-            {!isNewShop && (
+            {isNewShop ? (
+              <p className="text-xs text-mute px-1">
+                This shop will be added to your account — you'll be able to
+                switch between all your shops from the shop switcher.
+              </p>
+            ) : (
               <p className="text-xs text-mute px-1">
                 Next, you'll verify your phone number with YeboID. Your daily
                 WhatsApp reports will go to that number.

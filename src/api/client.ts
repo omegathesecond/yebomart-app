@@ -19,6 +19,16 @@ const API_URL = import.meta.env.VITE_API_URL || 'https://api.yebomart.com';
 const STAFF_TOKEN_KEY = 'yebomart_staff_token';
 
 /**
+ * Active shop for owners with more than one shop (multi-shop switching).
+ * Sent as `X-Shop-Id` on every request; the API resolves the owner's oldest
+ * shop when this is unset, so single-shop owners never need it. Kept as a
+ * plain localStorage key (not read from shopStore) so this module has no
+ * dependency on it — shopStore already imports this client, and shopStore's
+ * setCurrentShop() calls `api.setActiveShopId()` to keep this in sync.
+ */
+const ACTIVE_SHOP_ID_KEY = 'yebomart_active_shop_id';
+
+/**
  * Sentinel returned by `request()` when the fetch itself fails (offline / DNS /
  * connection reset) rather than the server returning an error response. The
  * offline outbox keys off this to decide "queue + retry" vs "surface to user":
@@ -460,6 +470,18 @@ class ApiClient {
   clearAllTokens() {
     yeboid.clearTokens();
     this.clearStaffToken();
+    this.clearActiveShopId();
+  }
+
+  // ── Active shop (multi-shop switching) ──────────────────────────────────
+
+  /** Which shop `X-Shop-Id` should target. Call when the owner switches shops. */
+  setActiveShopId(shopId: string) {
+    localStorage.setItem(ACTIVE_SHOP_ID_KEY, shopId);
+  }
+
+  clearActiveShopId() {
+    localStorage.removeItem(ACTIVE_SHOP_ID_KEY);
   }
 
   private onSessionExpired: (() => void) | null = null;
@@ -482,6 +504,7 @@ class ApiClient {
   ): Promise<ApiResponse<T>> {
     const url = `${API_URL}${endpoint}`;
     const token = await this.getActiveToken();
+    const activeShopId = localStorage.getItem(ACTIVE_SHOP_ID_KEY);
 
     // FormData bodies (multipart uploads) must NOT get a manual Content-Type:
     // the browser needs to set its own with the multipart boundary.
@@ -490,6 +513,10 @@ class ApiClient {
     const headers: HeadersInit = {
       ...(!isFormData && { 'Content-Type': 'application/json' }),
       ...(token && { Authorization: `Bearer ${token}` }),
+      // Staff tokens are already scoped to one shop server-side — sending
+      // this for a staff device is harmless (the API only reads it on the
+      // YeboID owner path) but skip it anyway to keep staff requests minimal.
+      ...(activeShopId && { 'X-Shop-Id': activeShopId }),
       ...options.headers,
     };
 
@@ -591,6 +618,26 @@ class ApiClient {
     return this.request<{ user: any; shop: any; subscription: any }>(
       '/api/auth/me',
     );
+  }
+
+  // ── Multi-shop switching ────────────────────────────────────────────────
+
+  /** GET /api/shops — every shop the authed YeboID owner has. Owner-only. */
+  async getShops() {
+    return this.request<any[]>('/api/shops');
+  }
+
+  /**
+   * POST /api/shops — create an additional shop under the caller's existing
+   * YeboID identity. Owner identity (name/phone/email) is carried over
+   * server-side from the owner's existing shop; only shop-branding fields
+   * are sent here.
+   */
+  async createShop(data: { name: string; businessType?: string; assistantName?: string; countryCode?: string }) {
+    return this.request<any>('/api/shops', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   }
 
   // ── Notification settings ─────────────────────────────────────────────
