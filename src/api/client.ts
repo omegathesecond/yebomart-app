@@ -965,6 +965,10 @@ class ApiClient {
 
   // ── Returns ───────────────────────────────────────────────────────────
 
+  async getReturnEntitlement(saleId: string) {
+    return this.request<Array<{ productId: string; productName: string; remainingQuantity: number; remainingCents: number }>>(`/api/returns/sale/${saleId}/remaining`);
+  }
+
   async getReturns(params?: { status?: string }) {
     const query = params?.status ? `?status=${params.status}` : '';
     return this.request<any[]>(`/api/returns${query}`);

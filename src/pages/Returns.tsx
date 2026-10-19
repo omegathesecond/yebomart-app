@@ -32,6 +32,7 @@ interface SaleItem {
   quantity: number;
   unitPrice: number;
   totalPrice: number;
+  remainingCents: number;
 }
 
 interface Sale {
@@ -135,7 +136,16 @@ export function Returns() {
         setSaleError(response.error || 'Receipt not found');
         return;
       }
-      setFoundSale(response.data);
+      const remaining = await api.getReturnEntitlement(response.data.id);
+      if (remaining.error || !remaining.data) {
+        setSaleError(remaining.error || 'Unable to load refundable items');
+        return;
+      }
+      setFoundSale({ ...response.data, items: remaining.data.filter(p => p.remainingQuantity > 0).map(p => ({
+        id: p.productId, productId: p.productId, productName: p.productName,
+        quantity: p.remainingQuantity, remainingCents: p.remainingCents,
+        unitPrice: p.remainingCents / 100 / p.remainingQuantity, totalPrice: p.remainingCents / 100,
+      })) });
       setSelectedItems(new Map());
     } catch (error: any) {
       setSaleError(error.message || 'Receipt not found');
@@ -170,7 +180,7 @@ export function Returns() {
     selectedItems.forEach((qty, itemId) => {
       const item = foundSale.items.find(i => i.id === itemId);
       if (item) {
-        total += item.unitPrice * qty;
+        total += Math.round(item.remainingCents * qty / item.quantity) / 100;
       }
     });
     return total;
