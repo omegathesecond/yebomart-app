@@ -75,7 +75,7 @@ function setOnline(value: boolean) {
 }
 
 beforeEach(() => {
-  setSyncContext({ principalId: 'user-1', mode: 'staff', shopId: 'shop-1' });
+  setSyncContext({ principalId: 'user-1', mode: 'staff', shopId: 'shop-1' }, 'verified-token');
   vi.clearAllMocks();
   setOnline(true);
   useCartStore.getState().clear();

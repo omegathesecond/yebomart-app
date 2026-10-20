@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import type { CartItem, Product, PaymentMethod, Sale, SaleItem } from '@/types';
 import type { Customer } from '@/api/client';
 import api, { NETWORK_ERROR } from '@/api/client';
-import { getSyncContext } from '@/lib/outboxContext';
+import { getSyncContext, getSyncToken } from '@/lib/outboxContext';
 import { addToSyncQueue } from '@/lib/db';
 import { computeCartTotal } from '@/lib/money';
 import { useSyncStore } from '@/stores/syncStore';
@@ -360,7 +360,9 @@ export const useCartStore = create<CartState>((set, get) => ({
 
     try {
       // Create sale via API
-      const { data, error } = await api.createSale(payload, { shopId: context.shopId, isCurrent: () => getSyncContext() === context });
+      const token = getSyncToken();
+      if (!token) throw new Error('Sign in again before completing a sale');
+      const { data, error } = await api.createSale(payload, { token, shopId: context.shopId, isCurrent: () => getSyncContext() === context });
 
       if (!data) {
         // Transport failure → queue + complete offline (retryable).

@@ -478,10 +478,10 @@ class ApiClient {
   private async request<T>(
     endpoint: string,
     options: RequestInit = {},
-    opts: { retried?: boolean; isCurrent?: () => boolean } = {},
+    opts: { retried?: boolean; token?: string; isCurrent?: () => boolean } = {},
   ): Promise<ApiResponse<T>> {
     const url = `${API_URL}${endpoint}`;
-    const token = await this.getActiveToken();
+    const token = opts.token ?? await this.getActiveToken();
     if (opts.isCurrent && !opts.isCurrent()) return { error: 'Session changed. Sale remains saved.' };
 
     // FormData bodies (multipart uploads) must NOT get a manual Content-Type:
@@ -503,6 +503,11 @@ class ApiClient {
 
     if (response.status === 401 && opts.isCurrent && !opts.isCurrent()) {
       return { error: 'Session changed. Sale remains saved.' };
+    }
+
+    // Scoped requests never refresh from shared browser credentials.
+    if (response.status === 401 && opts.token) {
+      return { error: 'Session expired. Sign in again to sync saved sales.', status: 401 };
     }
 
     if (
@@ -594,9 +599,9 @@ class ApiClient {
     return { error: response.error || 'Login failed', details: response.details };
   }
 
-  async getMe() {
+  async getMe(token?: string) {
     return this.request<{ user: any; shop: any; subscription: any }>(
-      '/api/auth/me',
+      '/api/auth/me', {}, { token },
     );
   }
 
@@ -745,12 +750,12 @@ class ApiClient {
     // actually rung up. See SaleService.create + the syncQueue drain.
     localId?: string;
     offlineAt?: string;
-  }, scope?: { shopId: string; isCurrent: () => boolean }) {
+  }, scope?: { shopId: string; token: string; isCurrent: () => boolean }) {
     return this.request<any>('/api/sales', {
       method: 'POST',
       body: JSON.stringify(data),
       ...(scope && { headers: { 'X-Shop-Id': scope.shopId } }),
-    }, { isCurrent: scope?.isCurrent });
+    }, { isCurrent: scope?.isCurrent, token: scope?.token });
   }
 
   // ── Stock ─────────────────────────────────────────────────────────────

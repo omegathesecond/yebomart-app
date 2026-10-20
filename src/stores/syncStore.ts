@@ -6,7 +6,7 @@ import {
   removeSyncItem,
   updateSyncAttempt,
 } from '@/lib/db';
-import { getSyncContext, belongsToContext } from '@/lib/outboxContext';
+import { getSyncContext, getSyncToken, belongsToContext } from '@/lib/outboxContext';
 import type { SyncQueueItem } from '@/types';
 
 // Max attempts before an item is parked (mirrors getPendingSyncItems' filter).
@@ -127,7 +127,9 @@ export const useSyncStore = create<SyncState>((set, get) => ({
  */
 async function pushItem(item: SyncQueueItem, isCurrent: () => boolean): Promise<PushResult> {
   if (item.table === 'sales' && item.action === 'create') {
-    const { data, error } = await api.createSale(item.data as any, { shopId: item.context!.shopId, isCurrent });
+    const token = getSyncToken();
+    if (!token) return 'retry';
+    const { data, error } = await api.createSale(item.data as any, { shopId: item.context!.shopId, token, isCurrent });
     if (data?.id) return 'success';
     if (error === NETWORK_ERROR) return 'retry';
     return 'failed';

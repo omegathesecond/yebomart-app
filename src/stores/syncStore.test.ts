@@ -42,7 +42,7 @@ async function enqueueSale(overrides: Partial<SyncQueueItem> = {}): Promise<stri
 }
 
 beforeEach(async () => {
-  setSyncContext({ principalId: 'user-1', mode: 'staff', shopId: 'shop-1' });
+  setSyncContext({ principalId: 'user-1', mode: 'staff', shopId: 'shop-1' }, 'verified-token');
   vi.clearAllMocks();
   setOnline(true);
   await db.syncQueue.clear();

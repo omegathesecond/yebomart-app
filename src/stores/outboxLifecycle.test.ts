@@ -228,3 +228,20 @@ describe('durable, session-scoped POS outbox', () => {
 
 // Capture the real callback before beforeEach clears spy histories.
 const registeredExpiry = vi.mocked(api.setSessionExpiredCallback).mock.calls[0][0];
+
+it('hides pending sales when another tab changes credentials without deleting its queue or new tokens', async () => {
+  await login();
+  await sale();
+  localStorage.setItem('yebomart_staff_token', 'account-B-token');
+  window.dispatchEvent(new StorageEvent('storage', {
+    key: 'yebomart_staff_token', newValue: 'account-B-token',
+  }));
+  expect(getSyncContext()).toBeNull();
+  expect(useAuthStore.getState().isAuthenticated).toBe(false);
+  expect(useSyncStore.getState().pendingCount).toBe(0);
+  online(true);
+  await useSyncStore.getState().replay();
+  expect(api.createSale).not.toHaveBeenCalled();
+  expect(await db.syncQueue.count()).toBe(1);
+  expect(localStorage.getItem('yebomart_staff_token')).toBe('account-B-token');
+});

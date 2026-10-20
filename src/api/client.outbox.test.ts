@@ -11,13 +11,8 @@ beforeEach(() => {
 
 const payload = { items: [], amountPaid: 10, paymentMethod: 'CASH', localId: 'stable-id' };
 
-it('does not send a queued sale if logout changes session while obtaining a token', async () => {
-  let resolve!: (token: string) => void;
-  vi.mocked(yeboid.getAccessToken).mockImplementation(() => new Promise(r => { resolve = r; }));
-  let current = true;
-  const request = api.createSale(payload, { shopId: 'original-shop', isCurrent: () => current });
-  current = false;
-  resolve('new-account-token');
+it('does not send a queued sale after its session changes', async () => {
+  const request = api.createSale(payload, { shopId: 'original-shop', token: 'original-token', isCurrent: () => false });
   expect((await request).error).toContain('Session changed');
   expect(fetch).not.toHaveBeenCalled();
 });
@@ -25,7 +20,7 @@ it('does not send a queued sale if logout changes session while obtaining a toke
 it('binds replay to the original shop and keeps its idempotency key', async () => {
   vi.mocked(yeboid.getAccessToken).mockResolvedValue('original-token');
   vi.mocked(fetch).mockResolvedValue(new Response(JSON.stringify({ data: { id: 'server-sale' } }), { status: 200 }));
-  await api.createSale(payload, { shopId: 'original-shop', isCurrent: () => true });
+  await api.createSale(payload, { shopId: 'original-shop', token: 'original-token', isCurrent: () => true });
   expect(fetch).toHaveBeenCalledWith(expect.stringContaining('/api/sales'), expect.objectContaining({
     headers: expect.objectContaining({ Authorization: 'Bearer original-token', 'X-Shop-Id': 'original-shop' }),
     body: JSON.stringify(payload),
@@ -41,9 +36,19 @@ it('does not refresh or expire a new session when an old replay returns 401 afte
     current = false;
     return new Response('{}', { status: 401 });
   });
-  await api.createSale(payload, { shopId: 'original-shop', isCurrent: () => current });
+  await api.createSale(payload, { shopId: 'original-shop', token: 'original-token', isCurrent: () => current });
   expect(fetch).toHaveBeenCalledTimes(1);
-  expect(yeboid.getAccessToken).toHaveBeenCalledTimes(1);
+  expect(yeboid.getAccessToken).not.toHaveBeenCalled();
   expect(yeboid.clearTokens).not.toHaveBeenCalled();
   expect(expired).not.toHaveBeenCalled();
+});
+
+it('never uses another tabs staff token for a queued sale', async () => {
+  localStorage.setItem('yebomart_staff_token', 'account-B-token');
+  vi.mocked(fetch).mockResolvedValue(new Response(JSON.stringify({ data: { id: 'sale-A' } }), { status: 200 }));
+  await api.createSale(payload, { shopId: 'shop-A', token: 'verified-A-token', isCurrent: () => true });
+  expect(fetch).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({
+    headers: expect.objectContaining({ Authorization: 'Bearer verified-A-token', 'X-Shop-Id': 'shop-A' }),
+  }));
+  expect(yeboid.getAccessToken).not.toHaveBeenCalled();
 });

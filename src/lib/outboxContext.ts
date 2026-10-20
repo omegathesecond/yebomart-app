@@ -2,12 +2,15 @@ import type { SyncContext, SyncQueueItem } from '@/types';
 
 // Memory only: persisted auth UI state is never proof of a verified session.
 let session: SyncContext | null = null;
+let verifiedToken: string | null = null;
+export const getSyncToken = () => verifiedToken;
 export const getSyncContext = () => session;
-export function setSyncContext(context: SyncContext | null) {
+export function setSyncContext(context: SyncContext | null, token?: string) {
   if (context && (!context.principalId || !context.shopId ||
     !['owner', 'staff'].includes(context.mode))) {
     throw new Error('Missing verified identity or shop for saved sales');
   }
+  verifiedToken = context ? token ?? null : null;
   session = context ? Object.freeze(context) : null;
 }
 export function belongsToContext(item: SyncQueueItem, context: SyncContext | null) {

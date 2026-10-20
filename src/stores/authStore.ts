@@ -89,7 +89,7 @@ export const useAuthStore = create<AuthState>()(
           if (error || !data) {
             return { success: false, error: error ?? 'Sign-in failed' };
           }
-          setSyncContext({ principalId: verifiedOwnerId(accessToken), mode: 'owner', shopId: data.shop.id });
+          setSyncContext({ principalId: verifiedOwnerId(accessToken), mode: 'owner', shopId: data.shop.id }, accessToken);
           set({
             user: null,
             shop: data.shop,
@@ -111,7 +111,7 @@ export const useAuthStore = create<AuthState>()(
             if (revision !== authRevision) return false;
             if (error || !data) return false;
 
-            setSyncContext({ principalId: data.user.id, mode: 'staff', shopId: data.shop.id });
+            setSyncContext({ principalId: data.user.id, mode: 'staff', shopId: data.shop.id }, data.token);
             set({
               user: data.user,
               shop: data.shop,
@@ -163,7 +163,7 @@ export const useAuthStore = create<AuthState>()(
               return;
             }
 
-            const { data, error } = await api.getMe();
+            const { data, error } = await api.getMe(staffToken || yeboidToken!);
             if (revision !== authRevision) return;
             if (error || !data) {
               await get().logout();
@@ -171,7 +171,7 @@ export const useAuthStore = create<AuthState>()(
             }
 
             setSyncContext({ principalId: staffToken ? data.user.id : verifiedOwnerId(yeboidToken!),
-              mode: staffToken ? 'staff' : 'owner', shopId: data.shop.id });
+              mode: staffToken ? 'staff' : 'owner', shopId: data.shop.id }, staffToken || yeboidToken!);
             set({
               user: data.user,
               shop: data.shop,
@@ -222,3 +222,17 @@ export const useAuthStore = create<AuthState>()(
     },
   ),
 );
+
+// Other tabs share credentials, but cannot update this tab's verified identity.
+// Invalidate locally without clearing the other tab's newly installed tokens.
+window.addEventListener('storage', (event) => {
+  if (event.key === null || ['yebomart_staff_token', 'yebomart.accessToken'].includes(event.key)) {
+    ++authRevision;
+    setSyncContext(null);
+    useSyncStore.setState({ pendingCount: 0 });
+    useAuthStore.setState({
+      user: null, shop: null, subscription: null,
+      isAuthenticated: false, authMode: null, isLoading: false,
+    });
+  }
+});
