@@ -751,6 +751,10 @@ class ApiClient {
     localId?: string;
     offlineAt?: string;
   }, scope?: { shopId: string; token: string; isCurrent: () => boolean }) {
+    // A scoped replay must never fall through to shared browser credentials.
+    if (scope && (!scope.token || !scope.shopId)) {
+      return { error: 'Verified session required. Sale remains saved.' };
+    }
     return this.request<any>('/api/sales', {
       method: 'POST',
       body: JSON.stringify(data),

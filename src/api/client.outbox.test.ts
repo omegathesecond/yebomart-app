@@ -52,3 +52,11 @@ it('never uses another tabs staff token for a queued sale', async () => {
   }));
   expect(yeboid.getAccessToken).not.toHaveBeenCalled();
 });
+
+it('fails closed for an empty scoped token instead of using shared credentials', async () => {
+  localStorage.setItem('yebomart_staff_token', 'account-B-token');
+  const result = await api.createSale(payload, { shopId: 'shop-A', token: '', isCurrent: () => true });
+  expect(result.error).toContain('Sale remains saved');
+  expect(fetch).not.toHaveBeenCalled();
+  expect(yeboid.getAccessToken).not.toHaveBeenCalled();
+});
