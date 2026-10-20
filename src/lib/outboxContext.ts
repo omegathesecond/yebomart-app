@@ -2,12 +2,16 @@ import type { SyncContext, SyncQueueItem } from '@/types';
 
 // Memory only: persisted auth UI state is never proof of a verified session.
 let session: SyncContext | null = null;
-export const getSyncContext = () => session;
-export function setSyncContext(context: SyncContext | null) {
+let credential: string | null = null;
+const storedCredential = () => localStorage.getItem('yebomart_staff_token') || localStorage.getItem('yebomart.accessToken');
+export const getSyncContext = () => storedCredential() === credential ? session : null;
+export const getSyncCredential = () => getSyncContext() ? credential : null;
+export function setSyncContext(context: SyncContext | null, verifiedToken: string | null = storedCredential()) {
   if (context && (!context.principalId || !context.shopId ||
     !['owner', 'staff'].includes(context.mode))) {
     throw new Error('Missing verified identity or shop for saved sales');
   }
+  credential = context ? verifiedToken : null;
   session = context ? Object.freeze(context) : null;
 }
 export function belongsToContext(item: SyncQueueItem, context: SyncContext | null) {

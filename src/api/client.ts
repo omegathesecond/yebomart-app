@@ -478,10 +478,10 @@ class ApiClient {
   private async request<T>(
     endpoint: string,
     options: RequestInit = {},
-    opts: { retried?: boolean; isCurrent?: () => boolean } = {},
+    opts: { retried?: boolean; isCurrent?: () => boolean; token?: string | null } = {},
   ): Promise<ApiResponse<T>> {
     const url = `${API_URL}${endpoint}`;
-    const token = await this.getActiveToken();
+    const token = opts.token !== undefined ? opts.token : await this.getActiveToken();
     if (opts.isCurrent && !opts.isCurrent()) return { error: 'Session changed. Sale remains saved.' };
 
     // FormData bodies (multipart uploads) must NOT get a manual Content-Type:
@@ -503,6 +503,13 @@ class ApiClient {
 
     if (response.status === 401 && opts.isCurrent && !opts.isCurrent()) {
       return { error: 'Session changed. Sale remains saved.' };
+    }
+
+    // Outbox credentials were verified for its originating context. Never
+    // refresh from shared storage here: another tab may now own that storage.
+    if (response.status === 401 && opts.token !== undefined) {
+      this.forceLogout();
+      return { error: 'Session expired. Please sign in again.' };
     }
 
     if (
@@ -745,12 +752,12 @@ class ApiClient {
     // actually rung up. See SaleService.create + the syncQueue drain.
     localId?: string;
     offlineAt?: string;
-  }, scope?: { shopId: string; isCurrent: () => boolean }) {
+  }, scope?: { shopId: string; token?: string | null; isCurrent: () => boolean }) {
     return this.request<any>('/api/sales', {
       method: 'POST',
       body: JSON.stringify(data),
       ...(scope && { headers: { 'X-Shop-Id': scope.shopId } }),
-    }, { isCurrent: scope?.isCurrent });
+    }, { isCurrent: scope?.isCurrent, token: scope?.token });
   }
 
   // ── Stock ─────────────────────────────────────────────────────────────

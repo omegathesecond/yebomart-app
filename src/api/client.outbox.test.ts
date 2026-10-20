@@ -47,3 +47,13 @@ it('does not refresh or expire a new session when an old replay returns 401 afte
   expect(yeboid.clearTokens).not.toHaveBeenCalled();
   expect(expired).not.toHaveBeenCalled();
 });
+
+ it('pins replay to verified credentials even when another tab replaces shared tokens', async () => {
+  localStorage.setItem('yebomart_staff_token', 'cashier-B');
+  vi.mocked(fetch).mockResolvedValue(new Response(JSON.stringify({ data: { id: 'sale-A' } }), { status: 200 }));
+  await api.createSale(payload, { shopId: 'shop-A', token: 'verified-A', isCurrent: () => true });
+  expect(fetch).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({
+    headers: expect.objectContaining({ Authorization: 'Bearer verified-A' }),
+  }));
+  expect(yeboid.getAccessToken).not.toHaveBeenCalled();
+});

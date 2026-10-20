@@ -6,7 +6,7 @@ import {
   removeSyncItem,
   updateSyncAttempt,
 } from '@/lib/db';
-import { getSyncContext, belongsToContext } from '@/lib/outboxContext';
+import { getSyncContext, getSyncCredential, belongsToContext } from '@/lib/outboxContext';
 import type { SyncQueueItem } from '@/types';
 
 // Max attempts before an item is parked (mirrors getPendingSyncItems' filter).
@@ -127,7 +127,7 @@ export const useSyncStore = create<SyncState>((set, get) => ({
  */
 async function pushItem(item: SyncQueueItem, isCurrent: () => boolean): Promise<PushResult> {
   if (item.table === 'sales' && item.action === 'create') {
-    const { data, error } = await api.createSale(item.data as any, { shopId: item.context!.shopId, isCurrent });
+    const { data, error } = await api.createSale(item.data as any, { shopId: item.context!.shopId, token: getSyncCredential(), isCurrent });
     if (data?.id) return 'success';
     if (error === NETWORK_ERROR) return 'retry';
     return 'failed';
@@ -142,3 +142,8 @@ async function pushItem(item: SyncQueueItem, isCurrent: () => boolean): Promise<
 
 /** Re-export so callers don't reach past the store. */
 export { MAX_ATTEMPTS };
+
+// Other tabs share credentials, but not our verified in-memory identity.
+window.addEventListener('storage', () => {
+  if (!getSyncContext()) useSyncStore.setState({ pendingCount: 0, lastSyncedAt: null });
+});

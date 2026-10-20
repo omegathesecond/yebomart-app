@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('@/api/client', () => ({
   default: {
     createSale: vi.fn(), staffLogin: vi.fn(), getMe: vi.fn(), exchangeYeboid: vi.fn(),
-    clearAllTokens: vi.fn(() => localStorage.removeItem('yebomart_staff_token')),
+    clearAllTokens: vi.fn(() => { localStorage.removeItem('yebomart_staff_token'); localStorage.removeItem('yebomart.accessToken'); }),
     setSessionExpiredCallback: vi.fn(),
   },
   NETWORK_ERROR: 'Network error. Please try again.',
@@ -22,6 +22,7 @@ function online(value: boolean) {
   Object.defineProperty(navigator, 'onLine', { configurable: true, value });
 }
 async function login(id = 'cashier', shopId = 'shop') {
+  localStorage.setItem('yebomart_staff_token', 'token');
   vi.mocked(api.staffLogin).mockResolvedValue({ data: {
     user: { id, shopId } as any, shop: { id: shopId } as any, token: 'token',
   } });
@@ -150,17 +151,20 @@ describe('durable, session-scoped POS outbox', () => {
   it('binds an owner queue to the API-accepted YeboID subject, never another owner of the same shop', async () => {
     const token = (sub: string) => `header.${btoa(JSON.stringify({ sub }))}.signature`;
     vi.mocked(api.exchangeYeboid).mockResolvedValue({ data: { shop: { id: 'shop' }, isNewShop: false } });
+    localStorage.setItem('yebomart.accessToken', token('owner-one'));
     await useAuthStore.getState().exchangeYeboidToken(token('owner-one'));
     await sale();
     expect((await db.syncQueue.toArray())[0].context?.principalId).toBe('owner-one');
     await useAuthStore.getState().logout();
     online(true);
+    localStorage.setItem('yebomart.accessToken', token('owner-two'));
     await useAuthStore.getState().exchangeYeboidToken(token('owner-two'));
     await waitForSyncDrain();
     expect(api.createSale).not.toHaveBeenCalled();
     expect(useSyncStore.getState().pendingCount).toBe(0);
     await useAuthStore.getState().logout();
     vi.mocked(api.createSale).mockResolvedValue({ data: { id: 'server-sale' } });
+    localStorage.setItem('yebomart.accessToken', token('owner-one'));
     await useAuthStore.getState().exchangeYeboidToken(token('owner-one'));
     await waitForSyncDrain();
     expect(api.createSale).toHaveBeenCalledTimes(1);
@@ -228,3 +232,17 @@ describe('durable, session-scoped POS outbox', () => {
 
 // Capture the real callback before beforeEach clears spy histories.
 const registeredExpiry = vi.mocked(api.setSessionExpiredCallback).mock.calls[0][0];
+
+it('cross-tab account replacement hides and blocks the stale in-memory outbox context', async () => {
+  await login();
+  await sale();
+  localStorage.setItem('yebomart_staff_token', 'other-account-token');
+  // No storage event is needed: check at use time, including before fetch.
+  expect(getSyncContext()).toBeNull();
+  await useSyncStore.getState().refreshPending();
+  expect(useSyncStore.getState().pendingCount).toBe(0);
+  online(true);
+  await useSyncStore.getState().replay();
+  expect(api.createSale).not.toHaveBeenCalled();
+  expect(await db.syncQueue.count()).toBe(1);
+});
