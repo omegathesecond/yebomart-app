@@ -478,10 +478,11 @@ class ApiClient {
   private async request<T>(
     endpoint: string,
     options: RequestInit = {},
-    opts: { retried?: boolean } = {},
+    opts: { retried?: boolean; isCurrent?: () => boolean } = {},
   ): Promise<ApiResponse<T>> {
     const url = `${API_URL}${endpoint}`;
     const token = await this.getActiveToken();
+    if (opts.isCurrent && !opts.isCurrent()) return { error: 'Session changed. Sale remains saved.' };
 
     // FormData bodies (multipart uploads) must NOT get a manual Content-Type:
     // the browser needs to set its own with the multipart boundary.
@@ -500,6 +501,10 @@ class ApiClient {
       return { error: NETWORK_ERROR };
     }
 
+    if (response.status === 401 && opts.isCurrent && !opts.isCurrent()) {
+      return { error: 'Session changed. Sale remains saved.' };
+    }
+
     if (
       response.status === 401 &&
       !opts.retried &&
@@ -514,8 +519,9 @@ class ApiClient {
       // Owner mode: try one silent refresh, then retry.
       yeboid.clearTokens();
       const fresh = await yeboid.getAccessToken();
+      if (opts.isCurrent && !opts.isCurrent()) return { error: 'Session changed. Sale remains saved.' };
       if (fresh) {
-        return this.request<T>(endpoint, options, { retried: true });
+        return this.request<T>(endpoint, options, { ...opts, retried: true });
       }
       this.forceLogout();
       return { error: 'Session expired. Please sign in again.' };
@@ -552,7 +558,7 @@ class ApiClient {
   }
 
   /** Staff PIN login. Returns the yebomart-issued token; caller stores it. */
-  async staffLogin(phone: string, pin: string) {
+  async staffLogin(phone: string, pin: string, isCurrent?: () => boolean) {
     const response = await this.request<{
       accessToken: string;
       shop: any;
@@ -560,8 +566,9 @@ class ApiClient {
     }>('/api/auth/login/user', {
       method: 'POST',
       body: JSON.stringify({ phone, pin }),
-    });
+    }, { isCurrent });
 
+    if (isCurrent && !isCurrent()) return { error: 'Sign-in was cancelled' };
     if (response.data) {
       this.setStaffToken(response.data.accessToken);
       return {
@@ -738,11 +745,12 @@ class ApiClient {
     // actually rung up. See SaleService.create + the syncQueue drain.
     localId?: string;
     offlineAt?: string;
-  }) {
+  }, scope?: { shopId: string; isCurrent: () => boolean }) {
     return this.request<any>('/api/sales', {
       method: 'POST',
       body: JSON.stringify(data),
-    });
+      ...(scope && { headers: { 'X-Shop-Id': scope.shopId } }),
+    }, { isCurrent: scope?.isCurrent });
   }
 
   // ── Stock ─────────────────────────────────────────────────────────────

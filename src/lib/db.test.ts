@@ -31,7 +31,7 @@ async function seed(item: Partial<SyncQueueItem>): Promise<string> {
 
 describe('addToSyncQueue', () => {
   it('enqueues a new item with attempts = 0 and the given payload', async () => {
-    await addToSyncQueue('sales', 'create', { localId: 'abc', amountPaid: 25 });
+    await addToSyncQueue('sales', 'create', { localId: 'abc', amountPaid: 25 }, { principalId: 'user-1', mode: 'staff', shopId: 'shop-1' });
 
     const all = await db.syncQueue.toArray();
     expect(all).toHaveLength(1);

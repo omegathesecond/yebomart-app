@@ -20,7 +20,7 @@ export function OfflineIndicator() {
     };
   }, [setOnlineStatus]);
 
-  const changes = `${pendingCount} ${pendingCount === 1 ? 'change' : 'changes'}`;
+  const changes = `${pendingCount} ${pendingCount === 1 ? 'sale' : 'sales'}`;
 
   // Offline: be honest about what's happening. Pending sales ARE saved locally
   // and will sync — the syncQueue drain now backs that promise.
@@ -57,12 +57,12 @@ export function OfflineIndicator() {
     return (
       <div className="bg-wash border-b border-ink/30 px-4 py-2">
         <button
-          onClick={() => replay()}
+          onClick={() => replay(true)}
           className="flex w-full items-center justify-center gap-2 text-brick"
         >
           <ArrowPathIcon className="w-4 h-4" />
           <span className="text-sm font-medium">
-            {changes} waiting to sync — tap to retry
+            {changes} saved on this device, pending confirmation — retry sync. If this persists, contact support.
           </span>
         </button>
       </div>

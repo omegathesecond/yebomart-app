@@ -6,6 +6,7 @@ import {
   removeSyncItem,
   updateSyncAttempt,
 } from '@/lib/db';
+import { getSyncContext, belongsToContext } from '@/lib/outboxContext';
 import type { SyncQueueItem } from '@/types';
 
 // Max attempts before an item is parked (mirrors getPendingSyncItems' filter).
@@ -19,6 +20,8 @@ const MAX_ATTEMPTS = 5;
  * we'd waste requests and race the attempt counter. One drain at a time.
  */
 let draining = false;
+let finished: Promise<void> = Promise.resolve();
+export function waitForSyncDrain() { return finished; }
 
 /** Outcome of pushing one queued item to the API. */
 type PushResult =
@@ -38,7 +41,7 @@ interface SyncState {
    * Drain the outbox: POST each pending item, remove on success. Safe to call
    * anytime — no-ops if offline or already draining. Returns a summary.
    */
-  replay: () => Promise<{ synced: number; failed: number }>;
+  replay: (retryParked?: boolean) => Promise<{ synced: number; failed: number }>;
 }
 
 export const useSyncStore = create<SyncState>((set, get) => ({
@@ -47,28 +50,36 @@ export const useSyncStore = create<SyncState>((set, get) => ({
   lastSyncedAt: null,
 
   refreshPending: async () => {
-    const count = await db.syncQueue.count();
-    set({ pendingCount: count });
+    const context = getSyncContext();
+    const items = await db.syncQueue.toArray();
+    if (getSyncContext() === context) set({ pendingCount: items.filter(item => belongsToContext(item, context)).length });
   },
 
-  replay: async () => {
+  replay: async (retryParked = false) => {
+    const context = getSyncContext();
     // Don't even try when the browser knows it's offline, or when a drain is
     // already in flight.
-    if (draining || !navigator.onLine) return { synced: 0, failed: 0 };
+    if (!context || draining || !navigator.onLine) return { synced: 0, failed: 0 };
 
     draining = true;
+    let finish!: () => void;
+    finished = new Promise<void>(resolve => { finish = resolve; });
     set({ isSyncing: true });
 
     let synced = 0;
     let failed = 0;
 
     try {
-      const items = await getPendingSyncItems(); // attempts < MAX_ATTEMPTS
+      if (retryParked) {
+        await db.syncQueue.filter(item => belongsToContext(item, context)).modify({ attempts: 0 });
+      }
+      const items = (await getPendingSyncItems()).filter(item => belongsToContext(item, context));
 
       for (const item of items) {
+        if (getSyncContext() !== context) break;
         let result: PushResult;
         try {
-          result = await pushItem(item);
+          result = await pushItem(item, () => getSyncContext() === context);
         } catch (err: any) {
           // Unexpected client-side error while building/sending — treat as a
           // server-style failure so it eventually parks rather than looping.
@@ -80,9 +91,9 @@ export const useSyncStore = create<SyncState>((set, get) => ({
         if (result === 'success') {
           await removeSyncItem(item.id);
           synced++;
-        } else if (result === 'retry') {
-          // We went offline mid-drain. Stop here and leave the rest queued —
-          // no attempt burned. The next `online` event resumes the drain.
+        } else if (result === 'retry' || getSyncContext() !== context) {
+          // Offline or signed out mid-drain: leave the rest saved without
+          // burning attempts. Reconnect or verified sign-in resumes replay.
           break;
         } else {
           await updateSyncAttempt(item.id, 'Server rejected queued item');
@@ -90,12 +101,16 @@ export const useSyncStore = create<SyncState>((set, get) => ({
         }
       }
     } finally {
-      draining = false;
-      await get().refreshPending();
-      set((s) => ({
-        isSyncing: false,
-        lastSyncedAt: synced > 0 ? new Date() : s.lastSyncedAt,
-      }));
+      try {
+        await get().refreshPending();
+        set((s) => ({
+          isSyncing: false,
+          lastSyncedAt: synced > 0 ? new Date() : s.lastSyncedAt,
+        }));
+      } finally {
+        draining = false;
+        finish();
+      }
     }
 
     return { synced, failed };
@@ -110,10 +125,10 @@ export const useSyncStore = create<SyncState>((set, get) => ({
  * Any other error → 'failed' (a genuine server rejection that won't fix itself
  * on retry — e.g. a deleted product). Success → 'success'.
  */
-async function pushItem(item: SyncQueueItem): Promise<PushResult> {
+async function pushItem(item: SyncQueueItem, isCurrent: () => boolean): Promise<PushResult> {
   if (item.table === 'sales' && item.action === 'create') {
-    const { data, error } = await api.createSale(item.data as any);
-    if (data) return 'success';
+    const { data, error } = await api.createSale(item.data as any, { shopId: item.context!.shopId, isCurrent });
+    if (data?.id) return 'success';
     if (error === NETWORK_ERROR) return 'retry';
     return 'failed';
   }

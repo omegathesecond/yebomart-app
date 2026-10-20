@@ -13,6 +13,7 @@ import type {
   LowStockAlert,
   AIInsight,
   SyncQueueItem,
+  SyncContext,
   Subscription
 } from '@/types';
 
@@ -79,12 +80,13 @@ export class YeboMartDB extends Dexie {
 export const db = new YeboMartDB();
 
 // Add to sync queue for offline operations
-export async function addToSyncQueue(table: string, action: 'create' | 'update' | 'delete', data: unknown) {
+export async function addToSyncQueue(table: string, action: 'create' | 'update' | 'delete', data: unknown, context: SyncContext) {
   await db.syncQueue.add({
     id: crypto.randomUUID(),
     table,
     action,
     data,
+    context,
     createdAt: new Date(),
     attempts: 0
   });
@@ -351,28 +353,16 @@ export async function getCurrentUser(userId?: string): Promise<User | undefined>
   return db.users.where('isActive').equals(1).first();
 }
 
-// Clear all user data from the database (call on logout)
+// Clear disposable user caches on logout, retaining the financial outbox.
 export async function clearDatabase(): Promise<void> {
   try {
-    // Clear all tables to prevent data leaking between users
-    await Promise.all([
-      db.products.clear(),
-      db.sales.clear(),
-      db.saleItems.clear(),
-      db.stockLogs.clear(),
-      db.expenses.clear(),
-      db.dailyReports.clear(),
-      db.chatMessages.clear(),
-      db.lowStockAlerts.clear(),
-      db.aiInsights.clear(),
-      db.syncQueue.clear(),
-      db.users.clear(),
-      db.shops.clear(),
-      db.userShops.clear(),
-      db.subscription.clear()
-    ]);
+    // All ordinary tables are disposable caches. The existing outbox is the
+    // sole durable record of unacknowledged financial operations.
+    const caches = db.tables.filter(table => table.name !== 'syncQueue');
+    await db.transaction('rw', caches, () => Promise.all(caches.map(table => table.clear())));
     console.log('YeboMart database cleared on logout');
   } catch (error) {
     console.error('Failed to clear database:', error);
+    throw error;
   }
 }
