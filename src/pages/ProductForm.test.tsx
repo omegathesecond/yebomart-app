@@ -163,3 +163,76 @@ describe('ProductForm photo upload', () => {
     expect(updateProduct.mock.calls[0][1]).toMatchObject({ imageUrl: '' });
   });
 });
+
+describe('ProductForm optional product payloads', () => {
+  const saved = {
+    id: 'prod-1', name: 'Soap', category: 'Other', costPrice: 5, sellPrice: 10,
+    quantity: 3, reorderAt: 10, unit: 'each',
+    attributes: { Colour: 'Blue' }, wholesalePrice: 0, wholesaleMinQty: 5,
+    packPrice: 50, packSize: 6,
+  };
+  const set = (container: HTMLElement, name: string, value: string) => {
+    fireEvent.change(container.querySelector(`input[name="${name}"]`)!, { target: { name, value } });
+  };
+
+  it('loads saved fields and submits them again on edit', async () => {
+    mockParams = { id: saved.id };
+    mockProducts = [saved];
+    const { container } = render(<ProductForm />);
+    await waitFor(() => expect(container.querySelector('input[name="packSize"]')).toHaveValue(6));
+    expect(container.querySelector('input[name="wholesalePrice"]')).toHaveValue(0);
+    fireEvent.submit(container.querySelector('form')!);
+    await waitFor(() => expect(updateProduct).toHaveBeenCalledTimes(1));
+    expect(updateProduct.mock.calls[0][1]).toMatchObject({
+      attributes: saved.attributes, wholesalePrice: 0, wholesaleMinQty: 5, packPrice: 50, packSize: 6,
+    });
+  });
+
+  it('sends nulls when optional pricing and the final attribute are removed', async () => {
+    mockParams = { id: saved.id };
+    mockProducts = [saved];
+    const { container } = render(<ProductForm />);
+    await waitFor(() => expect(screen.getByPlaceholderText('e.g., Black')).toHaveValue('Blue'));
+    for (const name of ['wholesalePrice', 'wholesaleMinQty', 'packPrice', 'packSize']) set(container, name, '');
+    fireEvent.change(screen.getByPlaceholderText('e.g., Black'), { target: { value: '' } });
+    fireEvent.submit(container.querySelector('form')!);
+    await waitFor(() => expect(updateProduct).toHaveBeenCalledTimes(1));
+    expect(JSON.parse(JSON.stringify(updateProduct.mock.calls[0][1]))).toMatchObject({
+      attributes: null, wholesalePrice: null, wholesaleMinQty: null, packPrice: null, packSize: null,
+    });
+  });
+
+  it('includes entered pricing on create and omits empty attributes', async () => {
+    const { container } = render(<ProductForm />);
+    for (const [name, value] of Object.entries({ name: 'Soap', costPrice: '5', sellPrice: '10', quantity: '3', wholesalePrice: '0', wholesaleMinQty: '5', packPrice: '50', packSize: '6' })) set(container, name, value);
+    fireEvent.submit(container.querySelector('form')!);
+    await waitFor(() => expect(addProduct).toHaveBeenCalledTimes(1));
+    const payload = JSON.parse(JSON.stringify(addProduct.mock.calls[0][0]));
+    expect(payload).toMatchObject({ wholesalePrice: 0, wholesaleMinQty: 5, packPrice: 50, packSize: 6 });
+    expect(payload).not.toHaveProperty('attributes');
+  });
+
+  it('includes a custom attribute in a create payload', async () => {
+    const { container } = render(<ProductForm />);
+    for (const [name, value] of Object.entries({ name: 'Soap', costPrice: '5', sellPrice: '10', quantity: '3' })) set(container, name, value);
+    fireEvent.change(container.querySelector('select[name="category"]')!, { target: { name: 'category', value: 'Other' } });
+    fireEvent.click(screen.getByRole('button', { name: /add custom attribute/i }));
+    fireEvent.change(screen.getByPlaceholderText('e.g., Color'), { target: { value: 'Colour' } });
+    fireEvent.change(screen.getByPlaceholderText('e.g., Black'), { target: { value: 'Blue' } });
+    fireEvent.submit(container.querySelector('form')!);
+    await waitFor(() => expect(addProduct).toHaveBeenCalledTimes(1));
+    expect(addProduct.mock.calls[0][0]).toMatchObject({ attributes: { Colour: 'Blue' } });
+  });
+
+  it('surfaces API validation errors without reporting a successful edit', async () => {
+    mockParams = { id: saved.id };
+    mockProducts = [saved];
+    updateProduct.mockRejectedValueOnce(new Error('Validation failed'));
+    const { container } = render(<ProductForm />);
+    await waitFor(() => expect(container.querySelector('input[name="packSize"]')).toHaveValue(6));
+    set(container, 'packSize', '1.5');
+    fireEvent.submit(container.querySelector('form')!);
+    await waitFor(() => expect(screen.getByText('Validation failed')).toBeInTheDocument());
+    expect(updateProduct.mock.calls[0][1]).toMatchObject({ packSize: 1.5 });
+  });
+});
