@@ -18,18 +18,45 @@ beforeEach(async () => {
     createdAt: new Date(), attempts: 0 });
 });
 
-it.each([200, 401])('real drain never substitutes B credentials before storage events arrive (HTTP %s)', async status => {
-  // Another tab has changed storage, but this tab has not received its event.
-  localStorage.setItem('yebomart_staff_token', 'token-B');
-  vi.mocked(yeboid.getAccessToken).mockResolvedValue('owner-B');
+it.each(['yebomart_staff_token', 'yebomart.accessToken'])(
+  'real drain hides and preserves A sales before a %s storage event arrives', async key => {
+    await useSyncStore.getState().refreshPending();
+    expect(useSyncStore.getState().pendingCount).toBe(1);
+    localStorage.setItem(key, 'token-B');
+    vi.mocked(yeboid.getAccessToken).mockResolvedValue('owner-B');
+    vi.stubGlobal('fetch', vi.fn());
+    await useSyncStore.getState().refreshPending();
+    await useSyncStore.getState().replay();
+    expect(useSyncStore.getState().pendingCount).toBe(0);
+    expect(fetch).not.toHaveBeenCalled();
+    expect(await db.syncQueue.count()).toBe(1);
+
+    // Only a verified original session may reopen the gate. It retains the
+    // original idempotency key and the real HTTP client uses its pinned token.
+    localStorage.clear();
+    setSyncContext({ principalId: 'A', shopId: 'shop-A', mode: 'staff' }, 'verified-A');
+    vi.mocked(fetch).mockImplementation(async (_url, options) => {
+      expect(options?.headers).toMatchObject({ Authorization: 'Bearer verified-A', 'X-Shop-Id': 'shop-A' });
+      expect(JSON.parse(options?.body as string).localId).toBe('stable-A');
+      return new Response(JSON.stringify({ data: { id: 'ack-A' } }), { status: 200 });
+    });
+    await useSyncStore.getState().replay();
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(yeboid.getAccessToken).not.toHaveBeenCalled();
+    expect(await db.syncQueue.count()).toBe(0);
+  },
+);
+
+it.each([200, 401])('credential changes during an HTTP %s replay cannot substitute tokens', async status => {
   vi.stubGlobal('fetch', vi.fn(async (_url, options: RequestInit) => {
     expect(options.headers).toMatchObject({ Authorization: 'Bearer verified-A', 'X-Shop-Id': 'shop-A' });
-    expect(JSON.parse(options.body as string).localId).toBe('stable-A');
-    return new Response(JSON.stringify({ data: { id: 'ack-A' } }), { status });
+    localStorage.setItem('yebomart_staff_token', 'token-B');
+    return new Response(JSON.stringify(status === 200 ? { data: { id: 'ack-A' } } : {}), { status });
   }));
   await useSyncStore.getState().replay();
   expect(fetch).toHaveBeenCalledTimes(1);
   expect(yeboid.getAccessToken).not.toHaveBeenCalled();
   expect(await db.syncQueue.count()).toBe(status === 200 ? 0 : 1);
+  expect(useSyncStore.getState().pendingCount).toBe(0);
   expect(localStorage.getItem('yebomart_staff_token')).toBe('token-B');
 });
