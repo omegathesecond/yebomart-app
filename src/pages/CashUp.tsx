@@ -318,16 +318,23 @@ function Stat({ label, value, sub, highlight }: { label: string; value: string; 
  * print via the #zreport-print rule in index.css.
  */
 function ZReportCard({ z, shopName }: { z: CashSessionZReport; shopName?: string }) {
+  const salesRows = [
+    ['Gross at recorded prices', z.gross],
+    ['Discounts at recorded prices', z.totalDiscount],
+    ['Net sales (excl. VAT)', z.net],
+    ['VAT in charged total', z.tax],
+    ['Charged total (incl. VAT)', z.totalAmount],
+  ] as const;
+  const priceNote = 'Recorded prices include VAT on inclusive sales and exclude VAT on exclusive sales.';
   return (
     <div className="card p-6">
       <h3 className="text-base font-semibold text-ink mb-3">Z-Report</h3>
 
+      <p className="text-sm text-mute mb-3">{priceNote}</p>
       {/* On-screen dark version */}
       <div className="space-y-2 text-sm">
         <Row label="Transactions" value={String(z.transactionCount)} />
-        <Row label="Gross sales" value={formatCurrency(z.gross)} />
-        <Row label="Discounts" value={formatCurrency(z.totalDiscount)} />
-        <Row label="Net sales" value={formatCurrency(z.net)} />
+        {salesRows.map(([label, value]) => <Row key={label} label={label} value={formatCurrency(value)} />)}
         <div className="border-t border-line my-2" />
         {z.byPaymentMethod.map((m) => (
           <Row key={m.method} label={`${m.method} (${m.count})`} value={formatCurrency(m.total)} />
@@ -349,11 +356,10 @@ function ZReportCard({ z, shopName }: { z: CashSessionZReport; shopName?: string
           </div>
           {z.session.cashier?.name && <div style={{ fontSize: 12 }}>Cashier: {z.session.cashier.name}</div>}
         </div>
+        <p>{priceNote}</p>
         <hr />
         <PrintRow label="Transactions" value={String(z.transactionCount)} />
-        <PrintRow label="Gross sales" value={formatCurrency(z.gross)} />
-        <PrintRow label="Discounts" value={formatCurrency(z.totalDiscount)} />
-        <PrintRow label="Net sales" value={formatCurrency(z.net)} />
+        {salesRows.map(([label, value]) => <PrintRow key={label} label={label} value={formatCurrency(value)} />)}
         <hr />
         <div style={{ fontWeight: 'bold', margin: '6px 0' }}>By payment method</div>
         {z.byPaymentMethod.map((m) => (
