@@ -10,6 +10,7 @@ vi.mock('@/api/client', () => ({
 }));
 vi.mock('@/lib/yeboid', () => ({ getAccessToken: vi.fn(async () => null) }));
 
+import * as yeboid from '@/lib/yeboid';
 import api, { NETWORK_ERROR } from '@/api/client';
 import { db, YeboMartDB } from '@/lib/db';
 import { getSyncContext, setSyncContext } from '@/lib/outboxContext';
@@ -244,4 +245,60 @@ it('hides pending sales when another tab changes credentials without deleting it
   expect(api.createSale).not.toHaveBeenCalled();
   expect(await db.syncQueue.count()).toBe(1);
   expect(localStorage.getItem('yebomart_staff_token')).toBe('account-B-token');
+});
+
+
+it.each(['yebomart_staff_token', 'yebomart.accessToken'])(
+  'rejects delayed /me after %s changes before the storage event', async key => {
+    await login();
+    await sale();
+    localStorage.setItem('yebomart_staff_token', 'token-A');
+    let respond!: (value: any) => void;
+    let started!: () => void;
+    const requested = new Promise<void>(resolve => { started = resolve; });
+    vi.mocked(api.getMe).mockImplementationOnce(() => {
+      started();
+      return new Promise(resolve => { respond = resolve; });
+    });
+    const load = useAuthStore.getState().loadUser();
+    await requested;
+    expect(api.getMe).toHaveBeenCalledWith('token-A');
+    localStorage.setItem(key, 'token-B');
+    respond({ data: { user: { id: 'cashier' }, shop: { id: 'shop' } } });
+    await load;
+    online(true);
+    await useSyncStore.getState().refreshPending();
+    await useSyncStore.getState().replay();
+    expect(getSyncContext()).toBeNull();
+    expect(useAuthStore.getState().isAuthenticated).toBe(false);
+    expect(useSyncStore.getState().pendingCount).toBe(0);
+    expect(api.createSale).not.toHaveBeenCalled();
+    expect(await db.syncQueue.count()).toBe(1);
+    expect(localStorage.getItem(key)).toBe('token-B');
+  },
+);
+
+
+it('rejects an owner token returned after another tab replaces shared credentials', async () => {
+  await login();
+  await sale();
+  localStorage.removeItem('yebomart_staff_token');
+  localStorage.setItem('yebomart.accessToken', 'owner-A');
+  let resolveToken!: (value: string) => void;
+  let started!: () => void;
+  const requested = new Promise<void>(resolve => { started = resolve; });
+  vi.mocked(yeboid.getAccessToken).mockImplementationOnce(() => {
+    started();
+    return new Promise(resolve => { resolveToken = resolve; });
+  });
+  const load = useAuthStore.getState().loadUser();
+  await requested;
+  localStorage.setItem('yebomart.accessToken', 'owner-B');
+  resolveToken('owner-A');
+  await load;
+  expect(api.getMe).not.toHaveBeenCalled();
+  expect(getSyncContext()).toBeNull();
+  expect(useAuthStore.getState().isAuthenticated).toBe(false);
+  expect(localStorage.getItem('yebomart.accessToken')).toBe('owner-B');
+  expect(await db.syncQueue.count()).toBe(1);
 });

@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { User, Shop, Subscription } from '@/types';
 import api from '@/api/client';
-import { setSyncContext, verifiedOwnerId } from '@/lib/outboxContext';
+import { credentialSnapshot, setSyncContext, verifiedOwnerId } from '@/lib/outboxContext';
 import { useSyncStore, waitForSyncDrain } from '@/stores/syncStore';
 import { clearDatabase } from '@/lib/db';
 import { useLocaleStore } from '@/stores/localeStore';
@@ -148,14 +148,23 @@ export const useAuthStore = create<AuthState>()(
         loadUser: async () => {
           await loggingOut;
           const revision = ++authRevision;
+          let isCurrent = () => revision === authRevision;
           try {
             setSyncContext(null);
             useSyncStore.setState({ pendingCount: 0 });
             set({ isLoading: true });
 
             const staffToken = localStorage.getItem('yebomart_staff_token');
-            const yeboidToken = await yeboid.getAccessToken();
+            const yeboidToken = staffToken ? null : await yeboid.getAccessToken();
             if (revision !== authRevision) return;
+            if (localStorage.getItem('yebomart_staff_token') !== staffToken ||
+              (!staffToken && localStorage.getItem('yebomart.accessToken') !== yeboidToken)) {
+              set({ user: null, shop: null, subscription: null,
+                isAuthenticated: false, authMode: null, isLoading: false });
+              return;
+            }
+            const credentials = credentialSnapshot();
+            isCurrent = () => revision === authRevision && credentials === credentialSnapshot();
             const hasToken = !!staffToken || !!yeboidToken;
 
             if (!hasToken) {
@@ -165,6 +174,14 @@ export const useAuthStore = create<AuthState>()(
 
             const { data, error } = await api.getMe(staffToken || yeboidToken!);
             if (revision !== authRevision) return;
+            if (!isCurrent()) {
+              // Another tab installed credentials while /me was in flight.
+              // Do not attribute its credentials to this response's identity,
+              // or log out and erase that tab's new session.
+              set({ user: null, shop: null, subscription: null,
+                isAuthenticated: false, authMode: null, isLoading: false });
+              return;
+            }
             if (error || !data) {
               await get().logout();
               return;
@@ -184,7 +201,7 @@ export const useAuthStore = create<AuthState>()(
             resumeSync();
           } catch (err) {
             console.error('Failed to load user:', err);
-            if (revision === authRevision) await get().logout();
+            if (isCurrent()) await get().logout();
           }
         },
 

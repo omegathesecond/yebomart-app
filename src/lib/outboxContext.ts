@@ -6,7 +6,7 @@ let verifiedToken: string | null = null;
 // Storage events are asynchronous. Check the credential snapshot on every
 // access too, so a background tab cannot expose or replay a stale session in
 // the interval between another tab signing in and this tab receiving its event.
-const credentialSnapshot = () => JSON.stringify([
+export const credentialSnapshot = () => JSON.stringify([
   localStorage.getItem('yebomart_staff_token'),
   localStorage.getItem('yebomart.accessToken'),
 ]);
