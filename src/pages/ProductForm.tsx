@@ -246,7 +246,7 @@ export function ProductForm() {
 
     try {
       // Combine defined attributes and custom attributes
-      const allAttributes: Record<string, string | number> = { ...attributes };
+      const allAttributes: Record<string, string | number> = Object.fromEntries(Object.entries(attributes).filter(([, value]) => value !== ''));
       customAttributes.forEach(attr => {
         if (attr.key && attr.value) {
           allAttributes[attr.key] = attr.value;
@@ -258,11 +258,11 @@ export function ProductForm() {
         name: formData.name.trim(),
         category: formData.category || undefined,
         barcode: formData.barcode || undefined,
-        attributes: Object.keys(allAttributes).length > 0 ? allAttributes : undefined,
+        attributes: Object.keys(allAttributes).length > 0 ? allAttributes : isEdit ? null : undefined,
         costPrice: parseFloat(formData.costPrice),
         sellPrice: parseFloat(formData.sellPrice),
-        wholesalePrice: formData.wholesalePrice ? parseFloat(formData.wholesalePrice) : undefined,
-        wholesaleMinQty: formData.wholesaleMinQty ? parseInt(formData.wholesaleMinQty) : undefined,
+        wholesalePrice: formData.wholesalePrice ? Number(formData.wholesalePrice) : isEdit ? null : undefined,
+        wholesaleMinQty: formData.wholesaleMinQty ? Number(formData.wholesaleMinQty) : isEdit ? null : undefined,
         quantity: parseInt(formData.quantity),
         reorderAt: parseInt(formData.reorderAt) || 10,
         unit: formData.unit,
@@ -272,8 +272,8 @@ export function ProductForm() {
         // removed photo actually clears the stored value (omitting the key
         // entirely is a no-op for Prisma's update).
         ...(isEdit ? { imageUrl } : imageUrl ? { imageUrl } : {}),
-        packSize: formData.packSize ? parseInt(formData.packSize) : undefined,
-        packPrice: formData.packPrice ? parseFloat(formData.packPrice) : undefined,
+        packSize: formData.packSize ? Number(formData.packSize) : isEdit ? null : undefined,
+        packPrice: formData.packPrice ? Number(formData.packPrice) : isEdit ? null : undefined,
         isActive: true
       };
 
