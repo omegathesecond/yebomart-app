@@ -74,19 +74,19 @@ export interface Product {
   barcode?: string;
   name: string;
   category?: string;
-  attributes?: Record<string, string | number>;  // Dynamic product attributes
+  attributes?: Record<string, string | number> | null;  // Dynamic product attributes
   costPrice: number;
   sellPrice: number;
   // Wholesale pricing (optional)
-  wholesalePrice?: number;   // Bulk price per unit
-  wholesaleMinQty?: number;  // Minimum quantity for wholesale price
+  wholesalePrice?: number | null;   // Bulk price per unit
+  wholesaleMinQty?: number | null;  // Minimum quantity for wholesale price
   quantity: number;
   reorderAt: number;
   unit: string;
   imageUrl?: string;
   // Pack pricing (optional)
-  packSize?: number;    // e.g., 6 for a 6-pack
-  packPrice?: number;   // price for the pack
+  packSize?: number | null;    // e.g., 6 for a 6-pack
+  packPrice?: number | null;   // price for the pack
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
