@@ -105,6 +105,8 @@ export interface CashSessionZReport {
   gross: number;
   totalDiscount: number;
   net: number;
+  tax: number;
+  totalAmount: number;
   byPaymentMethod: { method: string; total: number; discount: number; count: number }[];
 }
 
