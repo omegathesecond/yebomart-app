@@ -84,7 +84,6 @@ export interface CashSession {
   user?: { id: string; name: string } | null;
   // Present on GET /current (live tally since openedAt):
   cashSalesTotal?: number;
-  cashRefundsTotal?: number;
   cashSalesCount?: number;
   cashRefundsTotal?: number;
   cashRefundsCount?: number;
