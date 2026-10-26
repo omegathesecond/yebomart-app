@@ -60,6 +60,8 @@ interface Return {
   id: string;
   saleId?: string;
   customerId?: string;
+  customer?: { id: string; name: string };
+  creditReversal?: { id: string; amount: number; customerId: string; returnId: string };
   reason: string;
   type: 'REFUND' | 'EXCHANGE' | 'STORE_CREDIT';
   refundAmount: number;
@@ -202,6 +204,10 @@ export function Returns() {
 
   const handleCreateReturn = async () => {
     if (!foundSale || selectedItems.size === 0 || !returnReason.trim()) return;
+    if (returnType === 'STORE_CREDIT' && foundSale.paymentMethod !== 'CREDIT' && !selectedCustomer) {
+      showToast('Choose a customer to receive store credit', 'error');
+      return;
+    }
     if (foundSale.paymentMethod === 'CREDIT' && (returnType !== 'STORE_CREDIT' || (selectedCustomer && selectedCustomer.id !== foundSale.customerId))) {
       showToast('Pay-later returns must adjust the original customer account. Cash refunds and exchanges are not supported.', 'error');
       return;
@@ -258,8 +264,15 @@ export function Returns() {
         showToast(error, 'error');
         return;
       }
+      if (action === 'complete' && selectedReturn.type === 'STORE_CREDIT' &&
+          !(data as Return | undefined)?.creditReversal?.id) {
+        showToast('Store credit posting was not confirmed. Refresh the return before continuing.', 'error');
+        return;
+      }
       if (action === 'complete' && data?.creditReversal) {
-        showToast(`Customer account adjusted by ${formatCurrency(-data.creditReversal.amount)}. Repayments retained; no cash refunded.`);
+        showToast(data.creditReversal.amount < 0
+          ? `Customer account adjusted by ${formatCurrency(-data.creditReversal.amount)}. Repayments retained; no cash refunded.`
+          : `Store credit of ${formatCurrency(data.creditReversal.amount)} posted to the customer account.`);
       }
       await fetchReturns();
       setSelectedReturn(null);
@@ -553,7 +566,7 @@ export function Returns() {
               {/* Credit returns always use the original debtor. */}
               {foundSale.paymentMethod !== 'CREDIT' && <div>
                 <label className="block text-sm text-mute mb-2">
-                  Customer (optional)
+                  {returnType === 'STORE_CREDIT' ? 'Customer receiving store credit (required)' : 'Customer (optional)'}
                 </label>
                 {selectedCustomer ? (
                   <div className="flex items-center gap-2 bg-sand border border-line rounded-sharp px-3 py-2">
@@ -588,9 +601,9 @@ export function Returns() {
               </div>}
 
               {/* Refund Amount */}
-              {returnType === 'REFUND' && selectedItems.size > 0 && (
+              {returnType !== 'EXCHANGE' && selectedItems.size > 0 && (
                 <div className="p-4 bg-ok/30 border border-ok rounded-sharp">
-                  <p className="text-sm text-ok mb-1">Refund Amount</p>
+                  <p className="text-sm text-ok mb-1">{returnType === 'STORE_CREDIT' ? 'Store credit amount' : 'Refund Amount'}</p>
                   <p className="m text-2xl font-bold text-ok">
                     {formatCurrency(calculateRefundAmount())}
                   </p>
@@ -602,7 +615,7 @@ export function Returns() {
                 variant="primary"
                 className="w-full"
                 onClick={handleCreateReturn}
-                disabled={selectedItems.size === 0 || !returnReason.trim() || creatingReturn}
+                disabled={selectedItems.size === 0 || !returnReason.trim() || creatingReturn || (returnType === 'STORE_CREDIT' && foundSale.paymentMethod !== 'CREDIT' && !selectedCustomer)}
               >
                 {creatingReturn ? 'Creating...' : 'Create Return'}
               </Button>
@@ -638,6 +651,15 @@ export function Returns() {
               <p className="text-sm text-mute mb-1">Reason</p>
               <p className="text-ink">{selectedReturn.reason}</p>
             </div>
+
+            {selectedReturn.type === 'STORE_CREDIT' && (
+              <div className="bg-sand border border-line rounded-sharp p-4">
+                <p className="text-sm text-mute">{selectedReturn.creditReversal ? 'Credited to' : 'Store credit recipient'}</p>
+                <p className="text-ink">{selectedReturn.customer?.name || selectedReturn.customerId}</p>
+                <p className="text-lg font-bold text-ink">{formatCurrency(selectedReturn.creditReversal ? Math.abs(selectedReturn.creditReversal.amount) : selectedReturn.refundAmount)}</p>
+                {selectedReturn.creditReversal && <p className="text-xs text-mute">Ledger entry: {selectedReturn.creditReversal.id}</p>}
+              </div>
+            )}
 
             {/* Items */}
             <div>
