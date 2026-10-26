@@ -197,6 +197,7 @@ export function CashUp() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <Stat label="Opening float" value={formatCurrency(session.openingFloat)} />
               <Stat label="Cash sales" value={formatCurrency(session.cashSalesTotal ?? 0)} sub={`${session.cashSalesCount ?? 0} sale(s)`} />
+              <Stat label="Cash refunds paid" value={formatCurrency(session.cashRefundsTotal ?? 0)} sub={`${session.cashRefundsCount ?? 0} refund(s)`} />
               <Stat label="Expected in drawer" value={formatCurrency(session.expectedCash ?? session.openingFloat)} highlight />
               <Stat
                 label="Opened"
@@ -228,7 +229,7 @@ export function CashUp() {
             <Input
               label="Notes (optional)"
               type="text"
-              placeholder="e.g. drawer short — refund not logged"
+              placeholder="e.g. reason for a cash difference"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
             />
@@ -341,6 +342,7 @@ function ZReportCard({ z, shopName }: { z: CashSessionZReport; shopName?: string
         ))}
         <div className="border-t border-line my-2" />
         <Row label="Opening float" value={formatCurrency(z.session.openingFloat)} />
+        <Row label={`Cash refunds paid (${z.cashRefundsCount})`} value={formatCurrency(z.cashRefundsTotal)} />
         <Row label="Expected cash" value={formatCurrency(z.session.expectedCash ?? 0)} />
         <Row label="Counted cash" value={formatCurrency(z.session.countedCash ?? 0)} />
         <Row label="Variance" value={formatCurrency(z.session.variance ?? 0)} strong />
@@ -367,6 +369,7 @@ function ZReportCard({ z, shopName }: { z: CashSessionZReport; shopName?: string
         ))}
         <hr />
         <PrintRow label="Opening float" value={formatCurrency(z.session.openingFloat)} />
+        <PrintRow label={`Cash refunds paid (${z.cashRefundsCount})`} value={formatCurrency(z.cashRefundsTotal)} />
         <PrintRow label="Expected cash" value={formatCurrency(z.session.expectedCash ?? 0)} />
         <PrintRow label="Counted cash" value={formatCurrency(z.session.countedCash ?? 0)} />
         <PrintRow label="VARIANCE" value={formatCurrency(z.session.variance ?? 0)} bold />
