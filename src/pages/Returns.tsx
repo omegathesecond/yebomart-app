@@ -62,6 +62,9 @@ interface Return {
   reason: string;
   type: 'REFUND' | 'EXCHANGE' | 'STORE_CREDIT';
   refundAmount: number;
+  settlementMethod?: string;
+  settlementReference?: string;
+  cashSessionId?: string;
   status: 'PENDING' | 'APPROVED' | 'COMPLETED' | 'REJECTED';
   notes?: string;
   items: ReturnItem[];
@@ -91,6 +94,14 @@ export function Returns() {
   const [statusFilter, setStatusFilter] = useState('');
   const [selectedReturn, setSelectedReturn] = useState<Return | null>(null);
   const [processing, setProcessing] = useState(false);
+  const [settlementMethod, setSettlementMethod] = useState<'CASH' | 'CARD' | 'MOMO' | 'EMALI'>('CASH');
+  const [settlementReference, setSettlementReference] = useState('');
+  const [payoutConfirmed, setPayoutConfirmed] = useState(false);
+  useEffect(() => {
+    setPayoutConfirmed(false);
+    setSettlementReference('');
+    setSettlementMethod('CASH');
+  }, [selectedReturn?.id]);
   
   // New return flow
   const [showNewReturn, setShowNewReturn] = useState(false);
@@ -235,7 +246,7 @@ export function Returns() {
     if (!selectedReturn) return;
     setProcessing(true);
     try {
-      const { error } = await api.processReturn(selectedReturn.id, action);
+      const { error } = await api.processReturn(selectedReturn.id, action, action === 'complete' && selectedReturn.type === 'REFUND' ? { method: settlementMethod, confirmed: payoutConfirmed, reference: settlementReference || undefined } : undefined);
       if (error) {
         showToast(error, 'error');
         return;
@@ -640,6 +651,25 @@ export function Returns() {
               </div>
             )}
 
+            {selectedReturn.settlementMethod && (
+              <p className="text-sm text-mute">Paid via {selectedReturn.settlementMethod}{selectedReturn.cashSessionId ? ` · Till ${selectedReturn.cashSessionId}` : ''}{selectedReturn.settlementReference ? ` · ${selectedReturn.settlementReference}` : ''}</p>
+            )}
+            {selectedReturn.status === 'APPROVED' && selectedReturn.type === 'REFUND' && (
+              <div className="space-y-3">
+                <label className="block text-sm">Actual refund payment method
+                  <select className="input w-full mt-1" value={settlementMethod} onChange={e => { setSettlementMethod(e.target.value as typeof settlementMethod); setPayoutConfirmed(false); }}>
+                    <option value="CASH">Cash from current till</option>
+                    <option value="CARD">Card</option><option value="MOMO">MTN Mobile Money</option><option value="EMALI">eMali</option>
+                  </select>
+                </label>
+                <p className="text-sm text-mute">{settlementMethod === 'CASH' ? 'Requires an open till. The payout is recorded against the current session, including returns from earlier days.' : 'Complete the refund externally first. Record only a successful payment; this action does not send a provider refund.'} CREDIT-sale payouts require debt settlement and are unsupported.</p>
+                {settlementMethod !== 'CASH' && <label className="block text-sm">Successful refund reference
+                  <input className="input w-full mt-1" value={settlementReference} maxLength={200} onChange={e => setSettlementReference(e.target.value)} />
+                </label>}
+                <label className="flex gap-2 text-sm"><input type="checkbox" checked={payoutConfirmed} onChange={e => setPayoutConfirmed(e.target.checked)} />I confirm {formatCurrency(selectedReturn.refundAmount)} was paid to the customer by this method.</label>
+              </div>
+            )}
+
             {/* Actions */}
             {selectedReturn.status === 'PENDING' && (
               <div className="flex gap-3">
@@ -666,7 +696,7 @@ export function Returns() {
                 variant="primary"
                 className="w-full"
                 onClick={() => handleProcess('complete')}
-                disabled={processing}
+                disabled={processing || (selectedReturn.type === 'REFUND' && (!payoutConfirmed || (settlementMethod !== 'CASH' && !settlementReference.trim())))}
               >
                 {processing ? 'Processing...' : 'Complete Return & Restock'}
               </Button>
