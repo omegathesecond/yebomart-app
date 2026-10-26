@@ -202,6 +202,15 @@ export interface CustomerSale {
   }>;
 }
 
+/** JSON fields used from GET /api/sales/search/receipt (not the local POS Sale). */
+export interface ReceiptSale extends CustomerSale {
+  receiptNumber: string | null;
+  customerId: string | null;
+  paymentMethod: 'CASH' | 'MOMO' | 'EMALI' | 'CARD' | 'MIXED' | 'CREDIT';
+  items: NonNullable<CustomerSale['items']>;
+  user: { id: string; name: string } | null;
+}
+
 export interface CustomerDetail extends Customer {
   credits: CustomerCredit[];
   sales: CustomerSale[];
@@ -999,7 +1008,7 @@ class ApiClient {
   }
 
   async searchSaleByReceipt(receiptNumber: string) {
-    return this.request<any>(
+    return this.request<ReceiptSale>(
       `/api/sales/search/receipt?receiptNumber=${encodeURIComponent(receiptNumber)}`,
     );
   }
