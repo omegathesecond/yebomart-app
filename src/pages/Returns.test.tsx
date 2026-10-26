@@ -1,23 +1,25 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { Returns } from './Returns';
+import { Returns, type Sale, type Return } from './Returns';
 import { api } from '@/api/client';
+const creditSale: Sale = {
+  id: 'sale', customerId: 'debtor', paymentMethod: 'CREDIT', totalAmount: 100,
+  receiptNumber: 'R1', createdAt: '2026-10-26', items: [],
+};
+
 vi.mock('@/api/client', () => ({ api: {
   getReturns: vi.fn(), processReturn: vi.fn(), searchSaleByReceipt: vi.fn(), getReturnEntitlement: vi.fn(), createReturn: vi.fn(),
 } }));
 vi.mock('@/components/CustomerPicker', () => ({ CustomerPicker: ({ onSelect }: { onSelect: (customer: { id: string; name: string }) => void }) => <button onClick={() => onSelect({ id: 'recipient', name: 'Recipient' })}>Pick recipient</button> }));
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(api.getReturns).mockResolvedValue({ data: [] } as any);
-  vi.mocked(api.searchSaleByReceipt).mockResolvedValue({ data: {
-    id: 'sale', customerId: 'debtor', paymentMethod: 'CREDIT', totalAmount: 100,
-    receiptNumber: 'R1', createdAt: '2026-10-26',
-  } } as any);
-  vi.mocked(api.getReturnEntitlement).mockResolvedValue({ data: [{ productId: 'product', productName: 'Tea', remainingQuantity: 5, remainingCents: 10000 }] } as any);
+  vi.mocked(api.getReturns).mockResolvedValue({ data: [] });
+  vi.mocked(api.searchSaleByReceipt).mockResolvedValue({ data: creditSale });
+  vi.mocked(api.getReturnEntitlement).mockResolvedValue({ data: [{ productId: 'product', productName: 'Tea', remainingQuantity: 5, remainingCents: 10000 }] });
 });
 describe('pay-later return choices', () => {
   it('explains account credit, disables cash/exchange and preserves the debtor on submission', async () => {
-    vi.mocked(api.createReturn).mockResolvedValue({ error: 'Account needs reconciliation' } as any);
+    vi.mocked(api.createReturn).mockResolvedValue({ error: 'Account needs reconciliation' });
     render(<Returns />);
     fireEvent.click(screen.getByRole('button', { name: 'New Return' }));
     const search = screen.getByPlaceholderText('e.g., RCP-260212-0001 or just 0001');
@@ -39,15 +41,15 @@ describe('pay-later return choices', () => {
 
 
 describe('paid-sale store-credit completion', () => {
-  const approvedReturn = {
+  const approvedReturn: Return = {
     id: 'return', saleId: 'sale', customerId: 'recipient',
     customer: { id: 'recipient', name: 'Retail customer' },
     type: 'STORE_CREDIT', status: 'APPROVED', reason: 'Damaged item',
     refundAmount: 50, items: [], createdAt: '2026-10-26',
   };
   it('keeps the detail open and reports failure when completion has no persisted ledger entry', async () => {
-    vi.mocked(api.getReturns).mockResolvedValue({ data: [approvedReturn] } as any);
-    vi.mocked(api.processReturn).mockResolvedValue({ data: { ...approvedReturn, status: 'COMPLETED' } } as any);
+    vi.mocked(api.getReturns).mockResolvedValue({ data: [approvedReturn] });
+    vi.mocked(api.processReturn).mockResolvedValue({ data: { ...approvedReturn, status: 'COMPLETED' } satisfies Return });
     render(<Returns />);
     fireEvent.click(await screen.findByText('Damaged item'));
     expect(screen.getByText('Retail customer')).toBeInTheDocument();
@@ -57,10 +59,10 @@ describe('paid-sale store-credit completion', () => {
     expect(screen.queryByText(/Store credit of/)).not.toBeInTheDocument();
   });
   it('confirms paid-sale account credit only after the ledger entry is returned', async () => {
-    vi.mocked(api.getReturns).mockResolvedValue({ data: [approvedReturn] } as any);
+    vi.mocked(api.getReturns).mockResolvedValue({ data: [approvedReturn] });
     vi.mocked(api.processReturn).mockResolvedValue({ data: {
       ...approvedReturn, status: 'COMPLETED', creditReversal: { id: 'entry', returnId: 'return', customerId: 'recipient', amount: 50 },
-    } } as any);
+    } satisfies Return });
     render(<Returns />);
     fireEvent.click(await screen.findByText('Damaged item'));
     fireEvent.click(screen.getByRole('button', { name: 'Complete Return & Restock' }));
@@ -72,10 +74,10 @@ describe('paid-sale store-credit completion', () => {
 describe('paid-sale store credit', () => {
   it('requires a recipient before creating the return', async () => {
     vi.mocked(api.searchSaleByReceipt).mockResolvedValue({ data: {
-      id: 'paid-sale', paymentMethod: 'CASH', totalAmount: 100,
+      ...creditSale, id: 'paid-sale', customerId: undefined, paymentMethod: 'CASH', totalAmount: 100,
       receiptNumber: 'R2', createdAt: '2026-10-26',
-    } } as any);
-    vi.mocked(api.createReturn).mockResolvedValue({ error: 'Posting unavailable' } as any);
+    } satisfies Sale });
+    vi.mocked(api.createReturn).mockResolvedValue({ error: 'Posting unavailable' });
     render(<Returns />);
     fireEvent.click(screen.getByRole('button', { name: 'New Return' }));
     const search = screen.getByPlaceholderText('e.g., RCP-260212-0001 or just 0001');
