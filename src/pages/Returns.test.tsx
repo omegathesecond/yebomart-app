@@ -5,7 +5,7 @@ import { api } from '@/api/client';
 vi.mock('@/api/client', () => ({ api: {
   getReturns: vi.fn(), processReturn: vi.fn(), searchSaleByReceipt: vi.fn(), getReturnEntitlement: vi.fn(), createReturn: vi.fn(),
 } }));
-vi.mock('@/components/CustomerPicker', () => ({ CustomerPicker: () => null }));
+vi.mock('@/components/CustomerPicker', () => ({ CustomerPicker: ({ onSelect }: { onSelect: (customer: { id: string; name: string }) => void }) => <button onClick={() => onSelect({ id: 'recipient', name: 'Recipient' })}>Pick recipient</button> }));
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(api.getReturns).mockResolvedValue({ data: [] } as any);
@@ -66,5 +66,29 @@ describe('paid-sale store-credit completion', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Complete Return & Restock' }));
     expect(await screen.findByText(/Store credit of .* posted to the customer account/)).toBeInTheDocument();
     expect(screen.queryByText(/Repayments retained/)).not.toBeInTheDocument();
+  });
+});
+
+describe('paid-sale store credit', () => {
+  it('requires a recipient before creating the return', async () => {
+    vi.mocked(api.searchSaleByReceipt).mockResolvedValue({ data: {
+      id: 'paid-sale', paymentMethod: 'CASH', totalAmount: 100,
+      receiptNumber: 'R2', createdAt: '2026-10-26',
+    } } as any);
+    vi.mocked(api.createReturn).mockResolvedValue({ error: 'Posting unavailable' } as any);
+    render(<Returns />);
+    fireEvent.click(screen.getByRole('button', { name: 'New Return' }));
+    const search = screen.getByPlaceholderText('e.g., RCP-260212-0001 or just 0001');
+    fireEvent.change(search, { target: { value: 'R2' } });
+    fireEvent.keyDown(search, { key: 'Enter' });
+    fireEvent.click(await screen.findByText('Tea'));
+    fireEvent.click(screen.getByRole('button', { name: 'Store Credit' }));
+    fireEvent.change(screen.getByPlaceholderText(/Customer changed mind/), { target: { value: 'Returned goods' } });
+    expect(screen.getByRole('button', { name: 'Create Return' })).toBeDisabled();
+    fireEvent.click(screen.getByText('Pick recipient'));
+    fireEvent.click(screen.getByRole('button', { name: 'Create Return' }));
+    await waitFor(() => expect(api.createReturn).toHaveBeenCalledWith(expect.objectContaining({ saleId: 'paid-sale', customerId: 'recipient', type: 'STORE_CREDIT' })));
+    expect(await screen.findByText('Posting unavailable')).toBeInTheDocument();
+    expect(screen.queryByText('Return created')).not.toBeInTheDocument();
   });
 });

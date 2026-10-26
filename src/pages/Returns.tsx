@@ -538,10 +538,6 @@ export function Returns() {
                 </div>
               </div>
 
-              {returnType === 'STORE_CREDIT' && foundSale.paymentMethod === 'CREDIT' && (
-                <p className="text-bad text-sm">CREDIT sales require debt settlement and cannot receive store credit here.</p>
-              )}
-
               {/* Reason */}
               <div>
                 <label className="block text-sm text-mute mb-2">
