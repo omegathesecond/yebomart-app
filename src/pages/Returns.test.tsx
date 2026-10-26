@@ -2,6 +2,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Returns } from './Returns';
 import { api } from '@/api/client';
+import type { ReceiptSale } from '@/api/client';
+
+const creditSale = {
+  id: 'sale', customerId: 'debtor', paymentMethod: 'CREDIT', totalAmount: 100,
+  receiptNumber: 'R1', createdAt: '2026-10-26', items: [], user: null,
+} satisfies ReceiptSale;
+
 vi.mock('@/api/client', () => ({ api: {
   getReturns: vi.fn(), processReturn: vi.fn(), searchSaleByReceipt: vi.fn(), getReturnEntitlement: vi.fn(), createReturn: vi.fn(),
 } }));
@@ -9,10 +16,7 @@ vi.mock('@/components/CustomerPicker', () => ({ CustomerPicker: ({ onSelect }: {
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(api.getReturns).mockResolvedValue({ data: [] });
-  vi.mocked(api.searchSaleByReceipt).mockResolvedValue({ data: {
-    id: 'sale', customerId: 'debtor', paymentMethod: 'CREDIT', totalAmount: 100,
-    receiptNumber: 'R1', createdAt: '2026-10-26', items: [], user: null,
-  } });
+  vi.mocked(api.searchSaleByReceipt).mockResolvedValue({ data: creditSale });
   vi.mocked(api.getReturnEntitlement).mockResolvedValue({ data: [{ productId: 'product', productName: 'Tea', remainingQuantity: 5, remainingCents: 10000 }] });
 });
 describe('pay-later return choices', () => {
