@@ -365,3 +365,56 @@ describe('cartStore — checkout (offline outbox)', () => {
     expect(useCartStore.getState().error).toBeNull(); // not surfaced as an error
   });
 });
+
+describe('cartStore — checkout attempt identity', () => {
+  it('reuses the key after a reported failure and retires it after success', async () => {
+    const product = makeProduct({ id: 'retry' });
+    useCartStore.getState().addItem(product);
+    createSale.mockResolvedValueOnce({ error: 'Temporary server failure' })
+      .mockResolvedValue({ data: { id: 'committed' } });
+    expect(await useCartStore.getState().checkout('user-1', 'shop-1')).toBeNull();
+    await useCartStore.getState().checkout('user-1', 'shop-1');
+    const first = createSale.mock.calls[0][0].localId;
+    expect(createSale.mock.calls[1][0].localId).toBe(first);
+    useCartStore.getState().addItem(product);
+    await useCartStore.getState().checkout('user-1', 'shop-1');
+    expect(createSale.mock.calls[2][0].localId).not.toBe(first);
+  });
+
+  it('uses a different key when the rejected payload or active shop changes', async () => {
+    useCartStore.getState().addItem(makeProduct({ id: 'edited' }));
+    createSale.mockResolvedValue({ error: 'Rejected' });
+    await useCartStore.getState().checkout('user-1', 'shop-1');
+    useCartStore.getState().updateQuantity('edited', 2);
+    await useCartStore.getState().checkout('user-1', 'shop-1');
+    await useCartStore.getState().checkout('user-1', 'shop-2');
+    expect(new Set(createSale.mock.calls.map(call => call[0].localId)).size).toBe(3);
+  });
+
+  it('blocks overlapping checkout attempts while the first response is pending', async () => {
+    useCartStore.getState().addItem(makeProduct());
+    let finish!: (value: { data: { id: string } }) => void;
+    createSale.mockReturnValue(new Promise(resolve => { finish = resolve; }));
+    const first = useCartStore.getState().checkout('user-1', 'shop-1');
+    expect(await useCartStore.getState().checkout('user-1', 'shop-1')).toBeNull();
+    expect(createSale).toHaveBeenCalledTimes(1);
+    finish({ data: { id: 'one-sale' } });
+    expect((await first)?.id).toBe('one-sale');
+  });
+});
+
+it('releases a failed offline queue attempt and keeps its key for retry', async () => {
+  setOnline(false);
+  useCartStore.getState().addItem(makeProduct());
+  const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+  vi.mocked(addToSyncQueue).mockRejectedValueOnce(new Error('IndexedDB unavailable'));
+  try {
+    expect(await useCartStore.getState().checkout('user-1', 'shop-1')).toBeNull();
+    expect(useCartStore.getState().isProcessing).toBe(false);
+    expect(useCartStore.getState().error).toBeTruthy();
+    expect(useCartStore.getState().items).toHaveLength(1);
+    await useCartStore.getState().checkout('user-1', 'shop-1');
+    expect(vi.mocked(addToSyncQueue).mock.calls[1][2].localId)
+      .toBe(vi.mocked(addToSyncQueue).mock.calls[0][2].localId);
+  } finally { log.mockRestore(); }
+});

@@ -22,6 +22,7 @@ interface CartState {
   customer: Customer | null;
   isProcessing: boolean;
   error: string | null;
+  checkoutAttempt: { fingerprint: string; localId: string } | null;
   
   // Computed
   totalItems: number;
@@ -61,6 +62,7 @@ export const useCartStore = create<CartState>((set, get) => ({
   customer: null,
   isProcessing: false,
   error: null,
+  checkoutAttempt: null,
 
   get totalItems() {
     return get().items.reduce((sum, item) => sum + item.quantity, 0);
@@ -181,7 +183,7 @@ export const useCartStore = create<CartState>((set, get) => ({
   },
 
   clear: () => {
-    set({ items: [], paymentMethod: 'cash', discount: null, customer: null, error: null });
+    set({ items: [], paymentMethod: 'cash', discount: null, customer: null, error: null, checkoutAttempt: null });
   },
 
   // Checkout via API — with an offline outbox fallback.
@@ -192,6 +194,7 @@ export const useCartStore = create<CartState>((set, get) => ({
   // syncStore replays it on reconnect; the server dedups on `localId` so an
   // online attempt whose response was lost is never double-applied.
   checkout: async (_userId: string, _shopId: string) => {
+    if (get().isProcessing) return null;
     const { items, paymentMethod, discount, customer } = get();
 
     // Calculate subtotal with custom/pack pricing
@@ -246,10 +249,6 @@ export const useCartStore = create<CartState>((set, get) => ({
 
     set({ isProcessing: true, error: null });
 
-    // Stable idempotency key for this checkout. Sent on the live attempt AND any
-    // queued replay so the server commits the sale exactly once.
-    const localId = crypto.randomUUID();
-
     // Format items for API
     const saleItems = items.map(item => {
       const price = getItemPrice(item);
@@ -287,8 +286,15 @@ export const useCartStore = create<CartState>((set, get) => ({
       discountReason: discount?.reason,
       discountApprovedBy: discount?.approvedBy,
       customerId: customer?.id,
-      localId,
     };
+
+    // Keep the key across failed attempts of the same scoped payload. A changed
+    // cart or shop is a different sale; successful/queued checkouts retire the key.
+    const fingerprint = JSON.stringify({ shopId: _shopId, userId: _userId, ...payload });
+    const previous = get().checkoutAttempt;
+    const localId = previous?.fingerprint === fingerprint ? previous.localId : crypto.randomUUID();
+    set({ checkoutAttempt: { fingerprint, localId } });
+    const request = { ...payload, localId };
 
     // Build receipt items BEFORE clearing cart. `saleId` is filled per-branch:
     // the server id when online, the localId when queued offline.
@@ -321,13 +327,13 @@ export const useCartStore = create<CartState>((set, get) => ({
     // POSTed on reconnect.
     const completeOffline = async (): Promise<Sale> => {
       await addToSyncQueue('sales', 'create', {
-        ...payload,
+        ...request,
         offlineAt: new Date().toISOString(),
       });
       void useSyncStore.getState().refreshPending();
 
       const receiptItems = buildReceiptItems(localId);
-      set({ items: [], paymentMethod: 'cash', discount: null, customer: null, isProcessing: false });
+      set({ items: [], paymentMethod: 'cash', discount: null, customer: null, isProcessing: false, checkoutAttempt: null });
 
       return {
         id: localId,
@@ -347,18 +353,17 @@ export const useCartStore = create<CartState>((set, get) => ({
     };
 
     // Already offline — don't bother attempting the request.
-    if (!navigator.onLine) {
-      return completeOffline();
-    }
-
     try {
+      if (!navigator.onLine) {
+        return await completeOffline();
+      }
       // Create sale via API
-      const { data, error } = await api.createSale(payload);
+      const { data, error } = await api.createSale(request);
 
       if (!data) {
         // Transport failure → queue + complete offline (retryable).
         if (error === NETWORK_ERROR) {
-          return completeOffline();
+          return await completeOffline();
         }
         // Genuine server rejection (insufficient stock, etc.) → surface it.
         set({ isProcessing: false, error: error || 'Failed to process sale' });
@@ -368,7 +373,7 @@ export const useCartStore = create<CartState>((set, get) => ({
       const receiptItems = buildReceiptItems(data.id);
 
       // Clear cart on success
-      set({ items: [], paymentMethod: 'cash', discount: null, customer: null, isProcessing: false });
+      set({ items: [], paymentMethod: 'cash', discount: null, customer: null, isProcessing: false, checkoutAttempt: null });
 
       // Return the sale with formatted items for UI. Prefer the server's
       // authoritative tax/total/post-sale balance; fall back to the locally-
@@ -389,12 +394,8 @@ export const useCartStore = create<CartState>((set, get) => ({
     } catch (error) {
       // fetch() failures are already caught inside the api client and returned
       // as NETWORK_ERROR, so reaching here means an unexpected client error.
-      // If we lost the connection, still complete offline rather than dropping
-      // the sale; otherwise surface it.
+      // Queue failures also reach this error channel and release the checkout lock.
       console.error('Checkout failed:', error);
-      if (!navigator.onLine) {
-        return completeOffline();
-      }
       set({ isProcessing: false, error: 'Failed to process sale. Please try again.' });
       return null;
     }
