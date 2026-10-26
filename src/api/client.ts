@@ -86,10 +86,13 @@ export interface CashSession {
   cashSalesTotal?: number;
   cashRefundsTotal?: number;
   cashSalesCount?: number;
+  cashRefundsTotal?: number;
+  cashRefundsCount?: number;
 }
 
 export interface CashSessionZReport {
   cashRefundsTotal: number;
+  cashRefundsCount: number;
   session: {
     id: string;
     status: 'OPEN' | 'CLOSED';
@@ -989,10 +992,10 @@ class ApiClient {
     });
   }
 
-  async processReturn(id: string, action: 'approve' | 'reject' | 'complete', settlement?: { settlementMethod?: 'CASH' | 'CARD' | 'MOMO' | 'EMALI'; settlementReference?: string; paymentConfirmed: boolean }) {
+  async processReturn(id: string, action: 'approve' | 'reject' | 'complete', settlement?: { method: 'CASH' | 'CARD' | 'MOMO' | 'EMALI'; confirmed: boolean; reference?: string }) {
     return this.request<any>(`/api/returns/${id}/process`, {
       method: 'POST',
-      body: JSON.stringify({ action, ...settlement }),
+      body: JSON.stringify({ action, settlement }),
     });
   }
 
