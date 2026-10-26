@@ -56,7 +56,7 @@ interface ReturnItem {
   restocked: boolean;
 }
 
-interface Return {
+export interface Return {
   id: string;
   saleId?: string;
   customerId?: string;
