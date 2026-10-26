@@ -63,6 +63,9 @@ interface Return {
   reason: string;
   type: 'REFUND' | 'EXCHANGE' | 'STORE_CREDIT';
   refundAmount: number;
+  settlementMethod?: string | null;
+  settlementReference?: string | null;
+  settledAt?: string | null;
   status: 'PENDING' | 'APPROVED' | 'COMPLETED' | 'REJECTED';
   notes?: string;
   items: ReturnItem[];
@@ -92,6 +95,14 @@ export function Returns() {
   const [statusFilter, setStatusFilter] = useState('');
   const [selectedReturn, setSelectedReturn] = useState<Return | null>(null);
   const [processing, setProcessing] = useState(false);
+  const [settlementMethod, setSettlementMethod] = useState<'' | 'CASH' | 'CARD' | 'MOMO' | 'EMALI'>('');
+  const [settlementReference, setSettlementReference] = useState('');
+  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
+  useEffect(() => {
+    setSettlementMethod('');
+    setSettlementReference('');
+    setPaymentConfirmed(false);
+  }, [selectedReturn?.id]);
   
   // New return flow
   const [showNewReturn, setShowNewReturn] = useState(false);
@@ -242,7 +253,10 @@ export function Returns() {
     if (!selectedReturn) return;
     setProcessing(true);
     try {
-      const { data, error } = await api.processReturn(selectedReturn.id, action);
+      const { data, error } = await api.processReturn(selectedReturn.id, action,
+        action === 'complete' && selectedReturn.type === 'REFUND'
+          ? { settlementMethod: settlementMethod || undefined, settlementReference: settlementReference || undefined, paymentConfirmed }
+          : undefined);
       if (error) {
         showToast(error, 'error');
         return;
@@ -675,15 +689,36 @@ export function Returns() {
                 </Button>
               </div>
             )}
+            {selectedReturn.settledAt && <p className="text-sm text-mute">Paid by {selectedReturn.settlementMethod}{selectedReturn.settlementReference ? ` · ${selectedReturn.settlementReference}` : ''} on {new Date(selectedReturn.settledAt).toLocaleString()}</p>}
             {selectedReturn.status === 'APPROVED' && (
+              <>
+              {selectedReturn.type === 'REFUND' && (
+                <div className="space-y-3 mb-4">
+                  <p>Record money already paid. This does not send a provider refund. Cash is taken from this shop's current open till, even for an older sale.</p>
+                  <label className="block">Refund payment method
+                    <select className="block w-full p-2 border rounded" value={settlementMethod} onChange={e => { setSettlementMethod(e.target.value as typeof settlementMethod); setPaymentConfirmed(false); }}>
+                      <option value="">Select method</option>
+                      <option value="CASH">Cash from open till</option>
+                      <option value="CARD">Card</option>
+                      <option value="MOMO">MTN Mobile Money</option>
+                      <option value="EMALI">eMali</option>
+                    </select>
+                  </label>
+                  {settlementMethod && settlementMethod !== 'CASH' && <label className="block">Payment reference
+                    <input className="block w-full p-2 border rounded" value={settlementReference} onChange={e => setSettlementReference(e.target.value)} />
+                  </label>}
+                  <label className="flex gap-2"><input type="checkbox" checked={paymentConfirmed} onChange={e => setPaymentConfirmed(e.target.checked)} />I confirm {formatCurrency(selectedReturn.refundAmount)} has been paid to the customer.</label>
+                </div>
+              )}
               <Button
                 variant="primary"
                 className="w-full"
                 onClick={() => handleProcess('complete')}
-                disabled={processing}
+                disabled={processing || (selectedReturn.type === 'REFUND' && (!paymentConfirmed || !settlementMethod || (settlementMethod !== 'CASH' && !settlementReference.trim())))}
               >
-                {processing ? 'Processing...' : 'Complete Return & Restock'}
+                {processing ? 'Processing...' : selectedReturn.type === 'REFUND' ? 'Record paid refund & restock' : 'Complete Return & Restock'}
               </Button>
+              </>
             )}
           </div>
         )}
