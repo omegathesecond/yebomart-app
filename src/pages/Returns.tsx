@@ -59,6 +59,8 @@ interface Return {
   id: string;
   saleId?: string;
   customerId?: string;
+  customer?: { id: string; name: string };
+  accountCredit?: { id: string; amount: number; customerId: string; returnId: string };
   reason: string;
   type: 'REFUND' | 'EXCHANGE' | 'STORE_CREDIT';
   refundAmount: number;
@@ -188,6 +190,10 @@ export function Returns() {
 
   const handleCreateReturn = async () => {
     if (!foundSale || selectedItems.size === 0 || !returnReason.trim()) return;
+    if (returnType === 'STORE_CREDIT' && !selectedCustomer) {
+      showToast('Choose a customer to receive store credit', 'error');
+      return;
+    }
     setCreatingReturn(true);
     try {
       const items = Array.from(selectedItems.entries()).map(([itemId, qty]) => {
@@ -235,9 +241,14 @@ export function Returns() {
     if (!selectedReturn) return;
     setProcessing(true);
     try {
-      const { error } = await api.processReturn(selectedReturn.id, action);
+      const { data, error } = await api.processReturn(selectedReturn.id, action);
       if (error) {
         showToast(error, 'error');
+        return;
+      }
+      if (action === 'complete' && selectedReturn.type === 'STORE_CREDIT' &&
+          !(data as Return | undefined)?.accountCredit?.id) {
+        showToast('Store credit posting was not confirmed. Refresh the return before continuing.', 'error');
         return;
       }
       await fetchReturns();
@@ -511,6 +522,10 @@ export function Returns() {
                 </div>
               </div>
 
+              {returnType === 'STORE_CREDIT' && foundSale.paymentMethod === 'CREDIT' && (
+                <p className="text-bad text-sm">CREDIT sales require debt settlement and cannot receive store credit here.</p>
+              )}
+
               {/* Reason */}
               <div>
                 <label className="block text-sm text-mute mb-2">
@@ -528,7 +543,7 @@ export function Returns() {
               {/* Customer (optional) */}
               <div>
                 <label className="block text-sm text-mute mb-2">
-                  Customer (optional)
+                  {returnType === 'STORE_CREDIT' ? 'Customer receiving store credit (required)' : 'Customer (optional)'}
                 </label>
                 {selectedCustomer ? (
                   <div className="flex items-center gap-2 bg-sand border border-line rounded-sharp px-3 py-2">
@@ -563,9 +578,9 @@ export function Returns() {
               </div>
 
               {/* Refund Amount */}
-              {returnType === 'REFUND' && selectedItems.size > 0 && (
+              {returnType !== 'EXCHANGE' && selectedItems.size > 0 && (
                 <div className="p-4 bg-ok/30 border border-ok rounded-sharp">
-                  <p className="text-sm text-ok mb-1">Refund Amount</p>
+                  <p className="text-sm text-ok mb-1">{returnType === 'STORE_CREDIT' ? 'Store credit amount' : 'Refund Amount'}</p>
                   <p className="m text-2xl font-bold text-ok">
                     {formatCurrency(calculateRefundAmount())}
                   </p>
@@ -577,7 +592,7 @@ export function Returns() {
                 variant="primary"
                 className="w-full"
                 onClick={handleCreateReturn}
-                disabled={selectedItems.size === 0 || !returnReason.trim() || creatingReturn}
+                disabled={selectedItems.size === 0 || !returnReason.trim() || creatingReturn || (returnType === 'STORE_CREDIT' && (!selectedCustomer || foundSale.paymentMethod === 'CREDIT'))}
               >
                 {creatingReturn ? 'Creating...' : 'Create Return'}
               </Button>
@@ -613,6 +628,15 @@ export function Returns() {
               <p className="text-sm text-mute mb-1">Reason</p>
               <p className="text-ink">{selectedReturn.reason}</p>
             </div>
+
+            {selectedReturn.type === 'STORE_CREDIT' && (
+              <div className="bg-sand border border-line rounded-sharp p-4">
+                <p className="text-sm text-mute">{selectedReturn.accountCredit ? 'Credited to' : 'Store credit recipient'}</p>
+                <p className="text-ink">{selectedReturn.customer?.name || selectedReturn.customerId}</p>
+                <p className="text-lg font-bold text-ink">{formatCurrency(selectedReturn.accountCredit?.amount ?? selectedReturn.refundAmount)}</p>
+                {selectedReturn.accountCredit && <p className="text-xs text-mute">Ledger entry: {selectedReturn.accountCredit.id}</p>}
+              </div>
+            )}
 
             {/* Items */}
             <div>
