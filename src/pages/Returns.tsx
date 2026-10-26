@@ -40,6 +40,7 @@ interface Sale {
   receiptNumber: string;
   totalAmount: number;
   paymentMethod: string;
+  customerId?: string;
   items: SaleItem[];
   createdAt: string;
   user?: { name: string };
@@ -157,6 +158,8 @@ export function Returns() {
         quantity: p.remainingQuantity, remainingCents: p.remainingCents,
         unitPrice: p.remainingCents / 100 / p.remainingQuantity, totalPrice: p.remainingCents / 100,
       })) });
+      setReturnType(response.data.paymentMethod === 'CREDIT' ? 'STORE_CREDIT' : 'REFUND');
+      setSelectedCustomer(null);
       setSelectedItems(new Map());
     } catch (error: any) {
       setSaleError(error.message || 'Receipt not found');
@@ -199,6 +202,10 @@ export function Returns() {
 
   const handleCreateReturn = async () => {
     if (!foundSale || selectedItems.size === 0 || !returnReason.trim()) return;
+    if (foundSale.paymentMethod === 'CREDIT' && (returnType !== 'STORE_CREDIT' || (selectedCustomer && selectedCustomer.id !== foundSale.customerId))) {
+      showToast('Pay-later returns must adjust the original customer account. Cash refunds and exchanges are not supported.', 'error');
+      return;
+    }
     setCreatingReturn(true);
     try {
       const items = Array.from(selectedItems.entries()).map(([itemId, qty]) => {
@@ -214,7 +221,7 @@ export function Returns() {
 
       const { error } = await api.createReturn({
         saleId: foundSale.id,
-        customerId: selectedCustomer?.id,
+        customerId: foundSale.paymentMethod === 'CREDIT' ? foundSale.customerId : selectedCustomer?.id,
         reason: returnReason,
         type: returnType,
         items,
@@ -246,10 +253,13 @@ export function Returns() {
     if (!selectedReturn) return;
     setProcessing(true);
     try {
-      const { error } = await api.processReturn(selectedReturn.id, action, action === 'complete' && selectedReturn.type === 'REFUND' ? { method: settlementMethod, confirmed: payoutConfirmed, reference: settlementReference || undefined } : undefined);
+      const { data, error } = await api.processReturn(selectedReturn.id, action, action === 'complete' && selectedReturn.type === 'REFUND' ? { method: settlementMethod, confirmed: payoutConfirmed, reference: settlementReference || undefined } : undefined);
       if (error) {
         showToast(error, 'error');
         return;
+      }
+      if (action === 'complete' && data?.creditReversal) {
+        showToast(`Customer account adjusted by ${formatCurrency(-data.creditReversal.amount)}. Repayments retained; no cash refunded.`);
       }
       await fetchReturns();
       setSelectedReturn(null);
@@ -495,6 +505,9 @@ export function Returns() {
                 </div>
               </div>
 
+              {foundSale.paymentMethod === 'CREDIT' && (
+                <p role="status" className="text-sm text-mute">On completion, the returned value reduces the original customer’s debt. Repayments stay on the account; any surplus becomes account credit. No cash is refunded.</p>
+              )}
               {/* Return Type */}
               <div>
                 <label className="block text-sm text-mute mb-2">
@@ -506,6 +519,7 @@ export function Returns() {
                     const Icon = config.icon;
                     return (
                       <button
+                        disabled={foundSale.paymentMethod === 'CREDIT' && type !== 'STORE_CREDIT'}
                         key={type}
                         onClick={() => setReturnType(type)}
                         className={`p-3 rounded-sharp border flex flex-col items-center gap-1 transition-colors ${
@@ -515,7 +529,7 @@ export function Returns() {
                         }`}
                       >
                         <Icon className={`w-5 h-5 ${config.color}`} />
-                        <span className="text-xs text-ink">{config.label}</span>
+                        <span className="text-xs text-ink">{foundSale.paymentMethod === 'CREDIT' && type === 'STORE_CREDIT' ? 'Adjust account' : config.label}</span>
                       </button>
                     );
                   })}
@@ -536,8 +550,8 @@ export function Returns() {
                 />
               </div>
 
-              {/* Customer (optional) */}
-              <div>
+              {/* Credit returns always use the original debtor. */}
+              {foundSale.paymentMethod !== 'CREDIT' && <div>
                 <label className="block text-sm text-mute mb-2">
                   Customer (optional)
                 </label>
@@ -571,7 +585,7 @@ export function Returns() {
                     Attach customer
                   </button>
                 )}
-              </div>
+              </div>}
 
               {/* Refund Amount */}
               {returnType === 'REFUND' && selectedItems.size > 0 && (
