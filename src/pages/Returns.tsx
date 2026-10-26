@@ -35,7 +35,7 @@ interface SaleItem {
   remainingCents: number;
 }
 
-interface Sale {
+export interface Sale {
   id: string;
   receiptNumber: string;
   totalAmount: number;
@@ -56,7 +56,7 @@ interface ReturnItem {
   restocked: boolean;
 }
 
-interface Return {
+export interface Return {
   id: string;
   saleId?: string;
   customerId?: string;
