@@ -124,6 +124,7 @@ describe('ProductForm photo upload', () => {
     await waitFor(() => expect(addProduct).toHaveBeenCalledTimes(1));
     expect(addProduct.mock.calls[0][0]).toMatchObject({
       imageUrl: 'https://cdn.example.com/products/new.jpg',
+      quantity: 5,
     });
   });
 
@@ -162,6 +163,23 @@ describe('ProductForm photo upload', () => {
     await waitFor(() => expect(updateProduct).toHaveBeenCalledTimes(1));
     expect(updateProduct.mock.calls[0][1]).toMatchObject({ imageUrl: '' });
   });
+});
+
+it('omits the loaded stock snapshot from a metadata-only edit', async () => {
+  mockParams = { id: 'prod-1' };
+  mockProducts = [{ id: 'prod-1', name: 'Bread', costPrice: 5, sellPrice: 15,
+    quantity: 10, reorderAt: 2, unit: 'each' }];
+  updateProduct.mockResolvedValue(undefined);
+  const { container } = render(<ProductForm />);
+  await waitFor(() => expect(container.querySelector('input[name="name"]')).toHaveValue('Bread'));
+  expect(container.querySelector('input[name="quantity"]')).toBeNull();
+  // A sale occurs while this form still holds the original quantity of ten.
+  mockProducts[0].quantity = 8;
+  fireEvent.change(container.querySelector('input[name="name"]')!, { target: { value: 'Fresh bread' } });
+  fireEvent.click(screen.getByRole('button', { name: /update product/i }));
+  await waitFor(() => expect(updateProduct).toHaveBeenCalledTimes(1));
+  expect(updateProduct.mock.calls[0][1]).toMatchObject({ name: 'Fresh bread' });
+  expect(updateProduct.mock.calls[0][1]).not.toHaveProperty('quantity');
 });
 
 describe('ProductForm optional product payloads', () => {

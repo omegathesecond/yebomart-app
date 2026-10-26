@@ -226,7 +226,7 @@ export function ProductForm() {
     if (parseFloat(formData.sellPrice) < parseFloat(formData.costPrice)) {
       newErrors.sellPrice = 'Sell price should be higher than cost price';
     }
-    if (!formData.quantity || parseInt(formData.quantity) < 0) {
+    if (!isEdit && (!formData.quantity || parseInt(formData.quantity) < 0)) {
       newErrors.quantity = 'Valid quantity is required';
     }
     
@@ -263,7 +263,6 @@ export function ProductForm() {
         sellPrice: parseFloat(formData.sellPrice),
         wholesalePrice: formData.wholesalePrice ? Number(formData.wholesalePrice) : isEdit ? null : undefined,
         wholesaleMinQty: formData.wholesaleMinQty ? Number(formData.wholesaleMinQty) : isEdit ? null : undefined,
-        quantity: parseInt(formData.quantity),
         reorderAt: parseInt(formData.reorderAt) || 10,
         unit: formData.unit,
         // On create, the API's create schema rejects an empty-string
@@ -282,7 +281,7 @@ export function ProductForm() {
       if (isEdit && id) {
         await updateProduct(id, productData);
       } else {
-        productId = await addProduct(productData);
+        productId = await addProduct({ ...productData, quantity: parseInt(formData.quantity) });
       }
 
       // Save suppliers if any selected. A supplier-link failure is a PARTIAL
@@ -600,8 +599,10 @@ export function ProductForm() {
             <h3 className="font-semibold text-ink">Stock</h3>
             
             <div className="grid grid-cols-2 gap-4">
-              <Input
-                label="Current Quantity"
+              {isEdit ? (
+                <p className="text-sm text-ink-muted">Use Stock Adjustments to add or remove stock.</p>
+              ) : <Input
+                label="Initial Quantity"
                 name="quantity"
                 type="number"
                 min="0"
@@ -609,7 +610,7 @@ export function ProductForm() {
                 onChange={handleChange}
                 placeholder="0"
                 error={errors.quantity}
-              />
+              />}
               
               <Input
                 label="Reorder At"

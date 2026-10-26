@@ -34,7 +34,7 @@ interface InventoryState {
   
   // Products
   addProduct: (product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) => Promise<string>;
-  updateProduct: (id: string, updates: Partial<Product>) => Promise<void>;
+  updateProduct: (id: string, updates: Partial<Omit<Product, 'quantity'>>) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
   searchProducts: (query: string) => Product[];
   getProductByBarcode: (barcode: string) => Product | undefined;
