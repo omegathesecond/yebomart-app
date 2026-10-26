@@ -8,16 +8,16 @@ vi.mock('@/api/client', () => ({ api: {
 vi.mock('@/components/CustomerPicker', () => ({ CustomerPicker: () => null }));
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(api.getReturns).mockResolvedValue({ data: [] } as any);
+  vi.mocked(api.getReturns).mockResolvedValue({ data: [] } satisfies Awaited<ReturnType<typeof api.getReturns>>);
   vi.mocked(api.searchSaleByReceipt).mockResolvedValue({ data: {
     id: 'sale', customerId: 'debtor', paymentMethod: 'CREDIT', totalAmount: 100,
     receiptNumber: 'R1', createdAt: '2026-10-26',
-  } } as any);
-  vi.mocked(api.getReturnEntitlement).mockResolvedValue({ data: [{ productId: 'product', productName: 'Tea', remainingQuantity: 5, remainingCents: 10000 }] } as any);
+  } } satisfies Awaited<ReturnType<typeof api.searchSaleByReceipt>>);
+  vi.mocked(api.getReturnEntitlement).mockResolvedValue({ data: [{ productId: 'product', productName: 'Tea', remainingQuantity: 5, remainingCents: 10000 }] } satisfies Awaited<ReturnType<typeof api.getReturnEntitlement>>);
 });
 describe('pay-later return choices', () => {
   it('explains account credit, disables cash/exchange and preserves the debtor on submission', async () => {
-    vi.mocked(api.createReturn).mockResolvedValue({ error: 'Account needs reconciliation' } as any);
+    vi.mocked(api.createReturn).mockResolvedValue({ error: 'Account needs reconciliation' } satisfies Awaited<ReturnType<typeof api.createReturn>>);
     render(<Returns />);
     fireEvent.click(screen.getByRole('button', { name: 'New Return' }));
     const search = screen.getByPlaceholderText('e.g., RCP-260212-0001 or just 0001');
