@@ -183,6 +183,17 @@ export interface CustomerCredit {
   createdAt: string;
 }
 
+// Fields consumed from GET /api/sales/search/receipt (server sale, not local checkout).
+export interface ReceiptSale {
+  id: string;
+  receiptNumber: string;
+  totalAmount: number;
+  paymentMethod: string;
+  customerId: string | null;
+  createdAt: string;
+  user: { id: string; name: string };
+}
+
 export interface CustomerSale {
   id: string;
   receiptNumber?: string | null;
@@ -995,7 +1006,7 @@ class ApiClient {
   }
 
   async searchSaleByReceipt(receiptNumber: string) {
-    return this.request<any>(
+    return this.request<ReceiptSale>(
       `/api/sales/search/receipt?receiptNumber=${encodeURIComponent(receiptNumber)}`,
     );
   }

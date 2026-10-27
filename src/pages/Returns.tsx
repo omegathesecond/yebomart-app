@@ -22,7 +22,7 @@ import { Card } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
 import { Toast, useToast } from '@/components/ui/Toast';
 import { CustomerPicker } from '@/components/CustomerPicker';
-import { api, type Customer } from '@/api/client';
+import { api, type Customer, type ReceiptSale } from '@/api/client';
 import { formatCurrency } from '@/types';
 
 interface SaleItem {
@@ -35,15 +35,8 @@ interface SaleItem {
   remainingCents: number;
 }
 
-interface Sale {
-  id: string;
-  receiptNumber: string;
-  totalAmount: number;
-  paymentMethod: string;
-  customerId?: string;
+interface Sale extends ReceiptSale {
   items: SaleItem[];
-  createdAt: string;
-  user?: { name: string };
 }
 
 interface ReturnItem {

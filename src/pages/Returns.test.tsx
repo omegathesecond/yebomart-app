@@ -2,15 +2,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Returns } from './Returns';
 import { api } from '@/api/client';
-import type { Sale } from '@/types';
 
 const creditSale = {
   id: 'sale', customerId: 'debtor', paymentMethod: 'CREDIT', totalAmount: 100,
-  receiptNumber: 'R1', createdAt: '2026-10-26',
-} satisfies Pick<Sale, 'id' | 'paymentMethod' | 'totalAmount' | 'receiptNumber'> & {
-  customerId: string;
-  createdAt: string;
-};
+  receiptNumber: 'R1', createdAt: '2026-10-26', user: { id: 'cashier', name: 'Cashier' },
+} satisfies NonNullable<Awaited<ReturnType<typeof api.searchSaleByReceipt>>['data']>;
 
 vi.mock('@/api/client', () => ({ api: {
   getReturns: vi.fn(), searchSaleByReceipt: vi.fn(), getReturnEntitlement: vi.fn(), createReturn: vi.fn(),
