@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Shop, UserShop, ShopRole } from '@/types';
+import type { Shop, ShopRole } from '@/types';
 import { getCountryByCode } from '@/lib/countries';
 import api from '@/api/client';
 

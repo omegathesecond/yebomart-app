@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { Returns, type Sale, type Return } from './Returns';
+import { Returns } from './Returns';
+import type { ReturnSale as Sale, Return } from '@/api/models';
 import { api } from '@/api/client';
 const creditSale: Sale = {
   id: 'sale', customerId: 'debtor', paymentMethod: 'CREDIT', totalAmount: 100,

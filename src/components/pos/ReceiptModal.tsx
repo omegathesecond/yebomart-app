@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   CheckCircleIcon,
   PrinterIcon,
@@ -9,8 +9,9 @@ import {
 import api from '@/api/client';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
-import { Toast, useToast } from '@/components/ui/Toast';
-import { formatCurrency, type Shop } from '@/types';
+import { Toast } from '@/components/ui/Toast';
+import { useToast } from '@/components/ui/useToast';
+import { formatCurrency, type Shop, type SaleItem } from '@/types';
 import { useInventoryStore } from '@/stores/inventoryStore';
 import {
   isBluetoothPrintingSupported,
@@ -28,7 +29,7 @@ export interface ReceiptSale {
   subtotal: number;
   discount: number;
   tax: number;
-  items: any[];
+  items: Pick<SaleItem, 'productName' | 'quantity' | 'totalPrice'>[];
   id: string;
   receiptNumber?: string;
   date: Date;
@@ -72,24 +73,19 @@ export function ReceiptModal({ isOpen, onClose, sale, shop, customerPhone }: Rec
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [customerEmail, setCustomerEmail] = useState('');
   const [isSendingEmail, setIsSendingEmail] = useState(false);
-  const [emailSent, setEmailSent] = useState(false);
+  const [emailSentFor, setEmailSentFor] = useState<string | null>(null);
+  const emailSent = !!sale && emailSentFor === sale.id;
 
   const [showSmsModal, setShowSmsModal] = useState(false);
   const [smsPhone, setSmsPhone] = useState('');
   const [isSendingSms, setIsSendingSms] = useState(false);
-  const [smsSent, setSmsSent] = useState(false);
+  const [smsSentFor, setSmsSentFor] = useState<string | null>(null);
+  const smsSent = !!sale && smsSentFor === sale.id;
 
   const [isPrintingThermal, setIsPrintingThermal] = useState(false);
   // Web Bluetooth is Chromium-only and needs a secure context; on unsupported
   // browsers we hide the thermal button entirely rather than offer a dead one.
   const thermalSupported = isBluetoothPrintingSupported();
-
-  // Reset the "sent" confirmations whenever a fresh sale is shown so the
-  // Email/SMS buttons re-enable for the next customer.
-  useEffect(() => {
-    setEmailSent(false);
-    setSmsSent(false);
-  }, [sale?.id]);
 
   const handlePrint = () => {
     window.print();
@@ -103,7 +99,7 @@ export function ReceiptModal({ isOpen, onClose, sale, shop, customerPhone }: Rec
     try {
       await printReceiptViaBluetooth(sale, shop);
       showToast('Receipt sent to printer', 'success');
-    } catch (err) {
+    } catch (err: unknown) {
       if (err instanceof ThermalPrintError && err.cancelled) {
         // User dismissed the printer chooser — nothing to report.
       } else {
@@ -128,11 +124,11 @@ export function ReceiptModal({ isOpen, onClose, sale, shop, customerPhone }: Rec
     setIsSendingSms(true);
     try {
       await api.sendReceiptSMS({ saleId: sale.id, phone: cleaned });
-      setSmsSent(true);
+      setSmsSentFor(sale.id);
       setShowSmsModal(false);
       setSmsPhone('');
       showToast('Receipt sent via SMS', 'success');
-    } catch (err: any) {
+    } catch {
       showToast('Failed to send SMS. Please try again.', 'error');
     }
     setIsSendingSms(false);
@@ -161,11 +157,11 @@ export function ReceiptModal({ isOpen, onClose, sale, shop, customerPhone }: Rec
         total: sale.total,
         date: sale.date.toISOString(),
       });
-      setEmailSent(true);
+      setEmailSentFor(sale.id);
       setShowEmailModal(false);
       setCustomerEmail('');
       showToast('Receipt emailed successfully', 'success');
-    } catch (err: any) {
+    } catch {
       showToast('Failed to send email. Please try again.', 'error');
     }
     setIsSendingEmail(false);

@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
 
@@ -7,20 +7,15 @@ interface InitialSyncProps {
 }
 
 export function InitialSync({ children }: InitialSyncProps) {
+  const shopId = useAuthStore((state) => state.shop?.id);
+  return <ShopSync key={shopId}>{children}</ShopSync>;
+}
+
+function ShopSync({ children }: InitialSyncProps) {
   const { shop, isAuthenticated } = useAuthStore();
   const { loadAll, lastSync, isLoading } = useInventoryStore();
   const [hasSynced, setHasSynced] = useState(false);
   const [syncStatus, setSyncStatus] = useState('Connecting...');
-  const lastShopId = useRef<string | null>(null);
-
-  // Reset sync state when shop changes (different user logged in)
-  useEffect(() => {
-    if (shop?.id !== lastShopId.current) {
-      setHasSynced(false);
-      lastShopId.current = shop?.id ?? null;
-    }
-  }, [shop?.id]);
-
   useEffect(() => {
     const doSync = async () => {
       if (!isAuthenticated || !shop) return;
