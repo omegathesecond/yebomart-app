@@ -1,3 +1,5 @@
+import { getErrorMessage } from '@/utils/errorMessages';
+import type { ReturnSale as Sale, Return } from '@/api/models';
 import { useState, useEffect } from 'react';
 import {
   ArrowPathIcon,
@@ -20,68 +22,18 @@ import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
-import { Toast, useToast } from '@/components/ui/Toast';
+import { Toast } from '@/components/ui/Toast';
+import { useToast } from '@/components/ui/useToast';
 import { CustomerPicker } from '@/components/CustomerPicker';
 import { api, type Customer } from '@/api/client';
 import { formatCurrency } from '@/types';
-
-interface SaleItem {
-  id: string;
-  productId: string;
-  productName: string;
-  quantity: number;
-  unitPrice: number;
-  totalPrice: number;
-  remainingCents: number;
-}
-
-export interface Sale {
-  id: string;
-  receiptNumber: string;
-  totalAmount: number;
-  paymentMethod: string;
-  customerId?: string;
-  items: SaleItem[];
-  createdAt: string;
-  user?: { name: string };
-}
-
-interface ReturnItem {
-  id: string;
-  productId: string;
-  productName: string;
-  quantity: number;
-  unitPrice: number;
-  restockable: boolean;
-  restocked: boolean;
-}
-
-export interface Return {
-  id: string;
-  saleId?: string;
-  customerId?: string;
-  customer?: { id: string; name: string };
-  creditReversal?: { id: string; amount: number; customerId: string; returnId: string };
-  reason: string;
-  type: 'REFUND' | 'EXCHANGE' | 'STORE_CREDIT';
-  refundAmount: number;
-  settlementMethod?: string;
-  settlementReference?: string;
-  cashSessionId?: string;
-  status: 'PENDING' | 'APPROVED' | 'COMPLETED' | 'REJECTED';
-  notes?: string;
-  items: ReturnItem[];
-  exchangeItems?: ReturnItem[];
-  createdAt: string;
-  processedAt?: string;
-}
 
 const STATUS_CONFIG = {
   PENDING: { label: 'Pending', color: 'warning', icon: ClockIcon },
   APPROVED: { label: 'Approved', color: 'info', icon: CheckCircleIcon },
   COMPLETED: { label: 'Completed', color: 'success', icon: CheckCircleIcon },
-  REJECTED: { label: 'Rejected', color: 'error', icon: XCircleIcon },
-};
+  REJECTED: { label: 'Rejected', color: 'danger', icon: XCircleIcon },
+} as const;
 
 const TYPE_CONFIG = {
   REFUND: { label: 'Refund', icon: BanknotesIcon, color: 'text-ok' },
@@ -128,8 +80,8 @@ export function Returns() {
         return;
       }
       setReturns(response.data || []);
-    } catch (error: any) {
-      showToast(error?.message || 'Failed to load returns', 'error');
+    } catch (error: unknown) {
+      showToast(getErrorMessage(error) || 'Failed to load returns', 'error');
     } finally {
       setLoading(false);
     }
@@ -163,8 +115,8 @@ export function Returns() {
       setReturnType(response.data.paymentMethod === 'CREDIT' ? 'STORE_CREDIT' : 'REFUND');
       setSelectedCustomer(null);
       setSelectedItems(new Map());
-    } catch (error: any) {
-      setSaleError(error.message || 'Receipt not found');
+    } catch (error: unknown) {
+      setSaleError(getErrorMessage(error) || 'Receipt not found');
     } finally {
       setSearchingSale(false);
     }
@@ -248,8 +200,8 @@ export function Returns() {
       setReturnReason('');
       setSelectedCustomer(null);
       await fetchReturns();
-    } catch (error: any) {
-      showToast(error?.message || 'Failed to create return', 'error');
+    } catch (error: unknown) {
+      showToast(getErrorMessage(error) || 'Failed to create return', 'error');
     } finally {
       setCreatingReturn(false);
     }
@@ -276,8 +228,8 @@ export function Returns() {
       }
       await fetchReturns();
       setSelectedReturn(null);
-    } catch (error: any) {
-      showToast(error?.message || 'Failed to process return', 'error');
+    } catch (error: unknown) {
+      showToast(getErrorMessage(error) || 'Failed to process return', 'error');
     } finally {
       setProcessing(false);
     }
@@ -372,7 +324,7 @@ export function Returns() {
                     <div className="flex items-center gap-3 mb-2">
                       <TypeIcon className={`w-5 h-5 ${typeConfig.color}`} />
                       <span className="font-medium text-ink">{typeConfig.label}</span>
-                      <Badge variant={statusConfig.color as any}>
+                      <Badge variant={statusConfig.color}>
                         {statusConfig.label}
                       </Badge>
                     </div>
@@ -634,7 +586,7 @@ export function Returns() {
           <div className="space-y-6">
             {/* Status & Type */}
             <div className="flex items-center gap-4">
-              <Badge variant={STATUS_CONFIG[selectedReturn.status].color as any}>
+              <Badge variant={STATUS_CONFIG[selectedReturn.status].color}>
                 {STATUS_CONFIG[selectedReturn.status].label}
               </Badge>
               <span className={`flex items-center gap-1 ${TYPE_CONFIG[selectedReturn.type].color}`}>

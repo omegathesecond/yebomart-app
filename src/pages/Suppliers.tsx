@@ -1,3 +1,4 @@
+import type { Supplier } from '@/api/models';
 import { useState, useEffect } from 'react';
 import {
   PlusIcon,
@@ -26,38 +27,6 @@ const LEDGER_TYPE_LABEL: Record<SupplierLedgerEntry['type'], string> = {
   PAYMENT: 'Payment',
   ADJUSTMENT: 'Adjustment',
 };
-
-interface Supplier {
-  id: string;
-  name: string;
-  contactName?: string;
-  phone?: string;
-  email?: string;
-  website?: string;
-  address?: string;
-  city?: string;
-  country?: string;
-  postalCode?: string;
-  taxId?: string;
-  currency?: string;
-  paymentTerms?: string;
-  leadTimeDays?: number;
-  notes?: string;
-  isActive: boolean;
-  // Accounts payable — what this shop currently owes the supplier. Mirrors
-  // Supplier.balance on the API (bumped by PO receipts, paid down by
-  // recordPayment on a PO). Positive = we owe them.
-  balance: number;
-  products?: Array<{
-    productId: string;
-    product?: { id: string; name: string; barcode?: string };
-  }>;
-  _count?: {
-    products: number;
-    orders: number;
-  };
-  createdAt: string;
-}
 
 export function Suppliers() {
   const { products } = useInventoryStore();
@@ -174,11 +143,11 @@ export function Suppliers() {
     try {
       const response = await api.getSupplier(supplier.id);
       if (response.data?.products) {
-        setSelectedProductIds(new Set(response.data.products.map((p: any) => p.productId)));
+        setSelectedProductIds(new Set(response.data.products.map((p) => p.productId)));
       } else {
         setSelectedProductIds(new Set());
       }
-    } catch (error) {
+    } catch {
       setSelectedProductIds(new Set());
     }
     setShowProductsModal(true);

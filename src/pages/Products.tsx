@@ -5,8 +5,6 @@ import {
   MagnifyingGlassIcon,
   PencilIcon,
   TrashIcon,
-  QrCodeIcon,
-  FunnelIcon
 } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -14,7 +12,7 @@ import { Card } from '@/components/ui/Card';
 import { ConfirmDialog } from '@/components/ui/Modal';
 import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
-import { formatCurrency, PRODUCT_CATEGORIES } from '@/types';
+import { formatCurrency } from '@/types';
 
 export function Products() {
   const { shop } = useAuthStore();

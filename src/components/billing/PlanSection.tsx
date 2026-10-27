@@ -58,24 +58,24 @@ export function PlanSection({ onNotify }: { onNotify: (msg: string, kind: 'succe
   const [busy, setBusy] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    const [plansRes, subRes] = await Promise.all([api.getPlans(), api.getSubscription()]);
-    setLoading(false);
+    return Promise.all([api.getPlans(), api.getSubscription()]).then(([plansRes, subRes]) => {
+      setLoading(false);
+      setError(null);
 
-    if (plansRes.error || !plansRes.data) {
-      setError(plansRes.error || 'Failed to load plans');
-      return;
-    }
-    setPlans(plansRes.data.plans || []);
+      if (plansRes.error || !plansRes.data) {
+        setError(plansRes.error || 'Failed to load plans');
+        return;
+      }
+      setPlans(plansRes.data.plans || []);
 
-    // A shop with no subscription is a normal state, not an error — but a
-    // failed request is, and must not masquerade as "you're on the free plan".
-    if (subRes.error || !subRes.data) {
-      setError(subRes.error || 'Failed to load your plan');
-      return;
-    }
-    setState(subRes.data);
+      // A shop with no subscription is a normal state, not an error — but a
+      // failed request is, and must not masquerade as "you're on the free plan".
+      if (subRes.error || !subRes.data) {
+        setError(subRes.error || 'Failed to load your plan');
+        return;
+      }
+      setState(subRes.data);
+    });
   }, []);
 
   useEffect(() => {
@@ -101,7 +101,7 @@ export function PlanSection({ onNotify }: { onNotify: (msg: string, kind: 'succe
     }
     // The invoice is also emailed, so leaving the app is safe: the owner can
     // pay from either place and the plan activates on YeboPay's webhook.
-    window.location.href = data.pay_url;
+    window.location.assign(data.pay_url);
   };
 
   const cancelPlan = async () => {
@@ -132,7 +132,7 @@ export function PlanSection({ onNotify }: { onNotify: (msg: string, kind: 'succe
       <Card className="text-center py-10">
         <ExclamationTriangleIcon className="w-10 h-10 mx-auto text-bad mb-3" />
         <p className="text-bad mb-4">{error}</p>
-        <Button variant="secondary" onClick={load}>
+        <Button variant="secondary" onClick={() => { setLoading(true); load(); }}>
           Retry
         </Button>
       </Card>

@@ -9,7 +9,8 @@ import {
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
-import { Toast, useToast } from '@/components/ui/Toast';
+import { Toast } from '@/components/ui/Toast';
+import { useToast } from '@/components/ui/useToast';
 import { api, type Customer } from '@/api/client';
 
 interface CustomerPickerProps {
@@ -25,12 +26,16 @@ interface CustomerPickerProps {
  * failure it surfaces a toast — it never silently selects nothing or fabricates
  * a customer.
  */
-export function CustomerPicker({ isOpen, onClose, onSelect }: CustomerPickerProps) {
+export function CustomerPicker(props: CustomerPickerProps) {
+  return props.isOpen ? <OpenCustomerPicker {...props} /> : null;
+}
+
+function OpenCustomerPicker({ isOpen, onClose, onSelect }: CustomerPickerProps) {
   const { toast, showToast, dismissToast } = useToast();
   const [mode, setMode] = useState<'search' | 'create'>('search');
   const [search, setSearch] = useState('');
   const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({ name: '', phone: '', email: '' });
 
@@ -47,16 +52,6 @@ export function CustomerPicker({ isOpen, onClose, onSelect }: CustomerPickerProp
     },
     [showToast],
   );
-
-  // Load + reset whenever the picker opens
-  useEffect(() => {
-    if (isOpen) {
-      setMode('search');
-      setSearch('');
-      setForm({ name: '', phone: '', email: '' });
-      fetchCustomers('');
-    }
-  }, [isOpen, fetchCustomers]);
 
   // Debounced search
   useEffect(() => {

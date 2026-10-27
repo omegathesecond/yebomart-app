@@ -21,7 +21,7 @@ import { Input } from '@/components/ui/Input';
 import { PhoneInput } from '@/components/ui/PhoneInput';
 import { ShopCountryPicker } from '@/components/ui/ShopCountryPicker';
 import { useShopStore } from '@/stores/shopStore';
-import { shopTypes, ShopType } from '@/data/shopTypes';
+import { shopTypes } from '@/data/shopTypes';
 import { COUNTRIES, getCountryByCode, type Country } from '@/lib/countries';
 import * as yeboid from '@/lib/yeboid';
 
@@ -63,7 +63,7 @@ export function Onboarding() {
             setPhoneCountryCode(detectedCode);
           }
         }
-      } catch (e) {
+      } catch {
         console.log('Could not auto-detect country');
       }
     };
@@ -100,7 +100,7 @@ export function Onboarding() {
     }
   };
 
-  const handlePhoneChange = (phone: string, countryCode: string, _fullNumber: string) => {
+  const handlePhoneChange = (phone: string, countryCode: string) => {
     setOwnerPhone(phone);
     setPhoneCountryCode(countryCode);
     clearFieldError('ownerPhone');

@@ -66,7 +66,7 @@ interface InventoryState {
   getDashboardMetrics: (shopId: string) => Promise<DashboardMetrics>;
   
   // Sales
-  createSale: (items: any[], paymentMethod: string, amountPaid: number) => Promise<Sale | null>;
+  createSale: (items: Parameters<typeof api.createSale>[0]['items'], paymentMethod: string, amountPaid: number) => Promise<Sale | null>;
   getSalesByDateRange: (shopId: string, startDate: Date, endDate: Date) => Promise<Sale[]>;
 }
 
@@ -108,10 +108,10 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
 
       // Fetch sales
       const { data: salesData } = await api.getSales();
-      const sales = (salesData || []).map((s: any) => ({
+      const sales = (salesData || []).map((s) => ({
         ...s,
         createdAt: new Date(s.createdAt),
-        paymentMethod: s.paymentMethod?.toLowerCase() || 'cash',
+        paymentMethod: (s.paymentMethod?.toLowerCase() || 'cash') as Sale['paymentMethod'],
         items: s.items || [],
       }));
 
@@ -121,7 +121,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
       const staffArray = Array.isArray(staffData) ? staffData : [];
       let staff: User[] = [];
       try {
-        staff = staffArray.map((u: any) => {
+        staff = staffArray.map((u) => {
           console.log('[inventoryStore] Mapping user:', u);
           return {
             id: u.id,
@@ -130,7 +130,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
             phone: u.phone || '',
             email: u.email || undefined,
             pin: u.pin || '',
-            role: (String(u.role || 'CASHIER').toLowerCase()) as any,
+            role: (String(u.role || 'CASHIER').toLowerCase()) as User['role'],
             isActive: u.isActive !== false,
             lastLogin: u.lastLoginAt ? new Date(u.lastLoginAt) : undefined,
             createdAt: u.createdAt ? new Date(u.createdAt) : new Date()
@@ -272,7 +272,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
   },
 
   // Stock - Direct API calls
-  adjustStock: async (productId, quantity, type, note, _userId = 'system') => {
+  adjustStock: async (productId, quantity, type, note) => {
     set({ isLoading: true, error: null });
     try {
       const { data, error } = await api.adjustStock(productId, {
@@ -313,7 +313,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
       }
 
       // The endpoint returns a single-item batch: [{ product, stockLog }].
-      const updated = Array.isArray(data) ? data[0]?.product : (data as any)?.product;
+      const updated = Array.isArray(data) ? data[0]?.product : (data as unknown as { product: Product })?.product;
 
       set((state) => ({
         products: state.products.map((p) =>
@@ -391,7 +391,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
       if (response.error || !response.data) {
         set({ error: response.error || 'Failed to add staff' });
         const err = new Error(response.error || 'Failed to add staff');
-        (err as any).details = response.details;
+        Object.assign(err, { details: response.details });
         throw err;
       }
       
@@ -403,13 +403,13 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
         name: data.name,
         phone: data.phone,
         pin: data.pin || '',
-        role: data.role?.toLowerCase() as any || 'cashier',
+        role: data.role?.toLowerCase() as User['role'] || 'cashier',
         isActive: data.isActive ?? true,
         createdAt: new Date(data.createdAt)
       };
       set((state) => ({ staff: [...state.staff, staff] }));
       return data.id;
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('Failed to add staff:', e);
       throw e;
     }
@@ -425,7 +425,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
       if (response.error) {
         set({ error: response.error || 'Failed to update staff' });
         const err = new Error(response.error);
-        (err as any).details = response.details;
+        Object.assign(err, { details: response.details });
         throw err;
       }
       
@@ -434,7 +434,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
           s.id === id ? { ...s, ...updates } : s
         )
       }));
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('Failed to update staff:', e);
       throw e;
     }
@@ -452,7 +452,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
       set((state) => ({
         staff: state.staff.filter((s) => s.id !== id)
       }));
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('Failed to delete staff:', e);
       throw e;
     }
@@ -514,12 +514,12 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
   },
 
   // Dashboard metrics from API
-  getDashboardMetrics: async (_shopId: string) => {
+  getDashboardMetrics: async () => {
     try {
       const { data } = await api.getDailyReport();
       // The daily-report API nests figures under `summary` and already
       // returns netProfit = grossProfit - totalExpenses.
-      const summary = (data as any)?.summary;
+      const summary = data?.summary;
       if (summary) {
         return {
           todaySales: summary.totalSales || 0,
@@ -527,13 +527,13 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
           todayProfit: summary.netProfit || 0,
           weekSales: 0,
           monthSales: 0,
-          topProducts: (data as any).topProducts || [],
+          topProducts: data.topProducts || [],
           lowStockCount: get().alerts.filter(a => a.severity === 'low').length,
           criticalStockCount: get().alerts.filter(a => a.severity === 'critical' || a.severity === 'out').length,
           recentSales: get().sales.slice(0, 10)
         };
       }
-    } catch (e) {
+    } catch (e: unknown) {
       console.error('Failed to get dashboard metrics:', e);
     }
 
@@ -605,7 +605,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
         sales: [data, ...state.sales].slice(0, 50),
         // Update product quantities
         products: state.products.map(p => {
-          const soldItem = items.find((i: any) => i.productId === p.id);
+          const soldItem = items.find((i) => i.productId === p.id);
           if (soldItem) {
             return { ...p, quantity: Math.max(0, p.quantity - soldItem.quantity) };
           }
@@ -615,7 +615,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
       }));
       
       return data;
-    } catch (err) {
+    } catch {
       set({ isLoading: false, error: 'Failed to process sale' });
       return null;
     }
@@ -627,7 +627,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
         startDate: startDate.toISOString().split('T')[0],
         endDate: endDate.toISOString().split('T')[0]
       });
-      return (data || []).map((s: any) => ({
+      return (data || []).map((s) => ({
         ...s,
         createdAt: new Date(s.createdAt)
       }));

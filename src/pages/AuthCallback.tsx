@@ -19,25 +19,22 @@ export function AuthCallback() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const { exchangeYeboidToken } = useAuthStore();
-  const [error, setError] = useState<string | null>(null);
+  const [callbackError, setError] = useState<string | null>(null);
   const ranRef = useRef(false);
+
+  const oauthError = params.get('error');
+  const code = params.get('code');
+  const state = params.get('state');
+  const urlError = oauthError
+    ? params.get('error_description') || oauthError
+    : !code || !state ? 'Missing code or state in the callback URL.' : null;
+  const error = urlError || callbackError;
 
   useEffect(() => {
     if (ranRef.current) return;
     ranRef.current = true;
 
-    const oauthError = params.get('error');
-    if (oauthError) {
-      setError(params.get('error_description') || oauthError);
-      return;
-    }
-
-    const code = params.get('code');
-    const state = params.get('state');
-    if (!code || !state) {
-      setError('Missing code or state in the callback URL.');
-      return;
-    }
+    if (urlError) return;
 
     (async () => {
       try {
@@ -53,7 +50,7 @@ export function AuthCallback() {
         setError(err instanceof Error ? err.message : 'Sign-in failed');
       }
     })();
-  }, [params, navigate, exchangeYeboidToken]);
+  }, [code, state, urlError, navigate, exchangeYeboidToken]);
 
   return (
     <div className="min-h-screen bg-cream flex items-center justify-center p-4">

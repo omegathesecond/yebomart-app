@@ -11,7 +11,8 @@ import {
 } from '@heroicons/react/24/outline';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Toast, useToast } from '@/components/ui/Toast';
+import { Toast } from '@/components/ui/Toast';
+import { useToast } from '@/components/ui/useToast';
 import { useAuthStore } from '@/stores/authStore';
 import { useBillingStore } from '@/stores/billingStore';
 import api, { INSUFFICIENT_CREDITS } from '@/api/client';
@@ -151,7 +152,21 @@ export function AIChat() {
       return;
     }
 
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    type Recognition = {
+      lang: string;
+      continuous: boolean;
+      interimResults: boolean;
+      onstart: () => void;
+      onend: () => void;
+      onresult: (event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void;
+      onerror: () => void;
+      start: () => void;
+    };
+    const speechWindow = window as Window & {
+      SpeechRecognition?: new () => Recognition;
+      webkitSpeechRecognition?: new () => Recognition;
+    };
+    const SpeechRecognition = speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
     
     recognition.lang = 'en-US';
@@ -161,7 +176,7 @@ export function AIChat() {
     recognition.onstart = () => setIsListening(true);
     recognition.onend = () => setIsListening(false);
     
-    recognition.onresult = (event: any) => {
+    recognition.onresult = (event) => {
       const transcript = event.results[0][0].transcript;
       setInput(transcript);
     };

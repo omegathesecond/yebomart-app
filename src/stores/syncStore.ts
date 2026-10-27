@@ -1,3 +1,4 @@
+import { getErrorMessage } from '@/utils/errorMessages';
 import { create } from 'zustand';
 import api, { NETWORK_ERROR } from '@/api/client';
 import {
@@ -69,10 +70,10 @@ export const useSyncStore = create<SyncState>((set, get) => ({
         let result: PushResult;
         try {
           result = await pushItem(item);
-        } catch (err: any) {
+        } catch (err: unknown) {
           // Unexpected client-side error while building/sending — treat as a
           // server-style failure so it eventually parks rather than looping.
-          await updateSyncAttempt(item.id, err?.message || 'Replay error');
+          await updateSyncAttempt(item.id, getErrorMessage(err) || 'Replay error');
           failed++;
           continue;
         }
@@ -112,7 +113,7 @@ export const useSyncStore = create<SyncState>((set, get) => ({
  */
 async function pushItem(item: SyncQueueItem): Promise<PushResult> {
   if (item.table === 'sales' && item.action === 'create') {
-    const { data, error } = await api.createSale(item.data as any);
+    const { data, error } = await api.createSale(item.data as Parameters<typeof api.createSale>[0]);
     if (data) return 'success';
     if (error === NETWORK_ERROR) return 'retry';
     return 'failed';

@@ -10,7 +10,8 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
-import { Toast, useToast } from '@/components/ui/Toast';
+import { Toast } from '@/components/ui/Toast';
+import { useToast } from '@/components/ui/useToast';
 import { api, type CreditPack } from '@/api/client';
 import { useBillingStore, isLowBalance } from '@/stores/billingStore';
 import { PlanSection } from '@/components/billing/PlanSection';
@@ -31,6 +32,10 @@ function szl(amount: number): string {
 
 const MIN_CUSTOM = 10;
 
+function topUpKey(selectionId: string) {
+  return crypto?.randomUUID?.() ?? `topup-${selectionId}-${Date.now()}`;
+}
+
 export function Billing() {
   const { toast, showToast, dismissToast } = useToast();
   const { balance, loading: balanceLoading, error: balanceError, fetchBalance } = useBillingStore();
@@ -44,15 +49,15 @@ export function Billing() {
   const [buying, setBuying] = useState<string | null>(null);
 
   const loadPacks = useCallback(async () => {
-    setPacksLoading(true);
-    setPacksError(null);
-    const { data, error } = await api.getCreditPacks();
-    setPacksLoading(false);
-    if (error || !data) {
-      setPacksError(error || 'Failed to load credit packs');
-      return;
-    }
-    setPacks(data.packs || []);
+    return api.getCreditPacks().then(({ data, error }) => {
+      setPacksLoading(false);
+      setPacksError(null);
+      if (error || !data) {
+        setPacksError(error || 'Failed to load credit packs');
+        return;
+      }
+      setPacks(data.packs || []);
+    });
   }, []);
 
   useEffect(() => {
@@ -69,8 +74,7 @@ export function Billing() {
   ) => {
     if (buying) return;
     setBuying(selectionId);
-    const idempotencyKey =
-      (crypto as any)?.randomUUID?.() ?? `topup-${selectionId}-${Date.now()}`;
+    const idempotencyKey = topUpKey(selectionId);
     const { data, error } = await api.createTopUpCheckout(body, idempotencyKey);
     if (error || !data) {
       setBuying(null);
@@ -87,7 +91,7 @@ export function Billing() {
       PENDING_TOPUP_KEY,
       JSON.stringify({ checkoutId: data.checkoutId, credits: data.credits ?? expectedCredits }),
     );
-    window.location.href = data.url;
+    window.location.assign(data.url);
   };
 
   const buyPack = (pack: CreditPack) =>
@@ -180,7 +184,7 @@ export function Billing() {
           <Card className="text-center py-10">
             <ExclamationTriangleIcon className="w-10 h-10 mx-auto text-bad mb-3" />
             <p className="text-bad mb-4">{packsError}</p>
-            <Button variant="secondary" onClick={loadPacks}>
+            <Button variant="secondary" onClick={() => { setPacksLoading(true); loadPacks(); }}>
               Retry
             </Button>
           </Card>

@@ -15,7 +15,8 @@ import {
 } from '@heroicons/react/24/outline';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Toast, useToast } from '@/components/ui/Toast';
+import { Toast } from '@/components/ui/Toast';
+import { useToast } from '@/components/ui/useToast';
 import { useAuthStore } from '@/stores/authStore';
 import { formatCurrency } from '@/types';
 import api from '@/api/client';

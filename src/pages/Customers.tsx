@@ -20,7 +20,8 @@ import { Input, Select, Textarea } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
-import { Toast, useToast } from '@/components/ui/Toast';
+import { Toast } from '@/components/ui/Toast';
+import { useToast } from '@/components/ui/useToast';
 import { api, type Customer, type CustomerDetail } from '@/api/client';
 import { formatCurrency } from '@/types';
 
@@ -66,15 +67,15 @@ export function Customers() {
 
   const fetchCustomers = useCallback(
     async (term: string) => {
-      setLoading(true);
-      const { data, error } = await api.getCustomers(term ? { search: term } : undefined);
-      setLoading(false);
-      if (error) {
-        showToast(error, 'error');
-        return;
-      }
-      setCustomers(data?.customers || []);
-      setTotalOwed(data?.totalOwed || 0);
+      return api.getCustomers(term ? { search: term } : undefined).then(({ data, error }) => {
+        setLoading(false);
+        if (error) {
+          showToast(error, 'error');
+          return;
+        }
+        setCustomers(data?.customers || []);
+        setTotalOwed(data?.totalOwed || 0);
+      });
     },
     [showToast],
   );
@@ -84,7 +85,7 @@ export function Customers() {
   }, [fetchCustomers]);
 
   useEffect(() => {
-    const timer = setTimeout(() => fetchCustomers(searchQuery), 300);
+    const timer = setTimeout(() => { setLoading(true); fetchCustomers(searchQuery); }, 300);
     return () => clearTimeout(timer);
   }, [searchQuery, fetchCustomers]);
 
