@@ -72,12 +72,12 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
         if (mounted) {
           setError(null);
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Barcode scanner init failed:', err);
         if (mounted) {
           setHasCamera(false);
           setError(
-            err?.name === 'NotAllowedError'
+            err instanceof Error && err.name === 'NotAllowedError'
               ? 'Camera access denied. Enter barcode manually.'
               : 'Could not start camera. Enter barcode manually.'
           );

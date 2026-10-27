@@ -45,40 +45,37 @@ export function BillingSuccess() {
   const [searchParams] = useSearchParams();
   const setBalance = useBillingStore((s) => s.setBalance);
 
-  const [phase, setPhase] = useState<Phase>('loading');
+  const [confirmationPhase, setPhase] = useState<Phase>('loading');
+  const phase = resolvePending(searchParams) ? confirmationPhase : confirmationPhase === 'completed' ? 'completed' : 'missing';
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [creditsAdded, setCreditsAdded] = useState<number | null>(null);
   const [newBalance, setNewBalance] = useState<number | null>(null);
 
   const confirm = useCallback(async () => {
     const pending = resolvePending(searchParams);
-    if (!pending) {
-      setPhase('missing');
-      return;
-    }
+    if (!pending) return;
+    return api.confirmTopUp(pending.checkoutId).then(({ data, error }) => {
+      if (error || !data) {
+        setErrorMsg(error || 'Could not confirm your top-up.');
+        setPhase('error');
+        return;
+      }
 
-    setPhase('loading');
-    const { data, error } = await api.confirmTopUp(pending.checkoutId);
-    if (error || !data) {
-      setErrorMsg(error || 'Could not confirm your top-up.');
-      setPhase('error');
-      return;
-    }
+      // Push the fresh balance into the shared store so the banner + AI screens
+      // reflect it immediately.
+      setBalance(data.balance);
+      setNewBalance(data.balance.available);
+      setCreditsAdded(pending.credits ?? null);
 
-    // Push the fresh balance into the shared store so the banner + AI screens
-    // reflect it immediately.
-    setBalance(data.balance);
-    setNewBalance(data.balance.available);
-    setCreditsAdded(pending.credits ?? null);
-
-    if (data.completed) {
-      localStorage.removeItem(PENDING_TOPUP_KEY); // done — don't re-confirm.
-      setPhase('completed');
-    } else {
-      // Payment captured but the wallet credit (webhook-driven) hasn't landed
-      // yet. Keep the pending record so a retry can re-check.
-      setPhase('pending');
-    }
+      if (data.completed) {
+        localStorage.removeItem(PENDING_TOPUP_KEY); // done — don't re-confirm.
+        setPhase('completed');
+      } else {
+        // Payment captured but the wallet credit (webhook-driven) hasn't landed
+        // yet. Keep the pending record so a retry can re-check.
+        setPhase('pending');
+      }
+    });
   }, [searchParams, setBalance]);
 
   useEffect(() => {
@@ -148,7 +145,7 @@ export function BillingSuccess() {
               )}
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center mt-6">
-              <Button variant="primary" onClick={confirm} leftIcon={<ArrowPathIcon className="w-5 h-5" />}>
+              <Button variant="primary" onClick={() => { setPhase('loading'); confirm(); }} leftIcon={<ArrowPathIcon className="w-5 h-5" />}>
                 Check again
               </Button>
               <Link to="/billing">
@@ -170,7 +167,7 @@ export function BillingSuccess() {
               your balance on the billing page.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center mt-6">
-              <Button variant="primary" onClick={confirm} leftIcon={<ArrowPathIcon className="w-5 h-5" />}>
+              <Button variant="primary" onClick={() => { setPhase('loading'); confirm(); }} leftIcon={<ArrowPathIcon className="w-5 h-5" />}>
                 Retry
               </Button>
               <Link to="/billing">

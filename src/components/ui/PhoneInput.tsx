@@ -88,7 +88,7 @@ export const PhoneInput = forwardRef<HTMLInputElement, PhoneInputProps>(
     };
 
     const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      let phone = e.target.value.replace(/[^\d]/g, '');
+      const phone = e.target.value.replace(/[^\d]/g, '');
       // Remove leading zero if present (will be added by country code)
       const fullNumber = `${selectedCountry.phonePrefix}${phone.replace(/^0+/, '')}`;
       onChange(phone, selectedCountry.code, fullNumber);

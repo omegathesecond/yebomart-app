@@ -10,7 +10,8 @@ import {
 import api, { type CashSession, type CashSessionZReport } from '@/api/client';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Toast, useToast } from '@/components/ui/Toast';
+import { Toast } from '@/components/ui/Toast';
+import { useToast } from '@/components/ui/useToast';
 import { useAuthStore } from '@/stores/authStore';
 import { formatCurrency, formatDateTime } from '@/types';
 
@@ -46,14 +47,14 @@ export function CashUp() {
   const [zreport, setZreport] = useState<CashSessionZReport | null>(null);
 
   const loadCurrent = useCallback(async () => {
-    setLoading(true);
-    const res = await api.getCurrentCashSession();
-    setLoading(false);
-    if (res.error) {
-      showToast(res.error, 'error');
-      return;
-    }
-    setSession(res.data ?? null);
+    return api.getCurrentCashSession().then((res) => {
+      setLoading(false);
+      if (res.error) {
+        showToast(res.error, 'error');
+        return;
+      }
+      setSession(res.data ?? null);
+    });
   }, [showToast]);
 
   useEffect(() => {
@@ -186,7 +187,7 @@ export function CashUp() {
                 <h2 className="text-lg font-semibold text-ink">Till open</h2>
               </div>
               <button
-                onClick={loadCurrent}
+                onClick={() => { setLoading(true); loadCurrent(); }}
                 className="text-mute hover:text-ink text-sm flex items-center gap-1"
                 title="Refresh tally"
               >

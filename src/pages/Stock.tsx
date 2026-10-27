@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   ArrowDownTrayIcon,
-  AdjustmentsHorizontalIcon,
   ExclamationTriangleIcon,
   MagnifyingGlassIcon,
   ArrowUpIcon,
@@ -18,7 +17,8 @@ import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
-import { Toast, useToast } from '@/components/ui/Toast';
+import { Toast } from '@/components/ui/Toast';
+import { useToast } from '@/components/ui/useToast';
 import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
 import { formatCurrency, formatRelativeTime, type Product, type StockLog } from '@/types';
@@ -37,7 +37,7 @@ const ADJUSTMENT_TYPES: { value: AdjustmentType; label: string }[] = [
 
 export function Stock() {
   const { shop } = useAuthStore();
-  const { products, stockLogs, alerts, loadAll, receiveStock } = useInventoryStore();
+  const { products, stockLogs, loadAll, receiveStock } = useInventoryStore();
   const { toast, showToast, dismissToast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
@@ -138,7 +138,7 @@ export function Stock() {
     try {
       const { data } = await api.getStockLogs(product.id);
       setProductHistory(data || []);
-    } catch (e) {
+    } catch {
       setProductHistory(stockLogs.filter(log => log.productId === product.id));
     }
     
