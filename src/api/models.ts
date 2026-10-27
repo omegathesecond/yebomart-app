@@ -46,7 +46,7 @@ export interface Return {
   status: 'PENDING' | 'APPROVED' | 'COMPLETED' | 'REJECTED';
   notes?: string;
   items: ReturnItem[];
-  exchangeItems?: ReturnItem[];
+  exchangeItems?: Array<Pick<ReturnItem, 'id' | 'productId' | 'productName' | 'quantity' | 'unitPrice'>>;
   createdAt: string;
   processedAt?: string;
 }
