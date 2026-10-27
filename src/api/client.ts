@@ -1432,6 +1432,12 @@ class ApiClient {
   // ── Cash drawer / shifts ──────────────────────────────────────────────
 
   /** GET /api/cash-sessions/current — the open till (or null) + live cash tally. */
+  async getCashSessionHistory(filters: { page: number; status?: string; from?: string; to?: string }) {
+    const query = new URLSearchParams({ page: String(filters.page), limit: '20' });
+    for (const key of ['status', 'from', 'to'] as const) if (filters[key]) query.set(key, filters[key]);
+    return this.request<{ sessions: CashSession[]; pagination: { page: number; totalPages: number; hasNext: boolean; hasPrev: boolean } }>(`/api/cash-sessions?${query}`);
+  }
+
   async getCurrentCashSession() {
     return this.request<CashSession | null>('/api/cash-sessions/current');
   }

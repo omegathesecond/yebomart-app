@@ -32,6 +32,7 @@ export function CashUp() {
   const { toast, showToast, dismissToast } = useToast();
 
   const [loading, setLoading] = useState(true);
+  const [currentError, setCurrentError] = useState('');
   const [session, setSession] = useState<CashSession | null>(null);
 
   // Open-till form
@@ -50,11 +51,13 @@ export function CashUp() {
     return api.getCurrentCashSession().then((res) => {
       setLoading(false);
       if (res.error) {
+        setCurrentError(res.error);
         showToast(res.error, 'error');
         return;
       }
+      setCurrentError('');
       setSession(res.data ?? null);
-    });
+    }).catch(() => { setLoading(false); setCurrentError('Failed to load current till'); });
   }, [showToast]);
 
   useEffect(() => {
@@ -107,7 +110,7 @@ export function CashUp() {
     setSession(closed);
     setCountedCash('');
     setNotes('');
-    showToast('Till cashed up');
+    if (!zres.error && zres.data) showToast('Till cashed up');
   };
 
   const startNewTill = () => {
@@ -151,7 +154,8 @@ export function CashUp() {
       </div>
 
       {/* ── State 1: no open till ─────────────────────────────────────────── */}
-      {!session && (
+      {currentError && <p role="alert">{currentError} <Button onClick={loadCurrent}>Retry current till</Button></p>}
+      {!session && !currentError && (
         <div className="card p-6 space-y-4">
           <div className="flex items-center gap-2 text-body">
             <LockOpenIcon className="w-5 h-5 text-brick" />
@@ -300,9 +304,85 @@ export function CashUp() {
         </>
       )}
 
+      <CashSessionHistory refreshKey={session?.status} shopName={shop?.name} onSelect={() => setZreport(null)} />
+
       <Toast toast={toast} onDismiss={dismissToast} />
     </div>
   );
+}
+
+function CashSessionHistory({ refreshKey, shopName, onSelect }: { refreshKey?: string; shopName?: string; onSelect: () => void }) {
+  const [page, setPage] = useState(1);
+  const [status, setStatus] = useState('CLOSED');
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const [result, setResult] = useState<Awaited<ReturnType<typeof api.getCashSessionHistory>>['data']>();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [retry, setRetry] = useState(0);
+  const [selected, setSelected] = useState<CashSessionZReport | null>(null);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [reportError, setReportError] = useState('');
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setError('');
+    // Date inputs are local calendar boundaries, converted to precise instants.
+    const end = to ? new Date(`${to}T00:00:00`) : null;
+    if (end) end.setDate(end.getDate() + 1);
+    api.getCashSessionHistory({ page, status, from: from ? new Date(`${from}T00:00:00`).toISOString() : undefined, to: end?.toISOString() })
+      .then(res => { if (active) { setResult(res.data); setError(res.error || (!res.data ? 'Failed to load history' : '')); } })
+      .catch(() => { if (active) setError('Failed to load history'); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [page, status, from, to, retry, refreshKey]);
+
+  useEffect(() => { setSelected(null); }, [refreshKey]);
+
+  const select = async (id: string) => {
+    onSelect();
+    setSelected(null);
+    setReportError('');
+    setReportLoading(true);
+    try {
+      const res = await api.getCashSessionZReport(id);
+      if (res.error || !res.data) setReportError(res.error || 'Failed to load Z-report');
+      else setSelected(res.data);
+    } catch { setReportError('Failed to load Z-report'); }
+    finally { setReportLoading(false); }
+  };
+  const money = (value: number | null) => value === null ? '—' : formatCurrency(value);
+  return <section className="card p-6 space-y-4" aria-label="Till history">
+    <h2 className="text-lg font-semibold">Till history</h2>
+    <p className="text-sm text-mute">Search by the date the till opened. Cash figures are saved reconciliations.</p>
+    <div className="flex flex-wrap gap-3">
+      <Input aria-label="Opened from" label="Opened from" type="date" value={from} onChange={e => { setFrom(e.target.value); setPage(1); }} />
+      <Input aria-label="Opened through" label="Opened through" type="date" value={to} onChange={e => { setTo(e.target.value); setPage(1); }} />
+      <label>Status<select className="block border border-line p-2" value={status} onChange={e => { setStatus(e.target.value); setPage(1); }}>
+        <option value="">All statuses</option><option value="CLOSED">Closed</option><option value="OPEN">Open</option>
+      </select></label>
+    </div>
+    {loading ? <p role="status">Loading till history…</p> : error ? <div role="alert">{error} <Button onClick={() => setRetry(v => v + 1)}>Retry history</Button></div> : <>
+      {!result?.sessions.length ? <p>No till sessions match these filters.</p> : result.sessions.map(item => <div key={item.id} className="border border-line p-4 space-y-2">
+        <p>{item.status} · {item.user?.name || 'Owner'}</p>
+        <p>Opened: {formatDateTime(item.openedAt)}</p>
+        <p>Closed: {item.closedAt ? formatDateTime(item.closedAt) : 'Still open'}</p>
+        <p>Expected: {money(item.expectedCash)} · Counted: {money(item.countedCash)} · Variance: {money(item.variance)}</p>
+        <Button disabled={reportLoading} onClick={() => select(item.id)}>View Z-report</Button>
+      </div>)}
+      <div className="flex gap-3 items-center">
+        <Button disabled={!result?.pagination.hasPrev} onClick={() => setPage(v => v - 1)}>Previous</Button>
+        <span>Page {page} of {Math.max(1, result?.pagination.totalPages ?? 0)}</span>
+        <Button disabled={!result?.pagination.hasNext} onClick={() => setPage(v => v + 1)}>Next</Button>
+      </div>
+    </>}
+    {reportLoading && <p role="status">Loading Z-report…</p>}
+    {reportError && <p role="alert">{reportError}. Select the session to retry.</p>}
+    {selected && <>
+      <Button icon={<PrinterIcon className="w-5 h-5" />} onClick={() => window.print()}>Print historical Z-report</Button>
+      <ZReportCard z={selected} shopName={shopName} />
+    </>}
+  </section>;
 }
 
 function Stat({ label, value, sub, highlight }: { label: string; value: string; sub?: string; highlight?: boolean }) {
@@ -327,11 +407,13 @@ function ZReportCard({ z, shopName }: { z: CashSessionZReport; shopName?: string
     ['VAT in charged total', z.tax],
     ['Charged total (incl. VAT)', z.totalAmount],
   ] as const;
-  const priceNote = 'Recorded prices include VAT on inclusive sales and exclude VAT on exclusive sales.';
+  const priceNote = `${z.session.status === 'CLOSED' ? 'Expected cash, counted cash and variance are saved at close.' : 'This till is still open; expected cash is live and no close figures have been saved.'} Sales, payments and refund totals are recalculated from current records for this shift. Recorded prices include VAT on inclusive sales and exclude VAT on exclusive sales.`;
   return (
     <div className="card p-6">
       <h3 className="text-base font-semibold text-ink mb-3">Z-Report</h3>
 
+      <p className="text-sm text-mute">{z.session.cashier?.name || 'Owner'} · {formatDateTime(z.session.openedAt)} → {z.session.closedAt ? formatDateTime(z.session.closedAt) : 'Still open'}</p>
+      {z.session.notes && <p className="text-sm">Notes: {z.session.notes}</p>}
       <p className="text-sm text-mute mb-3">{priceNote}</p>
       {/* On-screen dark version */}
       <div className="space-y-2 text-sm">
@@ -345,15 +427,15 @@ function ZReportCard({ z, shopName }: { z: CashSessionZReport; shopName?: string
         <Row label="Opening float" value={formatCurrency(z.session.openingFloat)} />
         <Row label={`Cash refunds paid (${z.cashRefundsCount})`} value={formatCurrency(z.cashRefundsTotal)} />
         <Row label="Expected cash" value={formatCurrency(z.session.expectedCash ?? 0)} />
-        <Row label="Counted cash" value={formatCurrency(z.session.countedCash ?? 0)} />
-        <Row label="Variance" value={formatCurrency(z.session.variance ?? 0)} strong />
+        <Row label="Counted cash" value={z.session.countedCash === null ? '—' : formatCurrency(z.session.countedCash)} />
+        <Row label="Variance" value={z.session.variance === null ? '—' : formatCurrency(z.session.variance)} strong />
       </div>
 
       {/* Print-only white card (hidden on screen) */}
       <div id="zreport-print" className="hidden print:block bg-cream text-black p-6" style={{ fontFamily: 'monospace' }}>
         <div style={{ textAlign: 'center', marginBottom: 12 }}>
           <div style={{ fontWeight: 'bold', fontSize: 18 }}>{shopName || z.shop?.name || 'YeboMart'}</div>
-          <div style={{ fontSize: 14 }}>Z-REPORT — END OF SHIFT</div>
+          <div style={{ fontSize: 14 }}>{z.session.status === 'CLOSED' ? 'Z-REPORT — END OF SHIFT' : 'OPEN TILL — LIVE REPORT'}</div>
           <div style={{ fontSize: 12 }}>
             {formatDateTime(z.session.openedAt)} → {z.session.closedAt ? formatDateTime(z.session.closedAt) : '—'}
           </div>
@@ -372,8 +454,8 @@ function ZReportCard({ z, shopName }: { z: CashSessionZReport; shopName?: string
         <PrintRow label="Opening float" value={formatCurrency(z.session.openingFloat)} />
         <PrintRow label={`Cash refunds paid (${z.cashRefundsCount})`} value={formatCurrency(z.cashRefundsTotal)} />
         <PrintRow label="Expected cash" value={formatCurrency(z.session.expectedCash ?? 0)} />
-        <PrintRow label="Counted cash" value={formatCurrency(z.session.countedCash ?? 0)} />
-        <PrintRow label="VARIANCE" value={formatCurrency(z.session.variance ?? 0)} bold />
+        <PrintRow label="Counted cash" value={z.session.countedCash === null ? '—' : formatCurrency(z.session.countedCash)} />
+        <PrintRow label="VARIANCE" value={z.session.variance === null ? '—' : formatCurrency(z.session.variance)} bold />
         {z.session.notes && <div style={{ fontSize: 12, marginTop: 8 }}>Notes: {z.session.notes}</div>}
       </div>
     </div>

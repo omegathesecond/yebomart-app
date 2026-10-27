@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-const mocks = vi.hoisted(() => ({ getReturns: vi.fn(), processReturn: vi.fn(), getCurrentCashSession: vi.fn(), closeCashSession: vi.fn(), getCashSessionZReport: vi.fn() }));
+const mocks = vi.hoisted(() => ({ getReturns: vi.fn(), processReturn: vi.fn(), getCurrentCashSession: vi.fn(), closeCashSession: vi.fn(), getCashSessionZReport: vi.fn(), getCashSessionHistory: vi.fn() }));
 vi.mock('@/api/client', () => ({ api: mocks, default: mocks }));
 vi.mock('@/stores/authStore', () => ({ useAuthStore: () => ({ shop: { name: 'Test shop', currency: 'SZL', currencySymbol: 'E' } }) }));
 vi.mock('@/components/CustomerPicker', () => ({ CustomerPicker: () => null }));
@@ -8,6 +8,7 @@ import { Returns } from './Returns';
 import { CashUp } from './CashUp';
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.getCashSessionHistory.mockResolvedValue({ data: { sessions: [], pagination: { page: 1, totalPages: 0, hasNext: false, hasPrev: false } } });
   mocks.getReturns.mockResolvedValue({ data: [{ id: 'return-1', reason: 'Wrong size', type: 'REFUND', status: 'APPROVED', refundAmount: 20, items: [], createdAt: '2026-10-26' }] });
   mocks.processReturn.mockResolvedValue({ data: {} });
 });
