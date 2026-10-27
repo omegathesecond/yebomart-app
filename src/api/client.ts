@@ -12,7 +12,22 @@
 // on 401 for staff mode we surface it (no refresh — staff re-signs-in).
 
 import * as yeboid from '@/lib/yeboid';
-import type { Expense, ExpenseCategory } from '@/types';
+import type { Expense, ExpenseCategory, Product } from '@/types';
+
+export interface ExchangeItemInput { productId: string; quantity: number }
+interface ReturnInputBase {
+  saleId?: string;
+  customerId?: string;
+  reason: string;
+  items: Array<{ productId: string; productName: string; quantity: number; unitPrice: number; restockable: boolean }>;
+  refundAmount?: number;
+  notes?: string;
+}
+export type CreateReturnInput = ReturnInputBase & (
+  | { type: 'EXCHANGE'; exchangeItems: ExchangeItemInput[] }
+  | { type: 'REFUND' | 'STORE_CREDIT'; exchangeItems?: never }
+);
+export type ReplacementProduct = Pick<Product, 'id' | 'name' | 'sellPrice' | 'quantity' | 'isActive'>;
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.yebomart.com';
 
@@ -663,9 +678,9 @@ class ApiClient {
 
   // ── Products ──────────────────────────────────────────────────────────
 
-  async getProducts(params?: { page?: number; limit?: number }) {
+  async getProducts(params?: { page?: number; limit?: number; search?: string; isActive?: boolean }) {
     const query = params
-      ? `?page=${params.page || 1}&limit=${params.limit || 20}`
+      ? `?${new URLSearchParams(Object.entries(params).filter(([, value]) => value !== undefined).map(([key, value]) => [key, String(value)]))}`
       : '';
     return this.request<any[]>(`/api/products${query}`);
   }
@@ -984,7 +999,7 @@ class ApiClient {
     return this.request<any>(`/api/returns/${id}`);
   }
 
-  async createReturn(data: any) {
+  async createReturn(data: CreateReturnInput) {
     return this.request<any>('/api/returns', {
       method: 'POST',
       body: JSON.stringify(data),
