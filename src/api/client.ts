@@ -307,8 +307,27 @@ export interface TopUpConfirmResult {
 
 // ── Report shapes (mirror api/src/services/report.service.ts) ──
 
+export interface ReportTotals {
+  grossSales: number; returns: number; exchangeSales: number; totalSales: number;
+  salesTax: number; returnedTax: number; exchangeTax: number; totalTax: number;
+  grossCost: number; reversedCost: number; exchangeCost: number; totalCost: number;
+  netRevenue: number; grossProfit: number;
+}
+export interface ReportEvidence {
+  receiptlessReturns: number; receiptlessCount: number;
+  unvaluedExchange: number; unvaluedExchangeCount: number;
+}
+export interface SalesReport {
+  summary: ReportTotals & ReportEvidence & {
+    totalExpenses: number; netProfit: number; profitComplete: boolean;
+    totalTransactions: number; averageBasket: number;
+  };
+  topProducts: Array<{ name: string; quantity: number; revenue: number }>;
+  stock: { stockValue: number; lowStockCount: number; totalProducts: number };
+}
+
 /** Per-product performance row from GET /api/reports/products. */
-export interface ProductReportRow {
+export interface ProductReportRow extends ReportTotals {
   id: string;
   name: string;
   category: string;
@@ -324,11 +343,12 @@ export interface ProductReportRow {
 export interface ProductReport {
   range: { startDate: string; endDate: string };
   products: ProductReportRow[];
+  adjustments: ReportEvidence;
   categories: Array<{ name: string; revenue: number; quantity: number }>;
 }
 
 /** Per-cashier performance row from GET /api/reports/staff. */
-export interface StaffReportRow {
+export interface StaffReportRow extends ReportTotals {
   id: string;
   name: string;
   role: string;
@@ -341,20 +361,13 @@ export interface StaffReportRow {
 export interface StaffReport {
   range: { startDate: string; endDate: string };
   staff: StaffReportRow[];
+  adjustments: ReportEvidence;
 }
 
 export interface WeeklyReport {
   weekStart: string;
   weekEnd: string;
-  summary: {
-    totalSales: number;
-    totalTransactions: number;
-    averageDaily: number;
-    totalCost: number;
-    grossProfit: number;
-    totalExpenses: number;
-    netProfit: number;
-  };
+  summary: SalesReport['summary'] & { averageDaily: number };
   dailyBreakdown: Array<{
     date: string;
     sales: number;
@@ -829,7 +842,7 @@ class ApiClient {
    * This is the authoritative source for the Reports Summary tab.
    */
   async getSalesReport(startDate: string, endDate: string) {
-    return this.request<any>(
+    return this.request<SalesReport>(
       `/api/reports/sales?startDate=${startDate}&endDate=${endDate}`,
     );
   }
