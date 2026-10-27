@@ -53,9 +53,14 @@ interface Return {
   id: string;
   saleId?: string;
   customerId?: string;
+  customer?: { id: string; name: string };
+  creditReversal?: { id: string; amount: number; customerId: string; returnId: string };
   reason: string;
   type: 'REFUND' | 'EXCHANGE' | 'STORE_CREDIT';
   refundAmount: number;
+  settlementMethod?: string;
+  settlementReference?: string;
+  cashSessionId?: string;
   status: 'PENDING' | 'APPROVED' | 'COMPLETED' | 'REJECTED';
   notes?: string;
   items: ReturnItem[];
@@ -85,6 +90,14 @@ export function Returns() {
   const [statusFilter, setStatusFilter] = useState('');
   const [selectedReturn, setSelectedReturn] = useState<Return | null>(null);
   const [processing, setProcessing] = useState(false);
+  const [settlementMethod, setSettlementMethod] = useState<'CASH' | 'CARD' | 'MOMO' | 'EMALI'>('CASH');
+  const [settlementReference, setSettlementReference] = useState('');
+  const [payoutConfirmed, setPayoutConfirmed] = useState(false);
+  useEffect(() => {
+    setPayoutConfirmed(false);
+    setSettlementReference('');
+    setSettlementMethod('CASH');
+  }, [selectedReturn?.id]);
   
   // New return flow
   const [showNewReturn, setShowNewReturn] = useState(false);
@@ -184,6 +197,10 @@ export function Returns() {
 
   const handleCreateReturn = async () => {
     if (!foundSale || selectedItems.size === 0 || !returnReason.trim()) return;
+    if (returnType === 'STORE_CREDIT' && foundSale.paymentMethod !== 'CREDIT' && !selectedCustomer) {
+      showToast('Choose a customer to receive store credit', 'error');
+      return;
+    }
     if (foundSale.paymentMethod === 'CREDIT' && (returnType !== 'STORE_CREDIT' || (selectedCustomer && selectedCustomer.id !== foundSale.customerId))) {
       showToast('Pay-later returns must adjust the original customer account. Cash refunds and exchanges are not supported.', 'error');
       return;
@@ -235,13 +252,20 @@ export function Returns() {
     if (!selectedReturn) return;
     setProcessing(true);
     try {
-      const { data, error } = await api.processReturn(selectedReturn.id, action);
+      const { data, error } = await api.processReturn(selectedReturn.id, action, action === 'complete' && selectedReturn.type === 'REFUND' ? { method: settlementMethod, confirmed: payoutConfirmed, reference: settlementReference || undefined } : undefined);
       if (error) {
         showToast(error, 'error');
         return;
       }
+      if (action === 'complete' && selectedReturn.type === 'STORE_CREDIT' &&
+          !(data as Return | undefined)?.creditReversal?.id) {
+        showToast('Store credit posting was not confirmed. Refresh the return before continuing.', 'error');
+        return;
+      }
       if (action === 'complete' && data?.creditReversal) {
-        showToast(`Customer account adjusted by ${formatCurrency(-data.creditReversal.amount)}. Repayments retained; no cash refunded.`);
+        showToast(data.creditReversal.amount < 0
+          ? `Customer account adjusted by ${formatCurrency(-data.creditReversal.amount)}. Repayments retained; no cash refunded.`
+          : `Store credit of ${formatCurrency(data.creditReversal.amount)} posted to the customer account.`);
       }
       await fetchReturns();
       setSelectedReturn(null);
@@ -535,7 +559,7 @@ export function Returns() {
               {/* Credit returns always use the original debtor. */}
               {foundSale.paymentMethod !== 'CREDIT' && <div>
                 <label className="block text-sm text-mute mb-2">
-                  Customer (optional)
+                  {returnType === 'STORE_CREDIT' ? 'Customer receiving store credit (required)' : 'Customer (optional)'}
                 </label>
                 {selectedCustomer ? (
                   <div className="flex items-center gap-2 bg-sand border border-line rounded-sharp px-3 py-2">
@@ -570,9 +594,9 @@ export function Returns() {
               </div>}
 
               {/* Refund Amount */}
-              {returnType === 'REFUND' && selectedItems.size > 0 && (
+              {returnType !== 'EXCHANGE' && selectedItems.size > 0 && (
                 <div className="p-4 bg-ok/30 border border-ok rounded-sharp">
-                  <p className="text-sm text-ok mb-1">Refund Amount</p>
+                  <p className="text-sm text-ok mb-1">{returnType === 'STORE_CREDIT' ? 'Store credit amount' : 'Refund Amount'}</p>
                   <p className="m text-2xl font-bold text-ok">
                     {formatCurrency(calculateRefundAmount())}
                   </p>
@@ -584,7 +608,7 @@ export function Returns() {
                 variant="primary"
                 className="w-full"
                 onClick={handleCreateReturn}
-                disabled={selectedItems.size === 0 || !returnReason.trim() || creatingReturn}
+                disabled={selectedItems.size === 0 || !returnReason.trim() || creatingReturn || (returnType === 'STORE_CREDIT' && foundSale.paymentMethod !== 'CREDIT' && !selectedCustomer)}
               >
                 {creatingReturn ? 'Creating...' : 'Create Return'}
               </Button>
@@ -621,6 +645,15 @@ export function Returns() {
               <p className="text-ink">{selectedReturn.reason}</p>
             </div>
 
+            {selectedReturn.type === 'STORE_CREDIT' && (
+              <div className="bg-sand border border-line rounded-sharp p-4">
+                <p className="text-sm text-mute">{selectedReturn.creditReversal ? 'Credited to' : 'Store credit recipient'}</p>
+                <p className="text-ink">{selectedReturn.customer?.name || selectedReturn.customerId}</p>
+                <p className="text-lg font-bold text-ink">{formatCurrency(selectedReturn.creditReversal ? Math.abs(selectedReturn.creditReversal.amount) : selectedReturn.refundAmount)}</p>
+                {selectedReturn.creditReversal && <p className="text-xs text-mute">Ledger entry: {selectedReturn.creditReversal.id}</p>}
+              </div>
+            )}
+
             {/* Items */}
             <div>
               <p className="text-sm text-mute mb-2">Returned Items</p>
@@ -644,6 +677,25 @@ export function Returns() {
                 <p className="m text-2xl font-bold text-ok">
                   {formatCurrency(selectedReturn.refundAmount)}
                 </p>
+              </div>
+            )}
+
+            {selectedReturn.settlementMethod && (
+              <p className="text-sm text-mute">Paid via {selectedReturn.settlementMethod}{selectedReturn.cashSessionId ? ` · Till ${selectedReturn.cashSessionId}` : ''}{selectedReturn.settlementReference ? ` · ${selectedReturn.settlementReference}` : ''}</p>
+            )}
+            {selectedReturn.status === 'APPROVED' && selectedReturn.type === 'REFUND' && (
+              <div className="space-y-3">
+                <label className="block text-sm">Actual refund payment method
+                  <select className="input w-full mt-1" value={settlementMethod} onChange={e => { setSettlementMethod(e.target.value as typeof settlementMethod); setPayoutConfirmed(false); }}>
+                    <option value="CASH">Cash from current till</option>
+                    <option value="CARD">Card</option><option value="MOMO">MTN Mobile Money</option><option value="EMALI">eMali</option>
+                  </select>
+                </label>
+                <p className="text-sm text-mute">{settlementMethod === 'CASH' ? 'Requires an open till. The payout is recorded against the current session, including returns from earlier days.' : 'Complete the refund externally first. Record only a successful payment; this action does not send a provider refund.'} CREDIT-sale payouts require debt settlement and are unsupported.</p>
+                {settlementMethod !== 'CASH' && <label className="block text-sm">Successful refund reference
+                  <input className="input w-full mt-1" value={settlementReference} maxLength={200} onChange={e => setSettlementReference(e.target.value)} />
+                </label>}
+                <label className="flex gap-2 text-sm"><input type="checkbox" checked={payoutConfirmed} onChange={e => setPayoutConfirmed(e.target.checked)} />I confirm {formatCurrency(selectedReturn.refundAmount)} was paid to the customer by this method.</label>
               </div>
             )}
 
@@ -673,7 +725,7 @@ export function Returns() {
                 variant="primary"
                 className="w-full"
                 onClick={() => handleProcess('complete')}
-                disabled={processing}
+                disabled={processing || (selectedReturn.type === 'REFUND' && (!payoutConfirmed || (settlementMethod !== 'CASH' && !settlementReference.trim())))}
               >
                 {processing ? 'Processing...' : 'Complete Return & Restock'}
               </Button>

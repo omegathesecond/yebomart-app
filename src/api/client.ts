@@ -85,9 +85,13 @@ export interface CashSession {
   // Present on GET /current (live tally since openedAt):
   cashSalesTotal?: number;
   cashSalesCount?: number;
+  cashRefundsTotal?: number;
+  cashRefundsCount?: number;
 }
 
 export interface CashSessionZReport {
+  cashRefundsTotal: number;
+  cashRefundsCount: number;
   session: {
     id: string;
     status: 'OPEN' | 'CLOSED';
@@ -183,17 +187,6 @@ export interface CustomerCredit {
   createdAt: string;
 }
 
-// Fields consumed from GET /api/sales/search/receipt (server sale, not local checkout).
-export interface ReceiptSale {
-  id: string;
-  receiptNumber: string;
-  totalAmount: number;
-  paymentMethod: string;
-  customerId: string | null;
-  createdAt: string;
-  user: { id: string; name: string };
-}
-
 export interface CustomerSale {
   id: string;
   receiptNumber?: string | null;
@@ -207,6 +200,15 @@ export interface CustomerSale {
     unitPrice: number;
     totalPrice: number;
   }>;
+}
+
+/** JSON fields used from GET /api/sales/search/receipt (not the local POS Sale). */
+export interface ReceiptSale extends CustomerSale {
+  receiptNumber: string | null;
+  customerId: string | null;
+  paymentMethod: 'CASH' | 'MOMO' | 'EMALI' | 'CARD' | 'MIXED' | 'CREDIT';
+  items: NonNullable<CustomerSale['items']>;
+  user: { id: string; name: string } | null;
 }
 
 export interface CustomerDetail extends Customer {
@@ -998,10 +1000,10 @@ class ApiClient {
     });
   }
 
-  async processReturn(id: string, action: 'approve' | 'reject' | 'complete') {
+  async processReturn(id: string, action: 'approve' | 'reject' | 'complete', settlement?: { method: 'CASH' | 'CARD' | 'MOMO' | 'EMALI'; confirmed: boolean; reference?: string }) {
     return this.request<any>(`/api/returns/${id}/process`, {
       method: 'POST',
-      body: JSON.stringify({ action }),
+      body: JSON.stringify({ action, settlement }),
     });
   }
 
