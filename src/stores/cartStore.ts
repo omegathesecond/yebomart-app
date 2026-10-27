@@ -193,7 +193,7 @@ export const useCartStore = create<CartState>((set, get) => ({
   // Dexie syncQueue and optimistically complete the sale locally. The drain in
   // syncStore replays it on reconnect; the server dedups on `localId` so an
   // online attempt whose response was lost is never double-applied.
-  checkout: async (_userId: string, _shopId: string) => {
+  checkout: async (userId: string, shopId: string) => {
     if (get().isProcessing) return null;
     const { items, paymentMethod, discount, customer } = get();
 
@@ -290,7 +290,7 @@ export const useCartStore = create<CartState>((set, get) => ({
 
     // Keep the key across failed attempts of the same scoped payload. A changed
     // cart or shop is a different sale; successful/queued checkouts retire the key.
-    const fingerprint = JSON.stringify({ shopId: _shopId, userId: _userId, ...payload });
+    const fingerprint = JSON.stringify({ shopId, userId, ...payload });
     const previous = get().checkoutAttempt;
     const localId = previous?.fingerprint === fingerprint ? previous.localId : crypto.randomUUID();
     set({ checkoutAttempt: { fingerprint, localId } });

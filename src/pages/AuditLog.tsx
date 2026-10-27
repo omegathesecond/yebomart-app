@@ -71,6 +71,7 @@ export function AuditLog() {
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
 
   const updateFilters = (updates: Partial<Filters>) => {
+    setLoading(true);
     setFilters((prev) => ({ ...prev, ...updates }));
     setPage(1);
   };
@@ -93,16 +94,15 @@ export function AuditLog() {
 
   const load = useCallback(async () => {
     if (!isOwner) return;
-    setLoading(true);
-    setError(null);
-    const res = await api.getAuditLogs({
+    return api.getAuditLogs({
       page,
       limit: LIMIT,
       userId: filters.userId || undefined,
       action: filters.action || undefined,
       startDate: filters.startDate || undefined,
       endDate: filters.endDate || undefined,
-    });
+    }).then((res) => {
+    setError(null);
     if (res.data) {
       setLogs(res.data.logs);
       setPagination(res.data.pagination);
@@ -117,6 +117,7 @@ export function AuditLog() {
       }
     }
     setLoading(false);
+    });
   }, [isOwner, page, filters]);
 
   useEffect(() => {
@@ -216,7 +217,7 @@ export function AuditLog() {
       {!forbidden && error && (
         <Card className="text-center py-12">
           <p className="text-bad">{error}</p>
-          <Button variant="secondary" className="mt-4" onClick={load}>
+          <Button variant="secondary" className="mt-4" onClick={() => { setLoading(true); load(); }}>
             Retry
           </Button>
         </Card>

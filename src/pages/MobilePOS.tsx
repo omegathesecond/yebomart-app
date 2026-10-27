@@ -1,3 +1,4 @@
+import { getErrorMessage } from '@/utils/errorMessages';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Html5Qrcode, Html5QrcodeScannerState } from 'html5-qrcode';
@@ -25,8 +26,8 @@ import { CustomerPicker } from '@/components/CustomerPicker';
 export function MobilePOS() {
   const navigate = useNavigate();
   const { user, shop } = useAuthStore();
-  const { products, loadAll, getProductByBarcode, searchProducts } = useInventoryStore();
-  const { items, addItem, updateQuantity, removeItem, checkout, clear, setPaymentMethod, customer, setCustomer } =
+  const { loadAll, getProductByBarcode, searchProducts } = useInventoryStore();
+  const { items, addItem, updateQuantity, checkout, clear, setPaymentMethod, customer, setCustomer } =
     useCartStore();
   const cartSubtotal = useCartSubtotal();
   const taxBreakdown = useCartTaxBreakdown();
@@ -39,9 +40,8 @@ export function MobilePOS() {
   const [showCustomerPicker, setShowCustomerPicker] = useState(false);
   const [flashlightOn, setFlashlightOn] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [scannerReady, setScannerReady] = useState(false);
   const [scannerError, setScannerError] = useState<string | null>(null);
-  const [lastScannedCode, setLastScannedCode] = useState<string | null>(null);
+  const lastScannedCode = useRef<string | null>(null);
   const [scanFeedback, setScanFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   // Cash payment modal — capture cash tendered + show change for cash sales
@@ -64,6 +64,48 @@ export function MobilePOS() {
       loadAll(shop.id);
     }
   }, [shop, loadAll]);
+
+  // Handle barcode scan with debounce
+  const handleBarcodeScan = useCallback((barcode: string) => {
+    // Debounce repeated scans of the same code
+    if (barcode === lastScannedCode.current) return;
+
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    lastScannedCode.current = barcode;
+
+    debounceTimerRef.current = setTimeout(() => {
+      lastScannedCode.current = null;
+    }, 2000);
+
+    const product = getProductByBarcode(barcode);
+
+    // Clear previous feedback timer
+    if (feedbackTimerRef.current) {
+      clearTimeout(feedbackTimerRef.current);
+    }
+
+    if (product) {
+      addItem(product);
+      setScanFeedback({ type: 'success', message: `Added: ${product.name}` });
+      // Haptic feedback if available
+      if (navigator.vibrate) {
+        navigator.vibrate(100);
+      }
+    } else {
+      setScanFeedback({ type: 'error', message: `Not found: ${barcode}` });
+      if (navigator.vibrate) {
+        navigator.vibrate([100, 50, 100]);
+      }
+    }
+
+    // Clear feedback after 2 seconds
+    feedbackTimerRef.current = setTimeout(() => {
+      setScanFeedback(null);
+    }, 2000);
+  }, [getProductByBarcode, addItem]);
 
   // Initialize barcode scanner
   useEffect(() => {
@@ -98,14 +140,13 @@ export function MobilePOS() {
         );
 
         if (mounted) {
-          setScannerReady(true);
           setScannerError(null);
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Scanner init failed:', err);
         if (mounted) {
           setScannerError(
-            err.name === 'NotAllowedError'
+            err instanceof Error && err.name === 'NotAllowedError'
               ? 'Camera permission denied. Please allow camera access.'
               : 'Could not start camera. Try manual search below.'
           );
@@ -123,61 +164,19 @@ export function MobilePOS() {
         scanner.stop().catch(() => {});
       }
     };
-  }, []);
-
-  // Handle barcode scan with debounce
-  const handleBarcodeScan = useCallback((barcode: string) => {
-    // Debounce repeated scans of the same code
-    if (barcode === lastScannedCode) return;
-    
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
-
-    setLastScannedCode(barcode);
-
-    debounceTimerRef.current = setTimeout(() => {
-      setLastScannedCode(null);
-    }, 2000);
-
-    const product = getProductByBarcode(barcode);
-    
-    // Clear previous feedback timer
-    if (feedbackTimerRef.current) {
-      clearTimeout(feedbackTimerRef.current);
-    }
-
-    if (product) {
-      addItem(product);
-      setScanFeedback({ type: 'success', message: `Added: ${product.name}` });
-      // Haptic feedback if available
-      if (navigator.vibrate) {
-        navigator.vibrate(100);
-      }
-    } else {
-      setScanFeedback({ type: 'error', message: `Not found: ${barcode}` });
-      if (navigator.vibrate) {
-        navigator.vibrate([100, 50, 100]);
-      }
-    }
-
-    // Clear feedback after 2 seconds
-    feedbackTimerRef.current = setTimeout(() => {
-      setScanFeedback(null);
-    }, 2000);
-  }, [getProductByBarcode, addItem, lastScannedCode]);
+  }, [handleBarcodeScan]);
 
   // Toggle flashlight
   const toggleFlashlight = async () => {
     if (scannerRef.current) {
       try {
         const track = scannerRef.current.getRunningTrackCameraCapabilities?.();
-        if (track && (track as any).torch) {
+        if (track && track.torchFeature()) {
           const newState = !flashlightOn;
-          await (track as any).torch.apply(newState);
+          await track.torchFeature().apply(newState);
           setFlashlightOn(newState);
         }
-      } catch (err) {
+      } catch (err: unknown) {
         console.error('Flashlight toggle failed:', err);
       }
     }
@@ -202,7 +201,7 @@ export function MobilePOS() {
     setSearchQuery('');
     setShowSearchResults(false);
     setScanFeedback({ type: 'success', message: `Added: ${product.name}` });
-    
+
     if (feedbackTimerRef.current) {
       clearTimeout(feedbackTimerRef.current);
     }
@@ -300,9 +299,9 @@ export function MobilePOS() {
         const error = useCartStore.getState().error;
         showError(error || 'Sale failed. Please try again.');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Checkout failed:', err);
-      showError(err?.message || 'Checkout failed. Try again.');
+      showError(getErrorMessage(err) || 'Checkout failed. Try again.');
     }
     setIsProcessing(false);
   };
@@ -320,12 +319,12 @@ export function MobilePOS() {
       {/* Scanner Section - ~25% of screen */}
       <div className="on-ink relative h-[28vh] min-h-[180px] shrink-0 bg-ink-2">
         {/* Scanner container */}
-        <div 
+        <div
           ref={scannerContainerRef}
-          id="mobile-scanner-region" 
+          id="mobile-scanner-region"
           className="w-full h-full"
         />
-        
+
         {/* Scanner overlay UI */}
         <div className="absolute inset-0 pointer-events-none">
           {/* Top bar with back button and flashlight */}
@@ -362,7 +361,7 @@ export function MobilePOS() {
               <div className="absolute -top-0.5 -right-0.5 h-[30px] w-[30px] border-t-3 border-r-3 border-brand" />
               <div className="absolute -bottom-0.5 -left-0.5 h-[30px] w-[30px] border-b-3 border-l-3 border-brand" />
               <div className="absolute -bottom-0.5 -right-0.5 h-[30px] w-[30px] border-b-3 border-r-3 border-brand" />
-              
+
               {/* Scanning line animation */}
               <div className="absolute inset-x-2 top-1/2 h-0.5 bg-brand animate-pulse" />
             </div>
@@ -371,8 +370,8 @@ export function MobilePOS() {
           {/* Scan feedback toast */}
           {scanFeedback && (
             <div className={`absolute bottom-3 left-1/2 -translate-x-1/2 px-4 py-2 rounded-full text-sm font-medium shadow-lg pointer-events-auto ${
-              scanFeedback.type === 'success' 
-                ? 'bg-brand text-ink' 
+              scanFeedback.type === 'success'
+                ? 'bg-brand text-ink'
                 : 'bg-bad text-cream'
             }`}>
               {scanFeedback.message}
@@ -474,21 +473,21 @@ export function MobilePOS() {
             </div>
           ) : (
             items.map((item) => {
-              const unitPrice = item.isPack && item.product.packPrice 
-                ? item.product.packPrice 
+              const unitPrice = item.isPack && item.product.packPrice
+                ? item.product.packPrice
                 : item.product.sellPrice;
               const itemKey = `${item.productId}-${item.isPack ? 'pack' : 'single'}`;
 
               return (
-                <div 
-                  key={itemKey} 
+                <div
+                  key={itemKey}
                   className="flex items-center gap-3 p-3 bg-sand rounded-sharp border border-line"
                 >
                   {/* Product thumbnail */}
                   <div className="w-12 h-12 rounded-full bg-shade flex items-center justify-center flex-shrink-0 overflow-hidden">
                     {item.product.imageUrl ? (
-                      <img 
-                        src={item.product.imageUrl} 
+                      <img
+                        src={item.product.imageUrl}
                         alt={item.product.name}
                         className="w-full h-full object-cover"
                       />

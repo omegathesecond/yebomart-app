@@ -3,12 +3,12 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeftIcon, QrCodeIcon, CheckIcon, PlusIcon, XMarkIcon, BuildingStorefrontIcon, ExclamationTriangleIcon, PhotoIcon } from '@heroicons/react/24/outline';
 import { formatCurrency } from '@/types';
 import { Button } from '@/components/ui/Button';
-import { Input, Select, Textarea } from '@/components/ui/Input';
+import { Input, Select } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 import { BarcodeScanner } from '@/components/scanner/BarcodeScanner';
 import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
-import { getDefaultCategories, getCategoryAttributes, hasAttributes, type AttributeField } from '@/data/shopTypes';
+import { getDefaultCategories, getCategoryAttributes } from '@/data/shopTypes';
 import { api } from '@/api/client';
 
 export function ProductForm() {
@@ -52,9 +52,6 @@ export function ProductForm() {
   // Dynamic attributes state
   const [attributes, setAttributes] = useState<Record<string, string>>({});
   const [customAttributes, setCustomAttributes] = useState<Array<{ key: string; value: string }>>([]);
-  const [showAddCustom, setShowAddCustom] = useState(false);
-  const [newCustomKey, setNewCustomKey] = useState('');
-  const [newCustomValue, setNewCustomValue] = useState('');
   
   // Supplier state
   const [suppliers, setSuppliers] = useState<Array<{ id: string; name: string }>>([]);
@@ -145,7 +142,7 @@ export function ProductForm() {
         try {
           const response = await api.getProductSuppliers(id);
           if (response.data) {
-            setSelectedSupplierIds(new Set(response.data.map((sp: any) => sp.supplier?.id || sp.supplierId)));
+            setSelectedSupplierIds(new Set(response.data.map((sp) => sp.supplier?.id || sp.supplierId)));
           }
         } catch (error) {
           console.error('Failed to load product suppliers:', error);

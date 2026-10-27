@@ -24,14 +24,13 @@ import {
   FireIcon,
   BoltIcon,
   AcademicCapIcon,
-  GlobeAltIcon,
 } from '@heroicons/react/24/outline';
 
 export interface ShopType {
   id: string;
   name: string;
   description: string;
-  icon: any;
+  icon: typeof BuildingStorefrontIcon;
   categories: string[];
 }
 
