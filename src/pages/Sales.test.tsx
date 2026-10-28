@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { Sales } from './Sales';
 import api from '@/api/client';
 import type { Sale } from '@/types';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { PaymentMethodIcon } from '@/components/ui/PaymentMethodIcon';
 
 vi.mock('@/api/client', () => ({ default: { getSales: vi.fn(), searchSaleByReceipt: vi.fn(), getSale: vi.fn(), sendReceiptEmail: vi.fn() } }));
 const shop = { id: 'shop', name: 'Test shop' };
@@ -84,6 +86,30 @@ describe('server sales history', () => {
     expect(await screen.findByText('Receipt #: RCP-0064')).toBeInTheDocument();
     expect(api.getSale).toHaveBeenCalledWith('sale-64');
     for (const name of ['Print', 'Email', 'WhatsApp']) expect(screen.getByRole('button', { name })).toBeEnabled();
+  });
+
+  it.each([
+    ['CARD', 'card', 'Card'],
+    ['MOMO', 'momo', 'MoMo'],
+    ['CREDIT', 'credit', 'Credit'],
+  ] as const)('normalizes %s labels and icons in history and historic receipts', async (wireMethod, method, label) => {
+    const sale = { ...sales[64], paymentMethod: wireMethod as Sale['paymentMethod'] };
+    vi.mocked(api.getSales).mockResolvedValue({ data: [sale], metadata: { total: 1, page: 1, limit: 20, hasNext: false, hasPrev: false } });
+    vi.mocked(api.searchSaleByReceipt).mockResolvedValue({ data: { id: sale.id, receiptNumber: sale.receiptNumber!, totalAmount: 10, paymentMethod: wireMethod, items: [], createdAt: sale.createdAt.toISOString() } });
+    vi.mocked(api.getSale).mockResolvedValue({ data: sale });
+    const expectedIcon = document.createElement('div');
+    expectedIcon.innerHTML = renderToStaticMarkup(<PaymentMethodIcon method={method} />);
+    const expectedPath = expectedIcon.querySelector('path')!.getAttribute('d');
+    mount();
+    const row = (await screen.findByText('RCP-0064')).closest('button')!;
+    expect(within(row).getByText(label)).toBeInTheDocument();
+    expect(row.querySelector('svg path')!.getAttribute('d')).toBe(expectedPath);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Receipt number' }), { target: { value: 'RCP-0064' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Find receipt' }));
+    await screen.findByText('Receipt #: RCP-0064');
+    const receipt = screen.getByText('Receipt #: RCP-0064').closest('.modal-backdrop')! as HTMLElement;
+    expect(within(receipt).getAllByText(label).length).toBeGreaterThan(0);
+    expect(Array.from(receipt.querySelectorAll('svg path')).some(path => path.getAttribute('d') === expectedPath)).toBe(true);
   });
 
   it('shows loading and request failure with retry, never a false empty state', async () => {

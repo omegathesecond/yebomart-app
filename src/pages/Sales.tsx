@@ -22,6 +22,10 @@ import { useAuthStore } from '@/stores/authStore';
 import { formatCurrency, formatDate, formatTime, type Sale, type PaymentMethod, PAYMENT_METHODS } from '@/types';
 import { PaymentMethodIcon } from '@/components/ui/PaymentMethodIcon';
 
+function normalizeSale(sale: Sale): Sale {
+  return { ...sale, paymentMethod: sale.paymentMethod.toLowerCase() as PaymentMethod };
+}
+
 export function Sales() {
   const { shop } = useAuthStore();
   // Drop receipts and in-flight results immediately when switching shops.
@@ -70,7 +74,7 @@ function SalesHistory() {
         });
         if (response.error) throw new Error(response.error);
         if (!response.data || !response.metadata) throw new Error('Sales response is incomplete. Please retry.');
-        if (active) setResult({ key: requestKey, sales: response.data, metadata: response.metadata });
+        if (active) setResult({ key: requestKey, sales: response.data.map(normalizeSale), metadata: response.metadata });
       } catch (err) {
         if (active) setResult({ key: requestKey, sales: [], error: getErrorMessage(err) });
       }
@@ -89,7 +93,7 @@ function SalesHistory() {
         const receipt = await api.getSale(found.data.id);
         if (receipt.error) throw new Error(receipt.error);
         if (!receipt.data) throw new Error('Receipt response is incomplete');
-        if (active) setLookupState({ request: lookup, sale: receipt.data });
+        if (active) setLookupState({ request: lookup, sale: normalizeSale(receipt.data) });
       } catch (err) {
         if (active) setLookupState({ request: lookup, error: getErrorMessage(err) });
       }
