@@ -25,12 +25,13 @@ let draining = false;
 type PushResult =
   | 'success' // committed server-side (or deduped) — remove from queue
   | 'retry'   // transport failure — still offline, keep item, DON'T burn an attempt
-  | 'failed'; // server rejected (4xx) — burn an attempt, park after MAX_ATTEMPTS
+  | { error: string }; // server rejected (4xx) — burn an attempt, park after MAX_ATTEMPTS
 
 interface SyncState {
   pendingCount: number;
   isSyncing: boolean;
   lastSyncedAt: Date | null;
+  lastError: string | null;
 
   /** Recount the outbox and publish the badge number. */
   refreshPending: () => Promise<void>;
@@ -46,10 +47,11 @@ export const useSyncStore = create<SyncState>((set, get) => ({
   pendingCount: 0,
   isSyncing: false,
   lastSyncedAt: null,
+  lastError: null,
 
   refreshPending: async () => {
-    const count = await db.syncQueue.count();
-    set({ pendingCount: count });
+    const items = await db.syncQueue.toArray();
+    set({ pendingCount: items.length, lastError: items.find(item => item.error)?.error ?? null });
   },
 
   replay: async () => {
@@ -58,7 +60,7 @@ export const useSyncStore = create<SyncState>((set, get) => ({
     if (draining || !navigator.onLine) return { synced: 0, failed: 0 };
 
     draining = true;
-    set({ isSyncing: true });
+    set({ isSyncing: true, lastError: null });
 
     let synced = 0;
     let failed = 0;
@@ -73,7 +75,9 @@ export const useSyncStore = create<SyncState>((set, get) => ({
         } catch (err: unknown) {
           // Unexpected client-side error while building/sending — treat as a
           // server-style failure so it eventually parks rather than looping.
-          await updateSyncAttempt(item.id, getErrorMessage(err) || 'Replay error');
+          const message = getErrorMessage(err) || 'Replay error';
+          await updateSyncAttempt(item.id, message);
+          set({ lastError: message });
           failed++;
           continue;
         }
@@ -86,7 +90,8 @@ export const useSyncStore = create<SyncState>((set, get) => ({
           // no attempt burned. The next `online` event resumes the drain.
           break;
         } else {
-          await updateSyncAttempt(item.id, 'Server rejected queued item');
+          await updateSyncAttempt(item.id, result.error);
+          set({ lastError: result.error });
           failed++;
         }
       }
@@ -116,14 +121,14 @@ async function pushItem(item: SyncQueueItem): Promise<PushResult> {
     const { data, error } = await api.createSale(item.data as Parameters<typeof api.createSale>[0]);
     if (data) return 'success';
     if (error === NETWORK_ERROR) return 'retry';
-    return 'failed';
+    return { error: error || 'Server rejected queued item' };
   }
 
   // Unknown queue entry — fail it loudly toward parking rather than silently
   // dropping it. Today only 'sales/create' is ever enqueued; this guards
   // against a future enqueue site landing without a matching drain handler.
   console.error(`[sync] No drain handler for ${item.table}/${item.action}`);
-  return 'failed';
+  return { error: `No sync handler for ${item.table}/${item.action}` };
 }
 
 /** Re-export so callers don't reach past the store. */

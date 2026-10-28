@@ -145,3 +145,16 @@ describe('syncStore.replay — per-item outcomes', () => {
     expect(await db.syncQueue.count()).toBe(0);
   });
 });
+
+
+it('retains a discount denial in the outbox and exposes the server error', async () => {
+  const message = 'You do not have permission to apply discounts';
+  createSale.mockResolvedValue({ error: message });
+  const id = await enqueueSale();
+  expect(await useSyncStore.getState().replay()).toEqual({ synced: 0, failed: 1 });
+  expect(useSyncStore.getState().lastError).toBe(message);
+  expect(await db.syncQueue.get(id)).toMatchObject({ attempts: 1, error: message });
+  useSyncStore.setState({ lastError: null });
+  await useSyncStore.getState().refreshPending();
+  expect(useSyncStore.getState().lastError).toBe(message);
+});
