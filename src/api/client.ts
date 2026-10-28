@@ -15,6 +15,21 @@ import * as yeboid from '@/lib/yeboid';
 import type { Expense, ExpenseCategory, Product, Sale, SaleItem, Shop, User, Subscription, StockLog } from '@/types';
 import type { Return, ReturnSale, Supplier, PurchaseOrder, StaffDetailData } from './models';
 
+export interface ExchangeItemInput { productId: string; quantity: number }
+interface ReturnInputBase {
+  saleId?: string;
+  customerId?: string;
+  reason: string;
+  items: Array<{ productId: string; productName: string; quantity: number; unitPrice: number; restockable: boolean }>;
+  refundAmount?: number;
+  notes?: string;
+}
+export type CreateReturnInput = ReturnInputBase & (
+  | { type: 'EXCHANGE'; exchangeItems: ExchangeItemInput[] }
+  | { type: 'REFUND' | 'STORE_CREDIT'; exchangeItems?: never }
+);
+export type ReplacementProduct = Pick<Product, 'id' | 'name' | 'sellPrice' | 'quantity' | 'isActive'>;
+
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.yebomart.com';
 
 const STAFF_TOKEN_KEY = 'yebomart_staff_token';
@@ -677,9 +692,9 @@ class ApiClient {
 
   // ── Products ──────────────────────────────────────────────────────────
 
-  async getProducts(params?: { page?: number; limit?: number }) {
+  async getProducts(params?: { page?: number; limit?: number; search?: string; isActive?: boolean }) {
     const query = params
-      ? `?page=${params.page || 1}&limit=${params.limit || 20}`
+      ? `?${new URLSearchParams(Object.entries(params).filter(([, value]) => value !== undefined).map(([key, value]) => [key, String(value)]))}`
       : '';
     return this.request<Product[]>(`/api/products${query}`);
   }
@@ -998,7 +1013,7 @@ class ApiClient {
     return this.request<Return>(`/api/returns/${id}`);
   }
 
-  async createReturn(data: { saleId?: string; customerId?: string; reason: string; type: string; notes?: string; refundAmount: number; exchangeItems?: { productId: string; quantity: number; unitPrice: number }[]; items: { productId: string; quantity: number; unitPrice: number; restockable: boolean }[] }) {
+  async createReturn(data: CreateReturnInput) {
     return this.request<Return>('/api/returns', {
       method: 'POST',
       body: JSON.stringify(data),
