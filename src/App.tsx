@@ -48,8 +48,6 @@ const queryClient = new QueryClient({
   },
 });
 
-// Export for clearing on logout
-export { queryClient };
 
 // Loading spinner for lazy-loaded pages
 function PageLoader() {

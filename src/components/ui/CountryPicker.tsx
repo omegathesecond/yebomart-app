@@ -7,7 +7,7 @@ import {
   GlobeAltIcon,
   ChevronDownIcon
 } from '@heroicons/react/24/outline';
-import { useLocaleStore, COUNTRIES, type Country, type Language } from '@/stores/localeStore';
+import { useLocaleStore, type Country } from '@/stores/localeStore';
 import { getCountriesGroupedByRegion, REGION_LABELS, LANGUAGE_LABELS, type Region } from '@/lib/countries';
 
 interface CountryPickerProps {
@@ -314,7 +314,6 @@ export function CountryFlagPicker() {
 
 // Language switcher standalone component
 export function LanguageSwitcher() {
-  const { t } = useTranslation();
   const { language, setLanguage, country } = useLocaleStore();
   
   const availableLanguages = country?.languages || ['en'];

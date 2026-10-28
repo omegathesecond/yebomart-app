@@ -1,3 +1,5 @@
+import { getErrorMessage } from '@/utils/errorMessages';
+import type { ReturnSale as Sale, Return } from '@/api/models';
 import { useState, useEffect } from 'react';
 import {
   ArrowPathIcon,
@@ -20,61 +22,21 @@ import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
-import { Toast, useToast } from '@/components/ui/Toast';
+import { Toast } from '@/components/ui/Toast';
+import { useToast } from '@/components/ui/useToast';
 import { CustomerPicker } from '@/components/CustomerPicker';
-import { api, type Customer, type ReceiptSale } from '@/api/client';
+import { api, type Customer, type ReplacementProduct } from '@/api/client';
+import { useAuthStore } from '@/stores/authStore';
+import { computeTax } from '@/lib/tax';
 import { formatCurrency } from '@/types';
 
-interface SaleItem {
-  id: string;
-  productId: string;
-  productName: string;
-  quantity: number;
-  unitPrice: number;
-  totalPrice: number;
-  remainingCents: number;
-}
-
-interface Sale extends ReceiptSale {
-  items: SaleItem[];
-}
-
-interface ReturnItem {
-  id: string;
-  productId: string;
-  productName: string;
-  quantity: number;
-  unitPrice: number;
-  restockable: boolean;
-  restocked: boolean;
-}
-
-interface Return {
-  id: string;
-  saleId?: string;
-  customerId?: string;
-  customer?: { id: string; name: string };
-  creditReversal?: { id: string; amount: number; customerId: string; returnId: string };
-  reason: string;
-  type: 'REFUND' | 'EXCHANGE' | 'STORE_CREDIT';
-  refundAmount: number;
-  settlementMethod?: string;
-  settlementReference?: string;
-  cashSessionId?: string;
-  status: 'PENDING' | 'APPROVED' | 'COMPLETED' | 'REJECTED';
-  notes?: string;
-  items: ReturnItem[];
-  exchangeItems?: ReturnItem[];
-  createdAt: string;
-  processedAt?: string;
-}
 
 const STATUS_CONFIG = {
   PENDING: { label: 'Pending', color: 'warning', icon: ClockIcon },
   APPROVED: { label: 'Approved', color: 'info', icon: CheckCircleIcon },
   COMPLETED: { label: 'Completed', color: 'success', icon: CheckCircleIcon },
-  REJECTED: { label: 'Rejected', color: 'error', icon: XCircleIcon },
-};
+  REJECTED: { label: 'Rejected', color: 'danger', icon: XCircleIcon },
+} as const;
 
 const TYPE_CONFIG = {
   REFUND: { label: 'Refund', icon: BanknotesIcon, color: 'text-ok' },
@@ -111,6 +73,39 @@ export function Returns() {
   const [creatingReturn, setCreatingReturn] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [showCustomerPicker, setShowCustomerPicker] = useState(false);
+  const shop = useAuthStore(state => state.shop);
+  const [replacementSearch, setReplacementSearch] = useState('');
+  const [replacementProducts, setReplacementProducts] = useState<ReplacementProduct[]>([]);
+  const [replacementLoading, setReplacementLoading] = useState(false);
+  const [replacementError, setReplacementError] = useState('');
+  const [replacements, setReplacements] = useState<Array<{ product: ReplacementProduct; quantity: number }>>([]);
+
+  useEffect(() => {
+    if (!showNewReturn || returnType !== 'EXCHANGE') return;
+    let cancelled = false;
+    setReplacementLoading(true);
+    setReplacementError('');
+    const timer = setTimeout(async () => {
+      try {
+        const response = await api.getProducts({ search: replacementSearch.trim() || undefined, isActive: true, limit: 100 });
+        if (response.error || !response.data) throw new Error(response.error || 'Unable to load replacement products');
+        if (!cancelled) setReplacementProducts(response.data);
+      } catch (error) {
+        if (!cancelled) {
+          setReplacementProducts([]);
+          setReplacementError(error instanceof Error ? error.message : 'Unable to load replacement products');
+        }
+      } finally {
+        if (!cancelled) setReplacementLoading(false);
+      }
+    }, 200);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [showNewReturn, returnType, replacementSearch, shop?.id]);
+
+  const replacementTotal = shop ? computeTax(
+    replacements.reduce((sum, line) => sum + line.product.sellPrice * line.quantity, 0), 0,
+    { taxRate: shop.taxRate ?? 0, taxInclusive: shop.taxInclusive ?? false },
+  ).total : null;
 
   const fetchReturns = async () => {
     setLoading(true);
@@ -121,8 +116,8 @@ export function Returns() {
         return;
       }
       setReturns(response.data || []);
-    } catch (error: any) {
-      showToast(error?.message || 'Failed to load returns', 'error');
+    } catch (error: unknown) {
+      showToast(getErrorMessage(error) || 'Failed to load returns', 'error');
     } finally {
       setLoading(false);
     }
@@ -137,6 +132,7 @@ export function Returns() {
     setSearchingSale(true);
     setSaleError('');
     setFoundSale(null);
+    setReplacements([]);
     try {
       const response = await api.searchSaleByReceipt(receiptSearch.trim());
       if (response.error || !response.data) {
@@ -156,8 +152,8 @@ export function Returns() {
       setReturnType(response.data.paymentMethod === 'CREDIT' ? 'STORE_CREDIT' : 'REFUND');
       setSelectedCustomer(null);
       setSelectedItems(new Map());
-    } catch (error: any) {
-      setSaleError(error.message || 'Receipt not found');
+    } catch (error: unknown) {
+      setSaleError(getErrorMessage(error) || 'Receipt not found');
     } finally {
       setSearchingSale(false);
     }
@@ -195,6 +191,14 @@ export function Returns() {
     return total;
   };
 
+  const returnedValue = calculateRefundAmount();
+  const exchangeDifference = replacementTotal === null ? null : (Math.round(replacementTotal * 100) - Math.round(returnedValue * 100)) / 100;
+  const exchangeError = !replacements.length ? 'Choose at least one replacement item.'
+    : replacementTotal === null ? 'Shop tax settings are unavailable. Reload before creating an exchange.'
+    : exchangeDifference !== 0
+      ? 'Values must match. Change the replacement items or quantities. No balance payment or payout is supported.'
+      : '';
+
   const handleCreateReturn = async () => {
     if (!foundSale || selectedItems.size === 0 || !returnReason.trim()) return;
     if (returnType === 'STORE_CREDIT' && foundSale.paymentMethod !== 'CREDIT' && !selectedCustomer) {
@@ -203,6 +207,10 @@ export function Returns() {
     }
     if (foundSale.paymentMethod === 'CREDIT' && (returnType !== 'STORE_CREDIT' || (selectedCustomer && selectedCustomer.id !== foundSale.customerId))) {
       showToast('Pay-later returns must adjust the original customer account. Cash refunds and exchanges are not supported.', 'error');
+      return;
+    }
+    if (returnType === 'EXCHANGE' && exchangeError) {
+      showToast(exchangeError, 'error');
       return;
     }
     setCreatingReturn(true);
@@ -222,9 +230,11 @@ export function Returns() {
         saleId: foundSale.id,
         customerId: foundSale.paymentMethod === 'CREDIT' ? foundSale.customerId : selectedCustomer?.id,
         reason: returnReason,
-        type: returnType,
+        ...(returnType === 'EXCHANGE'
+          ? { type: returnType, exchangeItems: replacements.map(line => ({ productId: line.product.id, quantity: line.quantity })) }
+          : { type: returnType }),
         items,
-        refundAmount: returnType === 'REFUND' ? calculateRefundAmount() : 0,
+        refundAmount: returnType === 'REFUND' ? returnedValue : 0,
       });
 
       if (error) {
@@ -238,11 +248,12 @@ export function Returns() {
       setFoundSale(null);
       setReceiptSearch('');
       setSelectedItems(new Map());
+      setReplacements([]);
       setReturnReason('');
       setSelectedCustomer(null);
       await fetchReturns();
-    } catch (error: any) {
-      showToast(error?.message || 'Failed to create return', 'error');
+    } catch (error: unknown) {
+      showToast(getErrorMessage(error) || 'Failed to create return', 'error');
     } finally {
       setCreatingReturn(false);
     }
@@ -269,8 +280,8 @@ export function Returns() {
       }
       await fetchReturns();
       setSelectedReturn(null);
-    } catch (error: any) {
-      showToast(error?.message || 'Failed to process return', 'error');
+    } catch (error: unknown) {
+      showToast(getErrorMessage(error) || 'Failed to process return', 'error');
     } finally {
       setProcessing(false);
     }
@@ -365,7 +376,7 @@ export function Returns() {
                     <div className="flex items-center gap-3 mb-2">
                       <TypeIcon className={`w-5 h-5 ${typeConfig.color}`} />
                       <span className="font-medium text-ink">{typeConfig.label}</span>
-                      <Badge variant={statusConfig.color as any}>
+                      <Badge variant={statusConfig.color}>
                         {statusConfig.label}
                       </Badge>
                     </div>
@@ -399,6 +410,8 @@ export function Returns() {
           setReceiptSearch('');
           setSaleError('');
           setSelectedItems(new Map());
+          setReplacements([]);
+          setReplacementSearch('');
           setReturnReason('');
           setSelectedCustomer(null);
         }}
@@ -542,6 +555,43 @@ export function Returns() {
                 </div>
               </div>
 
+              {returnType === 'EXCHANGE' && (
+                <section className="space-y-3" aria-label="Replacement merchandise">
+                  <h3 className="font-medium text-ink">Replacement items</h3>
+                  <p className="text-sm text-mute">Equal-value exchanges only. Replacements use current retail prices and shop tax, without new discounts. Returned value includes the original tax and discounts.</p>
+                  <label className="block text-sm text-mute">Search replacement products
+                    <Input value={replacementSearch} onChange={e => setReplacementSearch(e.target.value)} placeholder="Product name or barcode" />
+                  </label>
+                  {replacementLoading && <p role="status">Loading replacement products...</p>}
+                  {replacementError && <p role="alert" className="text-bad">{replacementError}</p>}
+                  {!replacementLoading && !replacementError && <div className="max-h-40 overflow-y-auto space-y-2">
+                    {replacementProducts.map(product => <button key={product.id} type="button" className="block w-full text-left p-3 bg-sand" onClick={() => setReplacements(lines => lines.some(line => line.product.id === product.id)
+                      ? lines.map(line => line.product.id === product.id ? { ...line, quantity: line.quantity + 1 } : line)
+                      : [...lines, { product, quantity: 1 }])}>
+                      Add {product.name} · {formatCurrency(product.sellPrice)}
+                    </button>)}
+                    {!replacementProducts.length && <p>No active products found.</p>}
+                    {replacementProducts.length === 100 && <p className="text-sm text-mute">Showing 100 matches. Search by name or barcode to narrow the results.</p>}
+                  </div>}
+                  {replacements.map(line => <div key={line.product.id} className="flex flex-wrap items-center gap-3">
+                    <span className="flex-1">{line.product.name}</span>
+                    <label className="text-sm">Quantity for {line.product.name}
+                      <input type="number" min="1" step="1" className="w-16 border border-line p-1" value={line.quantity} onChange={e => {
+                        const quantity = Number(e.target.value);
+                        if (Number.isSafeInteger(quantity) && quantity > 0) setReplacements(lines => lines.map(item => item.product.id === line.product.id ? { ...item, quantity } : item));
+                      }} />
+                    </label>
+                    <button type="button" className="p-2 text-sm" onClick={() => setReplacements(lines => lines.filter(item => item.product.id !== line.product.id))}>Remove {line.product.name}</button>
+                  </div>)}
+                  <div className="bg-sand border border-line p-4 space-y-1" aria-live="polite">
+                    <p>Returned value: {formatCurrency(returnedValue)}</p>
+                    <p>Replacement value (including tax): {replacementTotal === null ? 'Unavailable' : formatCurrency(replacementTotal)}</p>
+                    {exchangeDifference !== null && <p>Difference: {formatCurrency(exchangeDifference)}</p>}
+                    {exchangeError ? <p role="alert" className="text-bad">{exchangeError}</p> : <p>Values match. No payment or payout is required.</p>}
+                  </div>
+                </section>
+              )}
+
               {/* Reason */}
               <div>
                 <label className="block text-sm text-mute mb-2">
@@ -598,7 +648,7 @@ export function Returns() {
                 <div className="p-4 bg-ok/30 border border-ok rounded-sharp">
                   <p className="text-sm text-ok mb-1">{returnType === 'STORE_CREDIT' ? 'Store credit amount' : 'Refund Amount'}</p>
                   <p className="m text-2xl font-bold text-ok">
-                    {formatCurrency(calculateRefundAmount())}
+                    {formatCurrency(returnedValue)}
                   </p>
                 </div>
               )}
@@ -608,7 +658,7 @@ export function Returns() {
                 variant="primary"
                 className="w-full"
                 onClick={handleCreateReturn}
-                disabled={selectedItems.size === 0 || !returnReason.trim() || creatingReturn || (returnType === 'STORE_CREDIT' && foundSale.paymentMethod !== 'CREDIT' && !selectedCustomer)}
+                disabled={(returnType === 'EXCHANGE' && !!exchangeError) || selectedItems.size === 0 || !returnReason.trim() || creatingReturn || (returnType === 'STORE_CREDIT' && foundSale.paymentMethod !== 'CREDIT' && !selectedCustomer)}
               >
                 {creatingReturn ? 'Creating...' : 'Create Return'}
               </Button>
@@ -627,7 +677,7 @@ export function Returns() {
           <div className="space-y-6">
             {/* Status & Type */}
             <div className="flex items-center gap-4">
-              <Badge variant={STATUS_CONFIG[selectedReturn.status].color as any}>
+              <Badge variant={STATUS_CONFIG[selectedReturn.status].color}>
                 {STATUS_CONFIG[selectedReturn.status].label}
               </Badge>
               <span className={`flex items-center gap-1 ${TYPE_CONFIG[selectedReturn.type].color}`}>
@@ -669,6 +719,16 @@ export function Returns() {
                 ))}
               </div>
             </div>
+
+            {selectedReturn.type === 'EXCHANGE' && <section aria-label="Replacement items">
+              <h3 className="text-sm text-mute mb-2">Replacement items</h3>
+              {selectedReturn.exchangeItems?.map(item => <div key={item.id} className="flex justify-between bg-sand p-3">
+                <span>{item.productName} · Qty: {item.quantity}</span><span>{formatCurrency(item.unitPrice * item.quantity)}</span>
+              </div>)}
+              {!selectedReturn.exchangeItems?.length && <p role="alert" className="text-bad">This exchange has no replacement items and cannot be completed. Reject it and create a new exchange.</p>}
+              <p>Returned value: {formatCurrency(selectedReturn.items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0))}</p>
+              <p>Replacement value (including tax): {formatCurrency(selectedReturn.exchangeItems?.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0) ?? 0)}</p>
+            </section>}
 
             {/* Refund Amount */}
             {selectedReturn.type === 'REFUND' && (
@@ -720,12 +780,15 @@ export function Returns() {
                 </Button>
               </div>
             )}
+            {selectedReturn.status === 'APPROVED' && selectedReturn.type === 'EXCHANGE' && (
+              <Button variant="danger" onClick={() => handleProcess('reject')} disabled={processing}>Reject exchange</Button>
+            )}
             {selectedReturn.status === 'APPROVED' && (
               <Button
                 variant="primary"
                 className="w-full"
                 onClick={() => handleProcess('complete')}
-                disabled={processing || (selectedReturn.type === 'REFUND' && (!payoutConfirmed || (settlementMethod !== 'CASH' && !settlementReference.trim())))}
+                disabled={processing || (selectedReturn.type === 'EXCHANGE' && !selectedReturn.exchangeItems?.length) || (selectedReturn.type === 'REFUND' && (!payoutConfirmed || (settlementMethod !== 'CASH' && !settlementReference.trim())))}
               >
                 {processing ? 'Processing...' : 'Complete Return & Restock'}
               </Button>

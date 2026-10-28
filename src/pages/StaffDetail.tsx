@@ -1,9 +1,11 @@
+import { formatCurrency } from '@/types';
+import type { StaffDetailData } from '@/api/models';
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '@/api/client';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { formatCurrency } from '@/types';
+
 import { Badge } from '@/components/ui/Badge';
 import {
   ArrowLeftIcon,
@@ -33,45 +35,6 @@ import {
   Bar,
 } from 'recharts';
 
-interface StaffDetailData {
-  user: {
-    id: string;
-    name: string;
-    phone: string;
-    email?: string;
-    role: string;
-    isActive: boolean;
-    createdAt: string;
-    lastLoginAt?: string;
-  };
-  stats: {
-    period: { start: string; end: string };
-    totalRevenue: number;
-    transactionCount: number;
-    averageTransaction: number;
-    largestTransaction: number;
-    voidCount: number;
-    voidRate: number;
-  };
-  dailySales: Array<{
-    date: string;
-    transactions: number;
-    revenue: number;
-  }>;
-  recentSales: Array<{
-    id: string;
-    totalAmount: number;
-    status: string;
-    paymentMethod: string;
-    itemCount: number;
-    createdAt: string;
-  }>;
-  insights: Array<{
-    type: 'positive' | 'warning' | 'info';
-    text: string;
-  }>;
-}
-
 export function StaffDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -91,10 +54,6 @@ export function StaffDetail() {
     };
     fetchData();
   }, [id, period]);
-
-  const formatCurrency = (amount: number) => {
-    return formatCurrency(amount);
-  };
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('en-US', {

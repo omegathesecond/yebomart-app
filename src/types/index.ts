@@ -319,7 +319,9 @@ try {
       _currencySymbol = state.shop.currencySymbol;
     }
   }
-} catch {}
+} catch {
+  // No persisted currency is available before storage can be read.
+}
 
 export function updateCurrencyCache(symbol: string, decimals: number) {
   _currencySymbol = symbol;

@@ -12,7 +12,23 @@
 // on 401 for staff mode we surface it (no refresh — staff re-signs-in).
 
 import * as yeboid from '@/lib/yeboid';
-import type { Expense, ExpenseCategory } from '@/types';
+import type { Expense, ExpenseCategory, Product, Sale, SaleItem, Shop, User, Subscription, StockLog } from '@/types';
+import type { Return, ReturnSale, Supplier, PurchaseOrder, StaffDetailData } from './models';
+
+export interface ExchangeItemInput { productId: string; quantity: number }
+interface ReturnInputBase {
+  saleId?: string;
+  customerId?: string;
+  reason: string;
+  items: Array<{ productId: string; productName: string; quantity: number; unitPrice: number; restockable: boolean }>;
+  refundAmount?: number;
+  notes?: string;
+}
+export type CreateReturnInput = ReturnInputBase & (
+  | { type: 'EXCHANGE'; exchangeItems: ExchangeItemInput[] }
+  | { type: 'REFUND' | 'STORE_CREDIT'; exchangeItems?: never }
+);
+export type ReplacementProduct = Pick<Product, 'id' | 'name' | 'sellPrice' | 'quantity' | 'isActive'>;
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.yebomart.com';
 
@@ -49,7 +65,7 @@ interface ApiResponse<T> {
   data?: T;
   error?: string;
   message?: string;
-  details?: any;
+  details?: unknown;
   /** Machine-readable error code from the API body (e.g. INSUFFICIENT_CREDITS). */
   code?: string;
   /**
@@ -62,7 +78,7 @@ interface ApiResponse<T> {
     creditLimit?: number;
     currentBalance?: number;
     attemptedBalance?: number;
-    [key: string]: any;
+    [key: string]: unknown;
   };
   /** HTTP status of the response — lets callers branch on 402 etc. */
   status?: number;
@@ -145,7 +161,7 @@ export interface AuditLogEntry {
   action: string;
   entityType: string;
   entityId?: string | null;
-  details?: Record<string, any> | null;
+  details?: Record<string, unknown> | null;
   ipAddress?: string | null;
   createdAt: string;
   user?: { name: string; role: string } | null;
@@ -200,15 +216,6 @@ export interface CustomerSale {
     unitPrice: number;
     totalPrice: number;
   }>;
-}
-
-/** JSON fields used from GET /api/sales/search/receipt (not the local POS Sale). */
-export interface ReceiptSale extends CustomerSale {
-  receiptNumber: string | null;
-  customerId: string | null;
-  paymentMethod: 'CASH' | 'MOMO' | 'EMALI' | 'CARD' | 'MIXED' | 'CREDIT';
-  items: NonNullable<CustomerSale['items']>;
-  user: { id: string; name: string } | null;
 }
 
 export interface CustomerDetail extends Customer {
@@ -316,8 +323,27 @@ export interface TopUpConfirmResult {
 
 // ── Report shapes (mirror api/src/services/report.service.ts) ──
 
+export interface ReportTotals {
+  grossSales: number; returns: number; exchangeSales: number; totalSales: number;
+  salesTax: number; returnedTax: number; exchangeTax: number; totalTax: number;
+  grossCost: number; reversedCost: number; exchangeCost: number; totalCost: number;
+  netRevenue: number; grossProfit: number;
+}
+export interface ReportEvidence {
+  receiptlessReturns: number; receiptlessCount: number;
+  unvaluedExchange: number; unvaluedExchangeCount: number;
+}
+export interface SalesReport {
+  summary: ReportTotals & ReportEvidence & {
+    totalExpenses: number; netProfit: number; profitComplete: boolean;
+    totalTransactions: number; averageBasket: number;
+  };
+  topProducts: Array<{ name: string; quantity: number; revenue: number }>;
+  stock: { stockValue: number; lowStockCount: number; totalProducts: number };
+}
+
 /** Per-product performance row from GET /api/reports/products. */
-export interface ProductReportRow {
+export interface ProductReportRow extends ReportTotals {
   id: string;
   name: string;
   category: string;
@@ -333,11 +359,12 @@ export interface ProductReportRow {
 export interface ProductReport {
   range: { startDate: string; endDate: string };
   products: ProductReportRow[];
+  adjustments: ReportEvidence;
   categories: Array<{ name: string; revenue: number; quantity: number }>;
 }
 
 /** Per-cashier performance row from GET /api/reports/staff. */
-export interface StaffReportRow {
+export interface StaffReportRow extends ReportTotals {
   id: string;
   name: string;
   role: string;
@@ -350,20 +377,13 @@ export interface StaffReportRow {
 export interface StaffReport {
   range: { startDate: string; endDate: string };
   staff: StaffReportRow[];
+  adjustments: ReportEvidence;
 }
 
 export interface WeeklyReport {
   weekStart: string;
   weekEnd: string;
-  summary: {
-    totalSales: number;
-    totalTransactions: number;
-    averageDaily: number;
-    totalCost: number;
-    grossProfit: number;
-    totalExpenses: number;
-    netProfit: number;
-  };
+  summary: SalesReport['summary'] & { averageDaily: number };
   dailyBreakdown: Array<{
     date: string;
     sales: number;
@@ -559,7 +579,7 @@ class ApiClient {
   async exchangeYeboid(
     accessToken: string,
     bootstrap?: { shopName?: string; businessType?: string; assistantName?: string },
-  ): Promise<ApiResponse<{ shop: any; isNewShop: boolean }>> {
+  ): Promise<ApiResponse<{ shop: Shop; isNewShop: boolean }>> {
     return this.request('/api/auth/yeboid/exchange', {
       method: 'POST',
       body: JSON.stringify({ accessToken, ...bootstrap }),
@@ -570,8 +590,8 @@ class ApiClient {
   async staffLogin(phone: string, pin: string) {
     const response = await this.request<{
       accessToken: string;
-      shop: any;
-      user: any;
+      shop: Shop;
+      user: User;
     }>('/api/auth/login/user', {
       method: 'POST',
       body: JSON.stringify({ phone, pin }),
@@ -603,7 +623,7 @@ class ApiClient {
   }
 
   async getMe() {
-    return this.request<{ user: any; shop: any; subscription: any }>(
+    return this.request<{ user: User; shop: Shop; subscription: Subscription }>(
       '/api/auth/me',
     );
   }
@@ -647,7 +667,7 @@ class ApiClient {
     id: string,
     data: { name?: string; ownerName?: string; assistantName?: string; address?: string; businessType?: string; currency?: string; timezone?: string; logoUrl?: string },
   ) {
-    return this.request<any>(`/api/shops/${id}`, {
+    return this.request<Shop>(`/api/shops/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     });
@@ -672,22 +692,22 @@ class ApiClient {
 
   // ── Products ──────────────────────────────────────────────────────────
 
-  async getProducts(params?: { page?: number; limit?: number }) {
+  async getProducts(params?: { page?: number; limit?: number; search?: string; isActive?: boolean }) {
     const query = params
-      ? `?page=${params.page || 1}&limit=${params.limit || 20}`
+      ? `?${new URLSearchParams(Object.entries(params).filter(([, value]) => value !== undefined).map(([key, value]) => [key, String(value)]))}`
       : '';
-    return this.request<any[]>(`/api/products${query}`);
+    return this.request<Product[]>(`/api/products${query}`);
   }
 
-  async createProduct(data: any) {
-    return this.request<any>('/api/products', {
+  async createProduct(data: Partial<Product>) {
+    return this.request<Product>('/api/products', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
-  async updateProduct(id: string, data: any) {
-    return this.request<any>(`/api/products/${id}`, {
+  async updateProduct(id: string, data: Partial<Product>) {
+    return this.request<Product>(`/api/products/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     });
@@ -701,20 +721,20 @@ class ApiClient {
 
   // ── Bulk operations ───────────────────────────────────────────────────
 
-  async bulkImportProducts(products: any[], updateExisting = false) {
+  async bulkImportProducts(products: Partial<Product>[], updateExisting = false) {
     return this.request<{
       created: number;
       updated: number;
       skipped: number;
-      errors: any[];
+      errors: unknown[];
     }>('/api/products/bulk/import', {
       method: 'POST',
       body: JSON.stringify({ products, updateExisting }),
     });
   }
 
-  async bulkUpdateProducts(updates: any[]) {
-    return this.request<{ updated: number; failed: number; errors: any[] }>(
+  async bulkUpdateProducts(updates: Partial<Product>[]) {
+    return this.request<{ updated: number; failed: number; errors: unknown[] }>(
       '/api/products/bulk/update',
       {
         method: 'POST',
@@ -734,12 +754,12 @@ class ApiClient {
   // ── Sales ─────────────────────────────────────────────────────────────
 
   async getSales(params?: { startDate?: string; endDate?: string }) {
-    const query = params ? `?${new URLSearchParams(params as any)}` : '';
-    return this.request<any[]>(`/api/sales${query}`);
+    const query = params ? `?${new URLSearchParams(params as Record<string, string>)}` : '';
+    return this.request<Sale[]>(`/api/sales${query}`);
   }
 
   async createSale(data: {
-    items: any[];
+    items: Pick<SaleItem, 'productId' | 'quantity' | 'unitPrice'>[];
     paymentMethod: string;
     amountPaid: number;
     subtotal?: number;
@@ -754,7 +774,7 @@ class ApiClient {
     localId?: string;
     offlineAt?: string;
   }) {
-    return this.request<any>('/api/sales', {
+    return this.request<Sale>('/api/sales', {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -766,7 +786,7 @@ class ApiClient {
     productId: string,
     data: { type: string; quantity: number; note?: string },
   ) {
-    return this.request<any>('/api/stock/adjust', {
+    return this.request<{ product: Product; stockLog: StockLog }>('/api/stock/adjust', {
       method: 'POST',
       body: JSON.stringify({ productId, ...data }),
     });
@@ -784,7 +804,7 @@ class ApiClient {
     productId: string,
     data: { quantity: number; note?: string; costPrice?: number },
   ) {
-    return this.request<Array<{ product: any; stockLog: any }>>('/api/stock/receive', {
+    return this.request<Array<{ product: Product; stockLog: StockLog }>>('/api/stock/receive', {
       method: 'POST',
       body: JSON.stringify({
         items: [
@@ -803,7 +823,7 @@ class ApiClient {
     const endpoint = productId
       ? `/api/stock/movements?productId=${productId}`
       : '/api/stock/movements';
-    return this.request<any[]>(endpoint);
+    return this.request<StockLog[]>(endpoint);
   }
 
   /**
@@ -829,7 +849,7 @@ class ApiClient {
 
   async getDailyReport(date?: string) {
     const query = date ? `?date=${date}` : '';
-    return this.request<any>(`/api/reports/daily${query}`);
+    return this.request<SalesReport>(`/api/reports/daily${query}`);
   }
 
   /**
@@ -838,7 +858,7 @@ class ApiClient {
    * This is the authoritative source for the Reports Summary tab.
    */
   async getSalesReport(startDate: string, endDate: string) {
-    return this.request<any>(
+    return this.request<SalesReport>(
       `/api/reports/sales?startDate=${startDate}&endDate=${endDate}`,
     );
   }
@@ -875,7 +895,7 @@ class ApiClient {
 
   // ── AI Assistant ──────────────────────────────────────────────────────
 
-  async chat(message: string, context?: any) {
+  async chat(message: string, context?: Record<string, unknown>) {
     return this.request<{
       response?: string;
       message?: string;
@@ -903,11 +923,11 @@ class ApiClient {
   // ── Staff/Users ───────────────────────────────────────────────────────
 
   async getStaff() {
-    return this.request<any[]>('/api/users');
+    return this.request<(User & { lastLoginAt?: string })[]>('/api/users');
   }
 
   async getStaffDetail(userId: string, days: number = 30) {
-    return this.request<any>(`/api/users/${userId}/detail?days=${days}`);
+    return this.request<StaffDetailData>(`/api/users/${userId}/detail?days=${days}`);
   }
 
   async createStaff(data: {
@@ -916,7 +936,7 @@ class ApiClient {
     pin: string;
     role: string;
   }) {
-    return this.request<any>('/api/users', {
+    return this.request<User>('/api/users', {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -932,14 +952,14 @@ class ApiClient {
       isActive: boolean;
     }>,
   ) {
-    return this.request<any>(`/api/users/${id}`, {
+    return this.request<User>(`/api/users/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     });
   }
 
   async deleteStaff(id: string) {
-    return this.request<any>(`/api/users/${id}`, {
+    return this.request<User>(`/api/users/${id}`, {
       method: 'DELETE',
     });
   }
@@ -975,7 +995,7 @@ class ApiClient {
   // ── Health ────────────────────────────────────────────────────────────
 
   async health() {
-    return this.request<any>('/health');
+    return this.request<unknown>('/health');
   }
 
   // ── Returns ───────────────────────────────────────────────────────────
@@ -986,29 +1006,29 @@ class ApiClient {
 
   async getReturns(params?: { status?: string }) {
     const query = params?.status ? `?status=${params.status}` : '';
-    return this.request<any[]>(`/api/returns${query}`);
+    return this.request<Return[]>(`/api/returns${query}`);
   }
 
   async getReturn(id: string) {
-    return this.request<any>(`/api/returns/${id}`);
+    return this.request<Return>(`/api/returns/${id}`);
   }
 
-  async createReturn(data: any) {
-    return this.request<any>('/api/returns', {
+  async createReturn(data: CreateReturnInput) {
+    return this.request<Return>('/api/returns', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
   async processReturn(id: string, action: 'approve' | 'reject' | 'complete', settlement?: { method: 'CASH' | 'CARD' | 'MOMO' | 'EMALI'; confirmed: boolean; reference?: string }) {
-    return this.request<any>(`/api/returns/${id}/process`, {
+    return this.request<Return>(`/api/returns/${id}/process`, {
       method: 'POST',
       body: JSON.stringify({ action, settlement }),
     });
   }
 
   async searchSaleByReceipt(receiptNumber: string) {
-    return this.request<ReceiptSale>(
+    return this.request<ReturnSale>(
       `/api/sales/search/receipt?receiptNumber=${encodeURIComponent(receiptNumber)}`,
     );
   }
@@ -1017,22 +1037,22 @@ class ApiClient {
 
   async getSuppliers(params?: { search?: string }) {
     const query = params?.search ? `?search=${params.search}` : '';
-    return this.request<any[]>(`/api/suppliers${query}`);
+    return this.request<Supplier[]>(`/api/suppliers${query}`);
   }
 
   async getSupplier(id: string) {
-    return this.request<any>(`/api/suppliers/${id}`);
+    return this.request<Supplier>(`/api/suppliers/${id}`);
   }
 
-  async createSupplier(data: any) {
-    return this.request<any>('/api/suppliers', {
+  async createSupplier(data: Partial<Supplier>) {
+    return this.request<Supplier>('/api/suppliers', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
-  async updateSupplier(id: string, data: any) {
-    return this.request<any>(`/api/suppliers/${id}`, {
+  async updateSupplier(id: string, data: Partial<Supplier>) {
+    return this.request<Supplier>(`/api/suppliers/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     });
@@ -1057,18 +1077,18 @@ class ApiClient {
   }
 
   async setSupplierProducts(supplierId: string, productIds: string[]) {
-    return this.request<any>(`/api/suppliers/${supplierId}/products`, {
+    return this.request<Supplier>(`/api/suppliers/${supplierId}/products`, {
       method: 'PUT',
       body: JSON.stringify({ productIds }),
     });
   }
 
   async getProductSuppliers(productId: string) {
-    return this.request<any[]>(`/api/suppliers/product/${productId}`);
+    return this.request<{ supplierId: string; supplier?: Supplier }[]>(`/api/suppliers/product/${productId}`);
   }
 
   async setProductSuppliers(productId: string, supplierIds: string[]) {
-    return this.request<any>(`/api/suppliers/product/${productId}`, {
+    return this.request<Supplier>(`/api/suppliers/product/${productId}`, {
       method: 'PUT',
       body: JSON.stringify({ supplierIds }),
     });
@@ -1081,11 +1101,11 @@ class ApiClient {
     if (params?.supplierId) qs.set('supplierId', params.supplierId);
     if (params?.status) qs.set('status', params.status);
     const query = qs.toString() ? `?${qs.toString()}` : '';
-    return this.request<any[]>(`/api/purchase-orders${query}`);
+    return this.request<PurchaseOrder[]>(`/api/purchase-orders${query}`);
   }
 
   async getPurchaseOrder(id: string) {
-    return this.request<any>(`/api/purchase-orders/${id}`);
+    return this.request<PurchaseOrder>(`/api/purchase-orders/${id}`);
   }
 
   async createPurchaseOrder(data: {
@@ -1096,7 +1116,7 @@ class ApiClient {
     notes?: string;
     items: { productId: string; qtyOrdered: number; unitCost: number }[];
   }) {
-    return this.request<any>('/api/purchase-orders', {
+    return this.request<PurchaseOrder>('/api/purchase-orders', {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -1111,7 +1131,7 @@ class ApiClient {
     id: string,
     data?: { items?: { poItemId: string; quantity: number }[]; updateCost?: boolean; notes?: string },
   ) {
-    return this.request<any>(`/api/purchase-orders/${id}/receive`, {
+    return this.request<PurchaseOrder>(`/api/purchase-orders/${id}/receive`, {
       method: 'POST',
       body: JSON.stringify(data ?? {}),
     });
@@ -1124,7 +1144,7 @@ class ApiClient {
    * the server rejects (400) an amount exceeding the current balance due.
    */
   async recordSupplierPayment(id: string, data: { amount: number; note?: string }) {
-    return this.request<any>(`/api/purchase-orders/${id}/payments`, {
+    return this.request<PurchaseOrder>(`/api/purchase-orders/${id}/payments`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -1395,7 +1415,7 @@ class ApiClient {
     email: string;
     shopName: string;
     receiptNumber: string;
-    items: any[];
+    items: Pick<SaleItem, 'productName' | 'quantity' | 'totalPrice'>[];
     subtotal: number;
     discount: number;
     total: number;

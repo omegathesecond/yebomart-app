@@ -1,3 +1,4 @@
+import { getErrorMessage } from '@/utils/errorMessages';
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -15,15 +16,16 @@ import {
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
-import { Toast, useToast } from '@/components/ui/Toast';
+import { Toast } from '@/components/ui/Toast';
+import { useToast } from '@/components/ui/useToast';
 import { CustomerPicker } from '@/components/CustomerPicker';
-import { ReceiptModal } from '@/components/pos/ReceiptModal';
+import { ReceiptModal, type ReceiptSale } from '@/components/pos/ReceiptModal';
 import { TillBanner } from '@/components/TillBanner';
 import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
 import { useCartStore, useCartSubtotal, useCartDiscount, useCartTaxBreakdown } from '@/stores/cartStore';
 import { computeChange } from '@/lib/money';
-import { formatCurrency, type Product, PAYMENT_METHODS } from '@/types';
+import { formatCurrency, type Product } from '@/types';
 import { PaymentMethodIcon } from '@/components/ui/PaymentMethodIcon';
 import { BarcodeScanner } from '@/components/scanner/BarcodeScanner';
 
@@ -61,23 +63,7 @@ export function POS() {
   const [showCustomerPicker, setShowCustomerPicker] = useState(false);
   const [showReceipt, setShowReceipt] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [lastSale, setLastSale] = useState<{
-    total: number;
-    subtotal: number;
-    discount: number;
-    tax: number;
-    items: any[];
-    id: string; 
-    receiptNumber?: string;
-    date: Date;
-    paymentMethod?: string;
-    cashReceived?: number;
-    changeGiven?: number;
-    pendingSync?: boolean;
-    // Credit ("on the book") sales: who it's booked to and their new balance owing.
-    customerName?: string;
-    customerBalance?: number;
-  } | null>(null);
+  const [lastSale, setLastSale] = useState<ReceiptSale | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   
   // Discount modal state
@@ -227,25 +213,15 @@ export function POS() {
         const error = useCartStore.getState().error;
         showToast(error || 'Sale failed. Please try again.', 'error');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setIsProcessing(false);
-      showToast(err.message || 'An error occurred', 'error');
+      showToast(getErrorMessage(err) || 'An error occurred', 'error');
     }
   };
 
   const handleCloseReceipt = () => {
     setShowReceipt(false);
     setLastSale(null);
-  };
-
-  // Handle quantity input change
-  const handleQuantityChange = (productId: string, value: string) => {
-    const qty = parseInt(value) || 0;
-    if (qty <= 0) {
-      removeItem(productId);
-    } else {
-      updateQuantity(productId, qty);
-    }
   };
 
   return (

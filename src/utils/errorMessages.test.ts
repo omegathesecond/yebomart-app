@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getSmartErrorResponse, isUpgradeError } from './errorMessages';
+import { getSmartErrorResponse, isUpgradeError, getErrorMessage } from './errorMessages';
 
 describe('getSmartErrorResponse', () => {
   it('frames a server 500 as a failure, not a cheerful reply', () => {
@@ -44,5 +44,18 @@ describe('isUpgradeError', () => {
 
   it('does not flag unrelated errors', () => {
     expect(isUpgradeError('Internal server error')).toBe(false);
+  });
+});
+
+describe('getErrorMessage', () => {
+  it('preserves Error and API error-object messages', () => {
+    expect(getErrorMessage(new Error('Checkout rejected'))).toBe('Checkout rejected');
+    expect(getErrorMessage({ message: 'Stock changed', details: [] })).toBe('Stock changed');
+  });
+
+  it('leaves malformed thrown values for the caller to report with its error message', () => {
+    for (const value of [null, undefined, 'failure', {}, { message: 5 }]) {
+      expect(getErrorMessage(value)).toBeUndefined();
+    }
   });
 });

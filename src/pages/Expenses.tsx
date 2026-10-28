@@ -1,3 +1,4 @@
+import { getErrorMessage } from '@/utils/errorMessages';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   PlusIcon,
@@ -15,7 +16,8 @@ import { Input, Select, Textarea } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
-import { Toast, useToast } from '@/components/ui/Toast';
+import { Toast } from '@/components/ui/Toast';
+import { useToast } from '@/components/ui/useToast';
 import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
 import {
@@ -201,9 +203,9 @@ export function Expenses() {
       // Refresh the summary totals (store already refreshed the list)
       const { data } = await api.getExpenseSummary();
       if (data) setSummary(data);
-    } catch (e: any) {
+    } catch (e: unknown) {
       showToast(
-        e?.message || (editingId ? 'Failed to update expense' : 'Failed to record expense'),
+        getErrorMessage(e) || (editingId ? 'Failed to update expense' : 'Failed to record expense'),
         'error',
       );
     } finally {
@@ -219,8 +221,8 @@ export function Expenses() {
       showToast('Expense deleted');
       const { data } = await api.getExpenseSummary();
       if (data) setSummary(data);
-    } catch (e: any) {
-      showToast(e?.message || 'Failed to delete expense', 'error');
+    } catch (e: unknown) {
+      showToast(getErrorMessage(e) || 'Failed to delete expense', 'error');
     } finally {
       setDeletingId(null);
     }

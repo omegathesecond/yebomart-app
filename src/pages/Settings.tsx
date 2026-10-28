@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   UserIcon,
@@ -16,7 +16,8 @@ import { Card, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
-import { Toast, useToast } from '@/components/ui/Toast';
+import { Toast } from '@/components/ui/Toast';
+import { useToast } from '@/components/ui/useToast';
 import { api, type NotificationSettings, type TaxSettings } from '@/api/client';
 import { useAuthStore } from '@/stores/authStore';
 import { useShopStore } from '@/stores/shopStore';
@@ -53,23 +54,6 @@ export function Settings() {
   const [notifLoading, setNotifLoading] = useState(false);
   const [savingKey, setSavingKey] = useState<null | 'notifyWhatsAppReports' | 'notifyLowStock'>(null);
 
-  // Load lazily the first time the Notifications tab is opened.
-  useEffect(() => {
-    if (activeTab !== 'notifications' || notif || notifLoading) return;
-    let cancelled = false;
-    setNotifLoading(true);
-    api.getNotificationSettings().then((res) => {
-      if (cancelled) return;
-      if (res.data) {
-        setNotif(res.data);
-      } else {
-        showToast(res.error || 'Failed to load notification settings', 'error');
-      }
-      setNotifLoading(false);
-    });
-    return () => { cancelled = true; };
-  }, [activeTab, notif, notifLoading, showToast]);
-
   // ── Tax / VAT settings (real, persisted via /api/shops/tax) ──────────────
   const [tax, setTax] = useState<TaxSettings | null>(null);
   const [taxLoading, setTaxLoading] = useState(false);
@@ -78,25 +62,27 @@ export function Settings() {
   const [taxNumber, setTaxNumber] = useState('');
   const [savingTax, setSavingTax] = useState(false);
 
-  // Load lazily the first time the Tax tab is opened, then mirror into form state.
-  useEffect(() => {
-    if (activeTab !== 'tax' || tax || taxLoading) return;
-    let cancelled = false;
-    setTaxLoading(true);
-    api.getTaxSettings().then((res) => {
-      if (cancelled) return;
+  const selectTab = async (tab: string) => {
+    setActiveTab(tab);
+    if (tab === 'notifications' && !notif && !notifLoading) {
+      setNotifLoading(true);
+      const res = await api.getNotificationSettings();
+      if (res.data) setNotif(res.data);
+      else showToast(res.error || 'Failed to load notification settings', 'error');
+      setNotifLoading(false);
+    }
+    if (tab === 'tax' && !tax && !taxLoading) {
+      setTaxLoading(true);
+      const res = await api.getTaxSettings();
       if (res.data) {
         setTax(res.data);
         setTaxRateInput(String(res.data.taxRate ?? 0));
         setTaxInclusive(res.data.taxInclusive ?? false);
         setTaxNumber(res.data.taxNumber ?? '');
-      } else {
-        showToast(res.error || 'Failed to load tax settings', 'error');
-      }
+      } else showToast(res.error || 'Failed to load tax settings', 'error');
       setTaxLoading(false);
-    });
-    return () => { cancelled = true; };
-  }, [activeTab, tax, taxLoading, showToast]);
+    }
+  };
 
   const handleSaveTax = async () => {
     const rate = parseFloat(taxRateInput);
@@ -206,7 +192,7 @@ export function Settings() {
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => selectTab(tab.id)}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-sharp transition-all ${
                     activeTab === tab.id
                       ? 'bg-wash text-brick'
