@@ -192,7 +192,7 @@ export const useCartStore = create<CartState>((set, get) => ({
   // Dexie syncQueue and optimistically complete the sale locally. The drain in
   // syncStore replays it on reconnect; the server dedups on `localId` so an
   // online attempt whose response was lost is never double-applied.
-  checkout: async (_userId: string, _shopId: string) => {
+  checkout: async (_userId, _shopId) => {
     const { items, paymentMethod, discount, customer } = get();
 
     const context = getSyncContext();

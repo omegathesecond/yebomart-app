@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ChartBarIcon,
@@ -12,27 +12,23 @@ import {
   PrinterIcon,
   ArrowPathIcon,
   ExclamationTriangleIcon,
-  WifiIcon,
 } from '@heroicons/react/24/outline';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Toast, useToast } from '@/components/ui/Toast';
+import { Toast } from '@/components/ui/Toast';
+import { useToast } from '@/components/ui/useToast';
 import { useAuthStore } from '@/stores/authStore';
-import { useInventoryStore } from '@/stores/inventoryStore';
 import { formatCurrency } from '@/types';
-import api, { NETWORK_ERROR } from '@/api/client';
-import type { ProductReport, StaffReport } from '@/api/client';
+import api from '@/api/client';
+import type { ProductReport, StaffReport, SalesReport, ReportEvidence, ReportTotals } from '@/api/client';
 import { downloadCsv, reportFilename } from '@/lib/exportReport';
 
 type Period = 'today' | 'week' | 'month';
 type Tab = 'summary' | 'products' | 'staff';
 
-/**
- * Normalised metrics the Summary tab renders. Built from the authoritative
- * server report; the local-cache fallback (offline only) is mapped into the
- * same shape so the JSX has a single source to read from.
- */
+/** Authoritative server figures; the offline cache has no return evidence. */
 interface ReportMetrics {
+  accounting: SalesReport['summary'];
   totalRevenue: number;
   totalTax: number;
   totalCost: number;
@@ -50,20 +46,18 @@ interface ReportMetrics {
 export function Reports() {
   const { t } = useTranslation();
   const { shop } = useAuthStore();
-  const { products, sales, expenses, loadAll } = useInventoryStore();
   const { toast, showToast, dismissToast } = useToast();
+  const summaryRequest = useRef(0);
+  const detailRequest = useRef(0);
   const [period, setPeriod] = useState<Period>('today');
   const [tab, setTab] = useState<Tab>('summary');
 
   // ── Summary tab: server-backed metrics (the authoritative source) ─────────
   // Null until loaded; failures surface via an error card, never a silent
-  // empty/local fallback. The local cache is only used offline, behind a banner.
+  // empty/local fallback.
   const [metrics, setMetrics] = useState<ReportMetrics | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(true);
   const [summaryError, setSummaryError] = useState<string | null>(null);
-  // True when the figures shown come from the local cache because the device
-  // is offline — surfaced to the user via a banner, never silently.
-  const [usingCache, setUsingCache] = useState(false);
 
   // ── Products / Staff tabs: server-backed reports ──────────────────────────
   const [productReport, setProductReport] = useState<ProductReport | null>(null);
@@ -78,133 +72,83 @@ export function Reports() {
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     if (p === 'today') return { start: todayStart, end: now };
     if (p === 'week') {
-      return { start: new Date(todayStart.getTime() - 6 * 24 * 60 * 60 * 1000), end: now };
+      return {
+        start: new Date(todayStart.getTime() - 6 * 24 * 60 * 60 * 1000),
+        end: now,
+      };
     }
     return { start: new Date(now.getFullYear(), now.getMonth(), 1), end: now };
   };
 
   useEffect(() => {
     if (!shop) return;
-    loadAll(shop.id);
     loadSummary();
     loadServerReports();
+    return () => {
+      summaryRequest.current++;
+      detailRequest.current++;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shop, period]);
 
   // Map the authoritative server sales report into the page's metrics shape.
-  const fromServer = (report: any): ReportMetrics => {
-    const s = report.summary ?? {};
-    const stock = report.stock ?? {};
+  const fromServer = (report: SalesReport): ReportMetrics => {
+    const s = report.summary;
+    const stock = report.stock;
     return {
+      accounting: s,
       // Net of VAT — non-VAT shops have totalTax 0, so netRevenue === totalSales.
-      totalRevenue: s.netRevenue ?? s.totalSales ?? 0,
-      totalTax: s.totalTax ?? 0,
-      totalCost: s.totalCost ?? 0,
-      grossProfit: s.grossProfit ?? 0,
-      periodExpenses: s.totalExpenses ?? 0,
-      netProfit: s.netProfit ?? 0,
-      totalTransactions: s.totalTransactions ?? 0,
-      avgBasket: s.averageBasket ?? 0,
-      topProducts: (report.topProducts ?? [])
-        .map((p: any) => ({ name: p.name, qty: p.quantity, revenue: p.revenue }))
-        .slice(0, 5),
-      stockValue: stock.stockValue ?? 0,
-      lowStockCount: stock.lowStockCount ?? 0,
-      totalProducts: stock.totalProducts ?? 0,
-    };
-  };
-
-  // Recompute Summary metrics from the locally-cached store. Used ONLY as an
-  // explicit offline fallback — incomplete on a fresh device, so the page flags it.
-  const computeFromCache = (): ReportMetrics => {
-    const { start } = rangeFor(period);
-    const filteredSales = sales.filter(s => new Date(s.createdAt) >= start);
-    // Gross takings (what customers paid). VAT collected is owed to the revenue
-    // authority, not income — so revenue/profit are reckoned NET of VAT. Non-VAT
-    // shops have tax 0, so netRevenue === grossTakings (unchanged). Mirrors the
-    // server report.service netting.
-    const grossTakings = filteredSales.reduce((sum, s) => sum + s.totalAmount, 0);
-    const totalTax = filteredSales.reduce((sum, s) => sum + (s.tax || 0), 0);
-    const totalRevenue = grossTakings - totalTax;
-    const totalTransactions = filteredSales.length;
-
-    let totalCost = 0;
-    const productSales: Record<string, { name: string; qty: number; revenue: number }> = {};
-    for (const sale of filteredSales) {
-      for (const item of sale.items) {
-        const product = products.find(p => p.id === item.productId);
-        if (product) {
-          totalCost += product.costPrice * item.quantity;
-        }
-        if (!productSales[item.productId]) {
-          productSales[item.productId] = { name: item.productName, qty: 0, revenue: 0 };
-        }
-        productSales[item.productId].qty += item.quantity;
-        productSales[item.productId].revenue += item.totalPrice;
-      }
-    }
-    // Gross profit = net revenue - COGS (matches the server report.service).
-    const grossProfit = totalRevenue - totalCost;
-
-    const periodExpenses = expenses
-      .filter(e => new Date(e.date) >= start)
-      .reduce((sum, e) => sum + e.amount, 0);
-
-    return {
-      totalRevenue,
-      totalTax,
-      totalCost,
-      grossProfit,
-      periodExpenses,
-      netProfit: grossProfit - periodExpenses,
-      totalTransactions,
-      avgBasket: totalTransactions > 0 ? grossTakings / totalTransactions : 0,
-      topProducts: Object.values(productSales).sort((a, b) => b.revenue - a.revenue).slice(0, 5),
-      stockValue: products.reduce((sum, p) => sum + p.costPrice * p.quantity, 0),
-      lowStockCount: products.filter(p => p.quantity <= p.reorderAt).length,
-      totalProducts: products.length,
+      totalRevenue: s.netRevenue,
+      totalTax: s.totalTax,
+      totalCost: s.totalCost,
+      grossProfit: s.grossProfit,
+      periodExpenses: s.totalExpenses,
+      netProfit: s.netProfit,
+      totalTransactions: s.totalTransactions,
+      avgBasket: s.averageBasket,
+      topProducts: report.topProducts.map((p) => ({ name: p.name, qty: p.quantity, revenue: p.revenue })).slice(0, 5),
+      stockValue: stock.stockValue,
+      lowStockCount: stock.lowStockCount,
+      totalProducts: stock.totalProducts,
     };
   };
 
   const loadSummary = async () => {
+    const requestId = ++summaryRequest.current;
+    setMetrics(null);
     setSummaryLoading(true);
     setSummaryError(null);
     const { start, end } = rangeFor(period);
-    const { data, error: reqError } = await api.getSalesReport(
-      start.toISOString(),
-      end.toISOString(),
-    );
+    const { data, error: reqError } = await api.getSalesReport(start.toISOString(), end.toISOString());
 
+    if (requestId !== summaryRequest.current) return;
     if (data) {
       setMetrics(fromServer(data));
-      setUsingCache(false);
-    } else if (reqError === NETWORK_ERROR) {
-      // Offline: fall back to the local cache, but flag it loudly so the user
-      // knows the figures may be incomplete (never silent — CLAUDE.md rule).
-      setMetrics(computeFromCache());
-      setUsingCache(true);
     } else {
       // A real server/auth error — surface it; do NOT show misleading cached
       // numbers as if they were authoritative.
       setMetrics(null);
-      setUsingCache(false);
       setSummaryError(reqError || 'Failed to load report');
     }
     setSummaryLoading(false);
   };
 
   const loadServerReports = async () => {
+    const requestId = ++detailRequest.current;
+    setProductReport(null);
+    setStaffReport(null);
     setServerLoading(true);
     setProductError(null);
     setStaffError(null);
     const { start, end } = rangeFor(period);
-    const range = { startDate: start.toISOString(), endDate: end.toISOString() };
+    const range = {
+      startDate: start.toISOString(),
+      endDate: end.toISOString(),
+    };
 
-    const [prodRes, staffRes] = await Promise.all([
-      api.getProductReport(range),
-      api.getStaffReport(range),
-    ]);
+    const [prodRes, staffRes] = await Promise.all([api.getProductReport(range), api.getStaffReport(range)]);
 
+    if (requestId !== detailRequest.current) return;
     if (prodRes.error || !prodRes.data) {
       const msg = prodRes.error || 'Failed to load product report';
       setProductError(msg);
@@ -229,40 +173,64 @@ export function Reports() {
   const m = metrics;
 
   // ── Export ────────────────────────────────────────────────────────────────
-  const periodLabel = period === 'today' ? t('reports.today') : period === 'week' ? t('reports.thisWeek') : t('reports.thisMonth');
-  const tabLabel = tab === 'summary' ? t('reports.salesReport') : tab === 'products' ? t('reports.title') + '-products' : t('staff.title');
+  const periodLabel =
+    period === 'today' ? t('reports.today') : period === 'week' ? t('reports.thisWeek') : t('reports.thisMonth');
+  const tabLabel =
+    tab === 'summary'
+      ? t('reports.salesReport')
+      : tab === 'products'
+        ? t('reports.title') + '-products'
+        : t('staff.title');
 
   const handleDownloadCsv = () => {
     const filename = reportFilename(shop?.name || 'YeboMart', tabLabel, period);
     const round = (n: number) => Number(n || 0).toFixed(2);
 
     if (tab === 'products') {
-      if (!productReport || productReport.products.length === 0) {
+      if (!productReport) {
         showToast(productError || 'No product data to export', 'error');
         return;
       }
       downloadCsv(
         filename,
-        ['Product', 'Category', 'Qty Sold', 'Revenue', 'Cost', 'Profit', 'Margin %', 'Avg Price'],
-        productReport.products.map(p => [
-          p.name, p.category, p.quantitySold, round(p.revenue), round(p.cost), round(p.profit), round(p.margin), round(p.averagePrice),
-        ]),
+        ['Product', 'Category', 'Net Qty', ...accountingHeaders, 'Cost', 'Profit', 'Margin %', 'Avg Price'],
+        [
+          ...productReport.products.map((p) => [
+            p.name,
+            p.category,
+            p.quantitySold,
+            ...accountingValues(p).map(round),
+            round(p.cost),
+            round(p.profit),
+            round(p.margin),
+            round(p.averagePrice),
+          ]),
+          ...evidenceCsv(productReport.adjustments),
+        ],
       );
       showToast('CSV downloaded');
       return;
     }
 
     if (tab === 'staff') {
-      if (!staffReport || staffReport.staff.length === 0) {
+      if (!staffReport) {
         showToast(staffError || 'No staff data to export', 'error');
         return;
       }
       downloadCsv(
         filename,
-        ['Staff', 'Role', 'Total Sales', 'Transactions', 'Avg Transaction', 'Voids'],
-        staffReport.staff.map(s => [
-          s.name, s.role, round(s.totalSales), s.transactionCount, round(s.averageTransaction), s.voidCount,
-        ]),
+        ['Staff', 'Role', ...accountingHeaders, 'Transactions', 'Avg Transaction', 'Voids'],
+        [
+          ...staffReport.staff.map((s) => [
+            s.name,
+            s.role,
+            ...accountingValues(s).map(round),
+            s.transactionCount,
+            round(s.averageTransaction),
+            s.voidCount,
+          ]),
+          ...evidenceCsv(staffReport.adjustments),
+        ],
       );
       showToast('CSV downloaded');
       return;
@@ -279,8 +247,10 @@ export function Reports() {
       ['Metric', 'Value (SZL)'],
       [
         ['Period', periodLabel],
-        ['Revenue' + (m.totalTax > 0 ? ' (net of VAT)' : ''), round(m.totalRevenue)],
-        ...(m.totalTax > 0 ? [['VAT Collected', round(m.totalTax)]] : []),
+        ...summaryAdjustments(m.accounting).map(([label, value]) => [label, round(value)]),
+        ...evidenceCsv(m.accounting),
+
+        ...(m.totalTax > 0 ? [['Net VAT', round(m.totalTax)]] : []),
         ['Cost of Goods', round(m.totalCost)],
         ['Gross Profit', round(m.grossProfit)],
         ['Expenses', round(m.periodExpenses)],
@@ -301,11 +271,11 @@ export function Reports() {
       showToast(summaryError || 'No report data to export', 'error');
       return;
     }
-    if (tab === 'products' && (!productReport || productReport.products.length === 0)) {
+    if (tab === 'products' && !productReport) {
       showToast(productError || 'No product data to export', 'error');
       return;
     }
-    if (tab === 'staff' && (!staffReport || staffReport.staff.length === 0)) {
+    if (tab === 'staff' && !staffReport) {
       showToast(staffError || 'No staff data to export', 'error');
       return;
     }
@@ -363,21 +333,6 @@ export function Reports() {
       {/* ── Summary tab (server-backed) ── */}
       {tab === 'summary' && (
         <>
-          {/* Offline / cached banner — only when figures come from the local
-              cache because the device is offline. Never silent. */}
-          {usingCache && m && (
-            <div className="flex items-center gap-3 p-3 rounded-sharp bg-wash border border-ink/30 text-brick">
-              <WifiIcon className="w-5 h-5 flex-shrink-0" />
-              <p className="text-sm">
-                You're offline — showing cached figures from this device. These may be
-                incomplete and exclude sales made on other devices or before your last sync.
-              </p>
-              <Button variant="secondary" size="sm" onClick={loadSummary} className="ml-auto">
-                Retry
-              </Button>
-            </div>
-          )}
-
           {/* Loading state */}
           {summaryLoading && !m && (
             <div className="flex flex-col items-center justify-center py-20 text-mute">
@@ -403,6 +358,7 @@ export function Reports() {
 
           {m && (
             <>
+              <AccountingSummary summary={m.accounting} />
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <Card>
                   <div className="flex items-center gap-3">
@@ -410,7 +366,7 @@ export function Reports() {
                       <BanknotesIcon className="w-6 h-6 text-ok" />
                     </div>
                     <div>
-                      <p className="text-sm text-mute">{t('reports.revenue')}</p>
+                      <p className="text-sm text-mute">Net revenue (excluding VAT)</p>
                       <p className="m text-2xl font-bold text-ink">{formatCurrency(m.totalRevenue)}</p>
                     </div>
                   </div>
@@ -515,12 +471,15 @@ export function Reports() {
                 <h3 className="text-lg font-semibold text-ink mb-4">{t('reports.profitReport')}</h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
                   <div className="text-center p-4 bg-shade/30 rounded-sharp">
-                    <p className="text-sm text-mute">{t('reports.revenue')}{m.totalTax > 0 ? ' (net)' : ''}</p>
+                    <p className="text-sm text-mute">
+                      Net revenue (excluding VAT)
+                      {m.totalTax > 0 ? ' (net)' : ''}
+                    </p>
                     <p className="m text-xl font-bold text-ink">{formatCurrency(m.totalRevenue)}</p>
                   </div>
                   {m.totalTax > 0 && (
                     <div className="text-center p-4 bg-shade/30 rounded-sharp">
-                      <p className="text-sm text-mute">VAT Collected</p>
+                      <p className="text-sm text-mute">Net VAT</p>
                       <p className="m text-xl font-bold text-body">{formatCurrency(m.totalTax)}</p>
                     </div>
                   )}
@@ -562,13 +521,16 @@ export function Reports() {
             <h3 className="text-lg font-semibold text-ink">Product Performance</h3>
             <span className="text-xs text-mist ml-auto">{periodLabel}</span>
           </div>
+          <EvidenceNotice evidence={productReport?.adjustments} />
           {serverLoading ? (
             <p className="text-center py-8 text-mute">Loading…</p>
           ) : productError ? (
             <div className="text-center py-8 text-bad">
               <p className="font-medium">Couldn't load product report</p>
               <p className="text-sm text-mute mt-1">{productError}</p>
-              <Button variant="secondary" size="sm" className="mt-3" onClick={loadServerReports}>Retry</Button>
+              <Button variant="secondary" size="sm" className="mt-3" onClick={loadServerReports}>
+                Retry
+              </Button>
             </div>
           ) : !productReport || productReport.products.length === 0 ? (
             <div className="text-center py-8 text-mute">
@@ -583,19 +545,21 @@ export function Reports() {
                     <th className="eyebrow py-2 pr-4">Product</th>
                     <th className="eyebrow py-2 px-4">Category</th>
                     <th className="eyebrow py-2 px-4 text-right">Qty</th>
-                    <th className="eyebrow py-2 px-4 text-right">Revenue</th>
+                    <AccountingHead />
                     <th className="eyebrow py-2 px-4 text-right">Profit</th>
                     <th className="eyebrow py-2 pl-4 text-right">Margin</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {productReport.products.map(p => (
-                    <tr key={p.id} className="border-b border-line">
+                  {productReport.products.map((p) => (
+                    <tr key={JSON.stringify([p.id, p.name])} className="border-b border-line">
                       <td className="py-2 pr-4 text-ink">{p.name}</td>
                       <td className="py-2 px-4 text-mute">{p.category}</td>
                       <td className="py-2 px-4 text-right text-body">{p.quantitySold}</td>
-                      <td className="m py-2 px-4 text-right text-ok">{formatCurrency(p.revenue)}</td>
-                      <td className={`m py-2 px-4 text-right ${p.profit >= 0 ? 'text-ink' : 'text-bad'}`}>{formatCurrency(p.profit)}</td>
+                      <AccountingCells totals={p} />
+                      <td className={`m py-2 px-4 text-right ${p.profit >= 0 ? 'text-ink' : 'text-bad'}`}>
+                        {formatCurrency(p.profit)}
+                      </td>
                       <td className="py-2 pl-4 text-right text-body">{p.margin.toFixed(1)}%</td>
                     </tr>
                   ))}
@@ -614,13 +578,16 @@ export function Reports() {
             <h3 className="text-lg font-semibold text-ink">Staff Performance</h3>
             <span className="text-xs text-mist ml-auto">{periodLabel}</span>
           </div>
+          <EvidenceNotice evidence={staffReport?.adjustments} />
           {serverLoading ? (
             <p className="text-center py-8 text-mute">Loading…</p>
           ) : staffError ? (
             <div className="text-center py-8 text-bad">
               <p className="font-medium">Couldn't load staff report</p>
               <p className="text-sm text-mute mt-1">{staffError}</p>
-              <Button variant="secondary" size="sm" className="mt-3" onClick={loadServerReports}>Retry</Button>
+              <Button variant="secondary" size="sm" className="mt-3" onClick={loadServerReports}>
+                Retry
+              </Button>
             </div>
           ) : !staffReport || staffReport.staff.length === 0 ? (
             <div className="text-center py-8 text-mute">
@@ -634,21 +601,23 @@ export function Reports() {
                   <tr className="text-left border-b border-line-strong">
                     <th className="eyebrow py-2 pr-4">Staff</th>
                     <th className="eyebrow py-2 px-4">Role</th>
-                    <th className="eyebrow py-2 px-4 text-right">Sales</th>
+                    <AccountingHead />
                     <th className="eyebrow py-2 px-4 text-right">Txns</th>
                     <th className="eyebrow py-2 px-4 text-right">Avg</th>
                     <th className="eyebrow py-2 pl-4 text-right">Voids</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {staffReport.staff.map(s => (
+                  {staffReport.staff.map((s) => (
                     <tr key={s.id} className="border-b border-line">
                       <td className="py-2 pr-4 text-ink">{s.name}</td>
                       <td className="py-2 px-4 text-mute capitalize">{s.role.toLowerCase()}</td>
-                      <td className="m py-2 px-4 text-right text-ok">{formatCurrency(s.totalSales)}</td>
+                      <AccountingCells totals={s} />
                       <td className="py-2 px-4 text-right text-body">{s.transactionCount}</td>
                       <td className="m py-2 px-4 text-right text-body">{formatCurrency(s.averageTransaction)}</td>
-                      <td className={`py-2 pl-4 text-right ${s.voidCount > 0 ? 'text-bad' : 'text-body'}`}>{s.voidCount}</td>
+                      <td className={`py-2 pl-4 text-right ${s.voidCount > 0 ? 'text-bad' : 'text-body'}`}>
+                        {s.voidCount}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -666,6 +635,7 @@ export function Reports() {
         summary={
           m
             ? {
+                accounting: m.accounting,
                 revenue: m.totalRevenue,
                 tax: m.totalTax,
                 costOfGoods: m.totalCost,
@@ -701,13 +671,23 @@ function PrintableReport({
   periodLabel: string;
   tab: Tab;
   summary: {
-    revenue: number; tax: number; costOfGoods: number; grossProfit: number; expenses: number;
-    netProfit: number; transactions: number; avgBasket: number; stockValue: number; lowStockCount: number;
+    accounting: SalesReport['summary'];
+    revenue: number;
+    tax: number;
+    costOfGoods: number;
+    grossProfit: number;
+    expenses: number;
+    netProfit: number;
+    transactions: number;
+    avgBasket: number;
+    stockValue: number;
+    lowStockCount: number;
   } | null;
   productReport: ProductReport | null;
   staffReport: StaffReport | null;
 }) {
-  const title = tab === 'summary' ? 'Sales & Profit Summary' : tab === 'products' ? 'Product Performance' : 'Staff Performance';
+  const title =
+    tab === 'summary' ? 'Sales & Profit Summary' : tab === 'products' ? 'Product Performance' : 'Staff Performance';
   const th = 'text-left border-b border-line-strong py-1 px-2 font-semibold';
   const td = 'border-b border-line py-1 px-2';
 
@@ -716,15 +696,26 @@ function PrintableReport({
       <div className="mb-4">
         <h1 className="text-xl font-bold">{shopName}</h1>
         <p className="text-base font-semibold">{title}</p>
-        <p className="text-xs text-mist">Period: {periodLabel} · Generated {new Date().toLocaleString()}</p>
+        <p className="text-xs text-mist">
+          Period: {periodLabel} · Generated {new Date().toLocaleString()}
+        </p>
       </div>
 
+      <EvidenceNotice
+        evidence={
+          tab === 'summary'
+            ? summary?.accounting
+            : tab === 'products'
+              ? productReport?.adjustments
+              : staffReport?.adjustments
+        }
+      />
       {tab === 'summary' && summary && (
         <table className="w-full">
           <tbody>
             {[
-              [summary.tax > 0 ? 'Revenue (net of VAT)' : 'Revenue', formatCurrency(summary.revenue)],
-              ...(summary.tax > 0 ? [['VAT Collected', formatCurrency(summary.tax)]] : []),
+              ...summaryAdjustments(summary.accounting).map(([label, value]) => [label, formatCurrency(value)]),
+
               ['Cost of Goods', formatCurrency(summary.costOfGoods)],
               ['Gross Profit', formatCurrency(summary.grossProfit)],
               ['Expenses', formatCurrency(summary.expenses)],
@@ -750,18 +741,18 @@ function PrintableReport({
               <th className={th}>Product</th>
               <th className={th}>Category</th>
               <th className={`${th} text-right`}>Qty</th>
-              <th className={`${th} text-right`}>Revenue</th>
+              <AccountingHead />
               <th className={`${th} text-right`}>Profit</th>
               <th className={`${th} text-right`}>Margin</th>
             </tr>
           </thead>
           <tbody>
-            {productReport.products.map(p => (
-              <tr key={p.id}>
+            {productReport.products.map((p) => (
+              <tr key={JSON.stringify([p.id, p.name])}>
                 <td className={td}>{p.name}</td>
                 <td className={td}>{p.category}</td>
                 <td className={`${td} text-right`}>{p.quantitySold}</td>
-                <td className={`${td} text-right`}>{formatCurrency(p.revenue)}</td>
+                <AccountingCells totals={p} />
                 <td className={`${td} text-right`}>{formatCurrency(p.profit)}</td>
                 <td className={`${td} text-right`}>{p.margin.toFixed(1)}%</td>
               </tr>
@@ -776,18 +767,18 @@ function PrintableReport({
             <tr>
               <th className={th}>Staff</th>
               <th className={th}>Role</th>
-              <th className={`${th} text-right`}>Sales</th>
+              <AccountingHead />
               <th className={`${th} text-right`}>Txns</th>
               <th className={`${th} text-right`}>Avg</th>
               <th className={`${th} text-right`}>Voids</th>
             </tr>
           </thead>
           <tbody>
-            {staffReport.staff.map(s => (
+            {staffReport.staff.map((s) => (
               <tr key={s.id}>
                 <td className={td}>{s.name}</td>
                 <td className={td}>{s.role.toLowerCase()}</td>
-                <td className={`${td} text-right`}>{formatCurrency(s.totalSales)}</td>
+                <AccountingCells totals={s} />
                 <td className={`${td} text-right`}>{s.transactionCount}</td>
                 <td className={`${td} text-right`}>{formatCurrency(s.averageTransaction)}</td>
                 <td className={`${td} text-right`}>{s.voidCount}</td>
@@ -798,4 +789,102 @@ function PrintableReport({
       )}
     </div>
   );
+}
+
+const accountingHeaders = [
+  'Gross sales (incl. VAT)',
+  'Returns (incl. VAT)',
+  'Exchange out (incl. VAT)',
+  'Net sales (incl. VAT)',
+  'Net VAT',
+  'Net revenue (excl. VAT)',
+];
+const accountingValues = (s: ReportTotals) => [
+  s.grossSales,
+  s.returns,
+  s.exchangeSales,
+  s.totalSales,
+  s.totalTax,
+  s.netRevenue,
+];
+function AccountingHead() {
+  return (
+    <>
+      {accountingHeaders.map((label) => (
+        <th key={label} className="py-2 px-4 text-right">
+          {label}
+        </th>
+      ))}
+    </>
+  );
+}
+function AccountingCells({ totals }: { totals: ReportTotals }) {
+  return (
+    <>
+      {accountingValues(totals).map((value, i) => (
+        <td key={accountingHeaders[i]} className="py-2 px-4 text-right">
+          {formatCurrency(value)}
+        </td>
+      ))}
+    </>
+  );
+}
+function summaryAdjustments(s: SalesReport['summary']): [string, number][] {
+  return [
+    ...accountingHeaders.map((label, i): [string, number] => [label, accountingValues(s)[i]]),
+    ['Sale VAT', s.salesTax],
+    ['Returned VAT', s.returnedTax],
+    ['Exchange VAT', s.exchangeTax],
+    ['Sale COGS', s.grossCost],
+    ['Restocked COGS reversed', s.reversedCost],
+    ['Exchange COGS', s.exchangeCost],
+    ['Receiptless adjustments (excluded; tax/cost unknown)', s.receiptlessReturns],
+    ['Exchange value without tax/cost evidence (excluded)', s.unvaluedExchange],
+  ];
+}
+function EvidenceNotice({ evidence }: { evidence?: ReportEvidence | null }) {
+  return (
+    <div className="text-sm my-3" role="note">
+      <p>
+        Returns use completion date, including earlier receipts. Returned sales are attributed to the original cashier;
+        exchanges to the processing staff. Account credits and debt reversals are merchandise returns, not cash payouts.
+      </p>
+      {evidence && (evidence.receiptlessCount > 0 || evidence.unvaluedExchangeCount > 0) && (
+        <p className="text-bad font-semibold">
+          Profit is incomplete: receiptless adjustments {formatCurrency(evidence.receiptlessReturns)} (
+          {evidence.receiptlessCount} returns) and exchanges without tax/cost evidence{' '}
+          {formatCurrency(evidence.unvaluedExchange)} ({evidence.unvaluedExchangeCount} lines) are excluded from
+          revenue, VAT and profit. Original evidence is required to value them.
+        </p>
+      )}
+    </div>
+  );
+}
+function AccountingSummary({ summary }: { summary: SalesReport['summary'] }) {
+  return (
+    <Card>
+      <h3 className="font-semibold">Sales and return reconciliation</h3>
+      <EvidenceNotice evidence={summary} />
+      <dl className="grid grid-cols-2 gap-3">
+        {summaryAdjustments(summary).map(([label, value]) => (
+          <div key={label}>
+            <dt className="text-sm text-mute">{label}</dt>
+            <dd>{formatCurrency(value)}</dd>
+          </div>
+        ))}
+      </dl>
+    </Card>
+  );
+}
+
+function evidenceCsv(e: ReportEvidence): (string | number)[][] {
+  return [
+    ['Receiptless adjustments excluded (unknown tax/cost)', e.receiptlessReturns],
+    ['Unvalued exchanges excluded (unknown tax/cost)', e.unvaluedExchange],
+    ['Profit complete', e.receiptlessCount === 0 && e.unvaluedExchangeCount === 0 ? 'Yes' : 'No'],
+    [
+      'Basis',
+      'Completion date; original cashier for returns; exchange processor for outgoing merchandise. Credits are not cash payouts.',
+    ],
+  ];
 }

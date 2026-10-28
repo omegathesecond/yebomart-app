@@ -1,3 +1,4 @@
+import type { PurchaseOrder } from '@/api/models';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -15,7 +16,8 @@ import { Input, Textarea } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
-import { Toast, useToast } from '@/components/ui/Toast';
+import { Toast } from '@/components/ui/Toast';
+import { useToast } from '@/components/ui/useToast';
 import { api, type SupplierLedgerEntry } from '@/api/client';
 import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
@@ -27,38 +29,6 @@ const LEDGER_TYPE_LABEL: Record<SupplierLedgerEntry['type'], string> = {
   PAYMENT: 'Payment',
   ADJUSTMENT: 'Adjustment',
 };
-
-interface POItem {
-  id: string;
-  productId: string;
-  productName: string;
-  quantity: number;
-  unitCost: number;
-  totalCost: number;
-  receivedQty: number;
-}
-
-interface PurchaseOrder {
-  id: string;
-  orderNumber?: string;
-  supplierId: string;
-  status: 'DRAFT' | 'SENT' | 'PARTIAL' | 'RECEIVED' | 'CANCELLED';
-  subtotal: number;
-  tax: number;
-  totalAmount: number;
-  // Accounts payable — cumulative cost value received so far vs. paid to the
-  // supplier so far. Mirrors PurchaseOrder.amountReceived/amountPaid on the
-  // API. Balance due is derived client-side (see computeBalanceDue).
-  amountReceived: number;
-  amountPaid: number;
-  orderDate: string;
-  expectedDate?: string;
-  receivedDate?: string;
-  notes?: string;
-  supplier?: { id: string; name: string; phone?: string; currency?: string };
-  items?: POItem[];
-  _count?: { items: number };
-}
 
 interface Supplier {
   id: string;
@@ -148,7 +118,7 @@ export function PurchaseOrders() {
       showToast(error, 'error');
       return;
     }
-    setSuppliers((data || []).map((s: any) => ({ id: s.id, name: s.name })));
+    setSuppliers((data || []).map((s) => ({ id: s.id, name: s.name })));
   }, [showToast]);
 
   useEffect(() => {

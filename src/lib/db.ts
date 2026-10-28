@@ -52,7 +52,7 @@ export class YeboMartDB extends Dexie {
       aiInsights: 'id, shopId, type, isRead, createdAt', // Added shopId
       syncQueue: 'id, table, createdAt, attempts',
       subscription: 'id, shopId, plan'
-    }).upgrade(tx => {
+    }).upgrade(() => {
       // Migration: Rename 'shop' table data to 'shops'
       // Note: Dexie handles table renames automatically if the schema changes
       console.log('Upgrading database to version 2 (multi-shop support)');

@@ -3,12 +3,12 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeftIcon, QrCodeIcon, CheckIcon, PlusIcon, XMarkIcon, BuildingStorefrontIcon, ExclamationTriangleIcon, PhotoIcon } from '@heroicons/react/24/outline';
 import { formatCurrency } from '@/types';
 import { Button } from '@/components/ui/Button';
-import { Input, Select, Textarea } from '@/components/ui/Input';
+import { Input, Select } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 import { BarcodeScanner } from '@/components/scanner/BarcodeScanner';
 import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
-import { getDefaultCategories, getCategoryAttributes, hasAttributes, type AttributeField } from '@/data/shopTypes';
+import { getDefaultCategories, getCategoryAttributes } from '@/data/shopTypes';
 import { api } from '@/api/client';
 
 export function ProductForm() {
@@ -52,9 +52,6 @@ export function ProductForm() {
   // Dynamic attributes state
   const [attributes, setAttributes] = useState<Record<string, string>>({});
   const [customAttributes, setCustomAttributes] = useState<Array<{ key: string; value: string }>>([]);
-  const [showAddCustom, setShowAddCustom] = useState(false);
-  const [newCustomKey, setNewCustomKey] = useState('');
-  const [newCustomValue, setNewCustomValue] = useState('');
   
   // Supplier state
   const [suppliers, setSuppliers] = useState<Array<{ id: string; name: string }>>([]);
@@ -145,7 +142,7 @@ export function ProductForm() {
         try {
           const response = await api.getProductSuppliers(id);
           if (response.data) {
-            setSelectedSupplierIds(new Set(response.data.map((sp: any) => sp.supplier?.id || sp.supplierId)));
+            setSelectedSupplierIds(new Set(response.data.map((sp) => sp.supplier?.id || sp.supplierId)));
           }
         } catch (error) {
           console.error('Failed to load product suppliers:', error);
@@ -226,7 +223,7 @@ export function ProductForm() {
     if (parseFloat(formData.sellPrice) < parseFloat(formData.costPrice)) {
       newErrors.sellPrice = 'Sell price should be higher than cost price';
     }
-    if (!formData.quantity || parseInt(formData.quantity) < 0) {
+    if (!isEdit && (!formData.quantity || parseInt(formData.quantity) < 0)) {
       newErrors.quantity = 'Valid quantity is required';
     }
     
@@ -246,7 +243,7 @@ export function ProductForm() {
 
     try {
       // Combine defined attributes and custom attributes
-      const allAttributes: Record<string, string | number> = { ...attributes };
+      const allAttributes: Record<string, string | number> = Object.fromEntries(Object.entries(attributes).filter(([, value]) => value !== ''));
       customAttributes.forEach(attr => {
         if (attr.key && attr.value) {
           allAttributes[attr.key] = attr.value;
@@ -258,12 +255,11 @@ export function ProductForm() {
         name: formData.name.trim(),
         category: formData.category || undefined,
         barcode: formData.barcode || undefined,
-        attributes: Object.keys(allAttributes).length > 0 ? allAttributes : undefined,
+        attributes: Object.keys(allAttributes).length > 0 ? allAttributes : isEdit ? null : undefined,
         costPrice: parseFloat(formData.costPrice),
         sellPrice: parseFloat(formData.sellPrice),
-        wholesalePrice: formData.wholesalePrice ? parseFloat(formData.wholesalePrice) : undefined,
-        wholesaleMinQty: formData.wholesaleMinQty ? parseInt(formData.wholesaleMinQty) : undefined,
-        quantity: parseInt(formData.quantity),
+        wholesalePrice: formData.wholesalePrice ? Number(formData.wholesalePrice) : isEdit ? null : undefined,
+        wholesaleMinQty: formData.wholesaleMinQty ? Number(formData.wholesaleMinQty) : isEdit ? null : undefined,
         reorderAt: parseInt(formData.reorderAt) || 10,
         unit: formData.unit,
         // On create, the API's create schema rejects an empty-string
@@ -272,8 +268,8 @@ export function ProductForm() {
         // removed photo actually clears the stored value (omitting the key
         // entirely is a no-op for Prisma's update).
         ...(isEdit ? { imageUrl } : imageUrl ? { imageUrl } : {}),
-        packSize: formData.packSize ? parseInt(formData.packSize) : undefined,
-        packPrice: formData.packPrice ? parseFloat(formData.packPrice) : undefined,
+        packSize: formData.packSize ? Number(formData.packSize) : isEdit ? null : undefined,
+        packPrice: formData.packPrice ? Number(formData.packPrice) : isEdit ? null : undefined,
         isActive: true
       };
 
@@ -282,7 +278,7 @@ export function ProductForm() {
       if (isEdit && id) {
         await updateProduct(id, productData);
       } else {
-        productId = await addProduct(productData);
+        productId = await addProduct({ ...productData, quantity: parseInt(formData.quantity) });
       }
 
       // Save suppliers if any selected. A supplier-link failure is a PARTIAL
@@ -600,8 +596,10 @@ export function ProductForm() {
             <h3 className="font-semibold text-ink">Stock</h3>
             
             <div className="grid grid-cols-2 gap-4">
-              <Input
-                label="Current Quantity"
+              {isEdit ? (
+                <p className="text-sm text-ink-muted">Use Stock Adjustments to add or remove stock.</p>
+              ) : <Input
+                label="Initial Quantity"
                 name="quantity"
                 type="number"
                 min="0"
@@ -609,7 +607,7 @@ export function ProductForm() {
                 onChange={handleChange}
                 placeholder="0"
                 error={errors.quantity}
-              />
+              />}
               
               <Input
                 label="Reorder At"

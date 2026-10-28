@@ -10,7 +10,8 @@ import {
 import api, { type CashSession, type CashSessionZReport } from '@/api/client';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Toast, useToast } from '@/components/ui/Toast';
+import { Toast } from '@/components/ui/Toast';
+import { useToast } from '@/components/ui/useToast';
 import { useAuthStore } from '@/stores/authStore';
 import { formatCurrency, formatDateTime } from '@/types';
 
@@ -46,14 +47,14 @@ export function CashUp() {
   const [zreport, setZreport] = useState<CashSessionZReport | null>(null);
 
   const loadCurrent = useCallback(async () => {
-    setLoading(true);
-    const res = await api.getCurrentCashSession();
-    setLoading(false);
-    if (res.error) {
-      showToast(res.error, 'error');
-      return;
-    }
-    setSession(res.data ?? null);
+    return api.getCurrentCashSession().then((res) => {
+      setLoading(false);
+      if (res.error) {
+        showToast(res.error, 'error');
+        return;
+      }
+      setSession(res.data ?? null);
+    });
   }, [showToast]);
 
   useEffect(() => {
@@ -186,7 +187,7 @@ export function CashUp() {
                 <h2 className="text-lg font-semibold text-ink">Till open</h2>
               </div>
               <button
-                onClick={loadCurrent}
+                onClick={() => { setLoading(true); loadCurrent(); }}
                 className="text-mute hover:text-ink text-sm flex items-center gap-1"
                 title="Refresh tally"
               >
@@ -197,6 +198,7 @@ export function CashUp() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <Stat label="Opening float" value={formatCurrency(session.openingFloat)} />
               <Stat label="Cash sales" value={formatCurrency(session.cashSalesTotal ?? 0)} sub={`${session.cashSalesCount ?? 0} sale(s)`} />
+              <Stat label="Cash refunds paid" value={formatCurrency(session.cashRefundsTotal ?? 0)} sub={`${session.cashRefundsCount ?? 0} refund(s)`} />
               <Stat label="Expected in drawer" value={formatCurrency(session.expectedCash ?? session.openingFloat)} highlight />
               <Stat
                 label="Opened"
@@ -228,7 +230,7 @@ export function CashUp() {
             <Input
               label="Notes (optional)"
               type="text"
-              placeholder="e.g. drawer short — refund not logged"
+              placeholder="e.g. reason for a cash difference"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
             />
@@ -318,22 +320,30 @@ function Stat({ label, value, sub, highlight }: { label: string; value: string; 
  * print via the #zreport-print rule in index.css.
  */
 function ZReportCard({ z, shopName }: { z: CashSessionZReport; shopName?: string }) {
+  const salesRows = [
+    ['Gross at recorded prices', z.gross],
+    ['Discounts at recorded prices', z.totalDiscount],
+    ['Net sales (excl. VAT)', z.net],
+    ['VAT in charged total', z.tax],
+    ['Charged total (incl. VAT)', z.totalAmount],
+  ] as const;
+  const priceNote = 'Recorded prices include VAT on inclusive sales and exclude VAT on exclusive sales.';
   return (
     <div className="card p-6">
       <h3 className="text-base font-semibold text-ink mb-3">Z-Report</h3>
 
+      <p className="text-sm text-mute mb-3">{priceNote}</p>
       {/* On-screen dark version */}
       <div className="space-y-2 text-sm">
         <Row label="Transactions" value={String(z.transactionCount)} />
-        <Row label="Gross sales" value={formatCurrency(z.gross)} />
-        <Row label="Discounts" value={formatCurrency(z.totalDiscount)} />
-        <Row label="Net sales" value={formatCurrency(z.net)} />
+        {salesRows.map(([label, value]) => <Row key={label} label={label} value={formatCurrency(value)} />)}
         <div className="border-t border-line my-2" />
         {z.byPaymentMethod.map((m) => (
           <Row key={m.method} label={`${m.method} (${m.count})`} value={formatCurrency(m.total)} />
         ))}
         <div className="border-t border-line my-2" />
         <Row label="Opening float" value={formatCurrency(z.session.openingFloat)} />
+        <Row label={`Cash refunds paid (${z.cashRefundsCount})`} value={formatCurrency(z.cashRefundsTotal)} />
         <Row label="Expected cash" value={formatCurrency(z.session.expectedCash ?? 0)} />
         <Row label="Counted cash" value={formatCurrency(z.session.countedCash ?? 0)} />
         <Row label="Variance" value={formatCurrency(z.session.variance ?? 0)} strong />
@@ -349,11 +359,10 @@ function ZReportCard({ z, shopName }: { z: CashSessionZReport; shopName?: string
           </div>
           {z.session.cashier?.name && <div style={{ fontSize: 12 }}>Cashier: {z.session.cashier.name}</div>}
         </div>
+        <p>{priceNote}</p>
         <hr />
         <PrintRow label="Transactions" value={String(z.transactionCount)} />
-        <PrintRow label="Gross sales" value={formatCurrency(z.gross)} />
-        <PrintRow label="Discounts" value={formatCurrency(z.totalDiscount)} />
-        <PrintRow label="Net sales" value={formatCurrency(z.net)} />
+        {salesRows.map(([label, value]) => <PrintRow key={label} label={label} value={formatCurrency(value)} />)}
         <hr />
         <div style={{ fontWeight: 'bold', margin: '6px 0' }}>By payment method</div>
         {z.byPaymentMethod.map((m) => (
@@ -361,6 +370,7 @@ function ZReportCard({ z, shopName }: { z: CashSessionZReport; shopName?: string
         ))}
         <hr />
         <PrintRow label="Opening float" value={formatCurrency(z.session.openingFloat)} />
+        <PrintRow label={`Cash refunds paid (${z.cashRefundsCount})`} value={formatCurrency(z.cashRefundsTotal)} />
         <PrintRow label="Expected cash" value={formatCurrency(z.session.expectedCash ?? 0)} />
         <PrintRow label="Counted cash" value={formatCurrency(z.session.countedCash ?? 0)} />
         <PrintRow label="VARIANCE" value={formatCurrency(z.session.variance ?? 0)} bold />

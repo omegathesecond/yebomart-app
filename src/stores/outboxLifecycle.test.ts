@@ -88,6 +88,23 @@ describe('durable, session-scoped POS outbox', () => {
     expect(await db.syncQueue.count()).toBe(1);
   });
 
+  it('only exposes sync errors from the verified account and shop', async () => {
+    await login();
+    await sale();
+    const item = (await db.syncQueue.toArray())[0];
+    await db.syncQueue.update(item.id, { error: 'Original shop sale rejected' });
+    await useSyncStore.getState().refreshPending();
+    expect(useSyncStore.getState().lastError).toBe('Original shop sale rejected');
+    await useAuthStore.getState().logout();
+    await login('other');
+    expect(useSyncStore.getState().pendingCount).toBe(0);
+    expect(useSyncStore.getState().lastError).toBeNull();
+    await useAuthStore.getState().logout();
+    await login();
+    expect(useSyncStore.getState().pendingCount).toBe(1);
+    expect(useSyncStore.getState().lastError).toBe('Original shop sale rejected');
+  });
+
   it.each([true, false])('logout during replay retains unacknowledged data (acknowledged=%s)', async (acknowledged) => {
     await login();
     await sale();

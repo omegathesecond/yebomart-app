@@ -1,3 +1,4 @@
+import { getErrorMessage } from '@/utils/errorMessages';
 import { create } from 'zustand';
 import api, { NETWORK_ERROR } from '@/api/client';
 import {
@@ -27,12 +28,13 @@ export function waitForSyncDrain() { return finished; }
 type PushResult =
   | 'success' // committed server-side (or deduped) — remove from queue
   | 'retry'   // transport failure — still offline, keep item, DON'T burn an attempt
-  | 'failed'; // server rejected (4xx) — burn an attempt, park after MAX_ATTEMPTS
+  | { error: string }; // server rejected (4xx) — burn an attempt, park after MAX_ATTEMPTS
 
 interface SyncState {
   pendingCount: number;
   isSyncing: boolean;
   lastSyncedAt: Date | null;
+  lastError: string | null;
 
   /** Recount the outbox and publish the badge number. */
   refreshPending: () => Promise<void>;
@@ -48,11 +50,15 @@ export const useSyncStore = create<SyncState>((set, get) => ({
   pendingCount: 0,
   isSyncing: false,
   lastSyncedAt: null,
+  lastError: null,
 
   refreshPending: async () => {
     const context = getSyncContext();
     const items = await db.syncQueue.toArray();
-    if (getSyncContext() === context) set({ pendingCount: items.filter(item => belongsToContext(item, context)).length });
+    if (getSyncContext() === context) {
+      const pending = items.filter(item => belongsToContext(item, context));
+      set({ pendingCount: pending.length, lastError: pending.find(item => item.error)?.error ?? null });
+    }
   },
 
   replay: async (retryParked = false) => {
@@ -64,7 +70,7 @@ export const useSyncStore = create<SyncState>((set, get) => ({
     draining = true;
     let finish!: () => void;
     finished = new Promise<void>(resolve => { finish = resolve; });
-    set({ isSyncing: true });
+    set({ isSyncing: true, lastError: null });
 
     let synced = 0;
     let failed = 0;
@@ -80,10 +86,12 @@ export const useSyncStore = create<SyncState>((set, get) => ({
         let result: PushResult;
         try {
           result = await pushItem(item, () => getSyncContext() === context);
-        } catch (err: any) {
+        } catch (err: unknown) {
           // Unexpected client-side error while building/sending — treat as a
           // server-style failure so it eventually parks rather than looping.
-          await updateSyncAttempt(item.id, err?.message || 'Replay error');
+          const message = getErrorMessage(err) || 'Replay error';
+          await updateSyncAttempt(item.id, message);
+          set({ lastError: message });
           failed++;
           continue;
         }
@@ -96,7 +104,8 @@ export const useSyncStore = create<SyncState>((set, get) => ({
           // burning attempts. Reconnect or verified sign-in resumes replay.
           break;
         } else {
-          await updateSyncAttempt(item.id, 'Server rejected queued item');
+          await updateSyncAttempt(item.id, result.error);
+          set({ lastError: result.error });
           failed++;
         }
       }
@@ -129,17 +138,17 @@ async function pushItem(item: SyncQueueItem, isCurrent: () => boolean): Promise<
   if (item.table === 'sales' && item.action === 'create') {
     const token = getSyncToken();
     if (!token) return 'retry';
-    const { data, error } = await api.createSale(item.data as any, { shopId: item.context!.shopId, token, isCurrent });
+    const { data, error } = await api.createSale(item.data as Parameters<typeof api.createSale>[0], { shopId: item.context!.shopId, token, isCurrent });
     if (data?.id) return 'success';
     if (error === NETWORK_ERROR) return 'retry';
-    return 'failed';
+    return { error: error || 'Server rejected queued item' };
   }
 
   // Unknown queue entry — fail it loudly toward parking rather than silently
   // dropping it. Today only 'sales/create' is ever enqueued; this guards
   // against a future enqueue site landing without a matching drain handler.
   console.error(`[sync] No drain handler for ${item.table}/${item.action}`);
-  return 'failed';
+  return { error: `No sync handler for ${item.table}/${item.action}` };
 }
 
 /** Re-export so callers don't reach past the store. */

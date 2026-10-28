@@ -98,3 +98,9 @@ export function isUpgradeError(error: string): boolean {
          lowerError.includes('quota') ||
          lowerError.includes('limit reached');
 }
+
+/** Read a thrown Error or API error object without assuming the caught value's shape. */
+export function getErrorMessage(error: unknown): string | undefined {
+  if (typeof error !== 'object' || error === null || !('message' in error)) return undefined;
+  return typeof error.message === 'string' ? error.message : undefined;
+}

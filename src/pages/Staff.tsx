@@ -1,3 +1,4 @@
+import { getErrorMessage } from '@/utils/errorMessages';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -101,7 +102,7 @@ export function Staff() {
     
     try {
       if (editingStaff) {
-        const updates: any = {
+        const updates: Partial<import('@/types').User> = {
           name: formData.name,
           phone: formData.phone,
           role: formData.role
@@ -122,17 +123,17 @@ export function Staff() {
         });
       }
       setShowModal(false);
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('Failed to save staff:', e);
       // Handle API validation errors
-      if (e.details && Array.isArray(e.details)) {
+      if (typeof e === 'object' && e !== null && 'details' in e && Array.isArray(e.details)) {
         const apiErrors: Record<string, string> = {};
         e.details.forEach((err: { field: string; message: string }) => {
           apiErrors[err.field] = err.message;
         });
         setErrors(apiErrors);
       } else {
-        setErrors({ _form: e.message || 'Failed to save staff' });
+        setErrors({ _form: getErrorMessage(e) || 'Failed to save staff' });
       }
     }
     setIsSubmitting(false);
@@ -324,7 +325,7 @@ export function Staff() {
             <label className="block text-sm font-medium text-body mb-2">Role</label>
             <select
               value={formData.role}
-              onChange={(e) => setFormData({ ...formData, role: e.target.value as any })}
+              onChange={(e) => setFormData({ ...formData, role: e.target.value as import('@/types').UserRole })}
               className="w-full px-4 py-3 bg-shade border border-line-strong rounded-sharp text-ink"
             >
               <option value="cashier">Cashier</option>

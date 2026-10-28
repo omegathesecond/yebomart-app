@@ -4,7 +4,6 @@ import {
   BanknotesIcon,
   ShoppingCartIcon,
   ArrowTrendingUpIcon,
-  ExclamationTriangleIcon,
   CubeIcon,
   SparklesIcon,
   PlusIcon,
@@ -20,7 +19,7 @@ import { getShopType } from '@/data/shopTypes';
 
 export function Dashboard() {
   const { shop } = useAuthStore();
-  const { loadAll, alerts, insights, sales, products } = useInventoryStore();
+  const { loadAll, alerts, insights } = useInventoryStore();
   const { getDashboardMetrics, loadInsights, insightsLoading, insightsError } =
     useInventoryStore();
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);

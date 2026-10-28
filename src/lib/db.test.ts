@@ -39,7 +39,7 @@ describe('addToSyncQueue', () => {
     expect(all[0].action).toBe('create');
     expect(all[0].attempts).toBe(0);
     expect(all[0].createdAt).toBeInstanceOf(Date);
-    expect((all[0].data as any).localId).toBe('abc');
+    expect((all[0].data as { localId: string }).localId).toBe('abc');
     expect(typeof all[0].id).toBe('string');
   });
 });

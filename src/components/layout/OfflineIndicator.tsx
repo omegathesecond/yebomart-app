@@ -5,7 +5,7 @@ import { useSyncStore } from '@/stores/syncStore';
 
 export function OfflineIndicator() {
   const { isOnline, setOnlineStatus } = useInventoryStore();
-  const { pendingCount, isSyncing, replay } = useSyncStore();
+  const { pendingCount, isSyncing, replay, lastError } = useSyncStore();
 
   useEffect(() => {
     const handleOnline = () => setOnlineStatus(true);
@@ -62,7 +62,7 @@ export function OfflineIndicator() {
         >
           <ArrowPathIcon className="w-4 h-4" />
           <span className="text-sm font-medium">
-            {changes} saved on this device, pending confirmation — retry sync. If this persists, contact support.
+            {lastError ? `Sync failed: ${lastError}. ${changes} still saved here — tap to retry` : `${changes} saved on this device, pending confirmation — tap to retry`}
           </span>
         </button>
       </div>

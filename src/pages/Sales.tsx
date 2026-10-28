@@ -1,3 +1,4 @@
+import { getErrorMessage } from '@/utils/errorMessages';
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -15,7 +16,8 @@ import { Card, CardHeader } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
-import { Toast, useToast } from '@/components/ui/Toast';
+import { Toast } from '@/components/ui/Toast';
+import { useToast } from '@/components/ui/useToast';
 import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
 import { formatCurrency, formatDate, formatTime, type Sale, type PaymentMethod, PAYMENT_METHODS } from '@/types';
@@ -79,9 +81,9 @@ export function Sales() {
       showToast('Receipt emailed successfully', 'success');
       setShowEmailModal(false);
       setCustomerEmail('');
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Fail loudly — never report a silent success.
-      showToast(err?.message || 'Failed to send receipt. Please try again.', 'error');
+      showToast(getErrorMessage(err) || 'Failed to send receipt. Please try again.', 'error');
     } finally {
       setIsSendingEmail(false);
     }
@@ -184,7 +186,7 @@ export function Sales() {
         ].map(filter => (
           <button
             key={filter.key}
-            onClick={() => setDateFilter(filter.key as any)}
+            onClick={() => setDateFilter(filter.key as typeof dateFilter)}
             className={`px-4 py-2 rounded-sharp whitespace-nowrap transition-all ${
               dateFilter === filter.key
                 ? 'bg-brand text-ink'
@@ -213,7 +215,7 @@ export function Sales() {
         <Card>
           <p className="text-sm text-mute">Payment Split</p>
           <div className="flex gap-2 mt-2">
-            {Object.entries(paymentBreakdown).slice(0, 3).map(([method, amount]) => (
+            {Object.entries(paymentBreakdown).slice(0, 3).map(([method]) => (
               <span key={method} className="text-mute" title={method}>
                 <PaymentMethodIcon method={method as PaymentMethod} className="h-[18px] w-[18px]" />
               </span>
