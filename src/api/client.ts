@@ -61,7 +61,12 @@ export const INSUFFICIENT_CREDITS = 'INSUFFICIENT_CREDITS';
  */
 export const CREDIT_LIMIT_EXCEEDED = 'CREDIT_LIMIT_EXCEEDED';
 
+export interface SalesPagination {
+  total: number; page: number; limit: number; hasNext: boolean; hasPrev: boolean;
+}
+
 interface ApiResponse<T> {
+  metadata?: SalesPagination;
   data?: T;
   error?: string;
   message?: string;
@@ -575,7 +580,7 @@ class ApiClient {
       return { error: errorMessage, details, code: json.code, meta: json.meta, status: response.status };
     }
 
-    return { data: json.data ?? json, message: json.message, status: response.status };
+    return { data: json.data ?? json, metadata: json.metadata, message: json.message, status: response.status };
   }
 
   // ── Auth ──────────────────────────────────────────────────────────────
@@ -765,9 +770,17 @@ class ApiClient {
 
   // ── Sales ─────────────────────────────────────────────────────────────
 
-  async getSales(params?: { startDate?: string; endDate?: string }) {
-    const query = params ? `?${new URLSearchParams(params as Record<string, string>)}` : '';
+  async getSales(params?: { startDate?: string; endDate?: string; page?: number; limit?: number }) {
+    const queryParams = new URLSearchParams();
+    for (const [key, value] of Object.entries(params ?? {})) {
+      if (value !== undefined) queryParams.set(key, String(value));
+    }
+    const query = queryParams.size ? `?${queryParams}` : '';
     return this.request<Sale[]>(`/api/sales${query}`);
+  }
+
+  async getSale(id: string) {
+    return this.request<Sale>(`/api/sales/${encodeURIComponent(id)}`);
   }
 
   async createSale(data: {

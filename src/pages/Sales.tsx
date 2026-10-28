@@ -11,7 +11,7 @@ import {
   ChatBubbleLeftRightIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline';
-import api from '@/api/client';
+import api, { type SalesPagination } from '@/api/client';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -19,13 +19,17 @@ import { Modal } from '@/components/ui/Modal';
 import { Toast } from '@/components/ui/Toast';
 import { useToast } from '@/components/ui/useToast';
 import { useAuthStore } from '@/stores/authStore';
-import { useInventoryStore } from '@/stores/inventoryStore';
 import { formatCurrency, formatDate, formatTime, type Sale, type PaymentMethod, PAYMENT_METHODS } from '@/types';
 import { PaymentMethodIcon } from '@/components/ui/PaymentMethodIcon';
 
 export function Sales() {
   const { shop } = useAuthStore();
-  const { sales, loadAll } = useInventoryStore();
+  // Drop receipts and in-flight results immediately when switching shops.
+  return <SalesHistory key={shop?.id ?? 'no-shop'} />;
+}
+
+function SalesHistory() {
+  const { shop } = useAuthStore();
   const { toast, showToast, dismissToast } = useToast();
 
   const [dateFilter, setDateFilter] = useState<'today' | 'week' | 'month' | 'all'>('today');
@@ -36,11 +40,62 @@ export function Sales() {
   const [customerEmail, setCustomerEmail] = useState('');
   const [isSendingEmail, setIsSendingEmail] = useState(false);
 
+  const [page, setPage] = useState(1);
+  const [retry, setRetry] = useState(0);
+  const [result, setResult] = useState<{ key: string; sales: Sale[]; metadata?: SalesPagination; error?: string }>();
+  const [receiptQuery, setReceiptQuery] = useState('');
+  const [lookup, setLookup] = useState<{ query: string; retry: number } | null>(null);
+  const [lookupState, setLookupState] = useState<{ request: typeof lookup; sale?: Sale; error?: string }>();
+  // A different filter/page must never display the previous request as current.
+  const requestKey = `${dateFilter}:${page}:${retry}`;
+  const loading = !!shop && result?.key !== requestKey;
+  const error = result?.key === requestKey ? result.error : undefined;
+  const sales = !loading && !error ? result?.sales ?? [] : [];
+  const metadata = !loading && !error ? result?.metadata : undefined;
+  const selectedReceipt = lookup && lookupState?.request === lookup ? lookupState.sale : selectedSale;
+
   useEffect(() => {
-    if (shop) {
-      loadAll(shop.id);
-    }
-  }, [shop, loadAll]);
+    if (!shop) return;
+    let active = true;
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    if (dateFilter === 'week') start.setDate(start.getDate() - (start.getDay() + 6) % 7);
+    if (dateFilter === 'month') start.setDate(1);
+    const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    end.setMilliseconds(-1);
+    void (async () => {
+      try {
+        const response = await api.getSales({ page, limit: 20,
+          ...(dateFilter !== 'all' && { startDate: start.toISOString(), endDate: end.toISOString() }),
+        });
+        if (response.error) throw new Error(response.error);
+        if (!response.data || !response.metadata) throw new Error('Sales response is incomplete. Please retry.');
+        if (active) setResult({ key: requestKey, sales: response.data, metadata: response.metadata });
+      } catch (err) {
+        if (active) setResult({ key: requestKey, sales: [], error: getErrorMessage(err) });
+      }
+    })();
+    return () => { active = false; };
+  }, [shop, dateFilter, page, requestKey]);
+
+  useEffect(() => {
+    if (!lookup || !shop) return;
+    let active = true;
+    void (async () => {
+      try {
+        const found = await api.searchSaleByReceipt(lookup.query);
+        if (found.error) throw new Error(found.error);
+        if (!found.data) throw new Error('Receipt not found');
+        const receipt = await api.getSale(found.data.id);
+        if (receipt.error) throw new Error(receipt.error);
+        if (!receipt.data) throw new Error('Receipt response is incomplete');
+        if (active) setLookupState({ request: lookup, sale: receipt.data });
+      } catch (err) {
+        if (active) setLookupState({ request: lookup, error: getErrorMessage(err) });
+      }
+    })();
+    return () => { active = false; };
+  }, [lookup, shop]);
 
   const shopName = shop?.name || 'YeboMart';
   const receiptNumberOf = (sale: Sale) =>
@@ -48,7 +103,7 @@ export function Sales() {
 
   const openEmailModal = () => {
     // Prefill the linked customer's email if the sale carries one.
-    setCustomerEmail(selectedSale?.customer?.email || '');
+    setCustomerEmail(selectedReceipt?.customer?.email || '');
     setShowEmailModal(true);
   };
 
@@ -57,7 +112,7 @@ export function Sales() {
   };
 
   const handleSendEmail = async () => {
-    if (!selectedSale || !customerEmail) return;
+    if (!selectedReceipt || !customerEmail) return;
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(customerEmail)) {
@@ -68,15 +123,15 @@ export function Sales() {
     setIsSendingEmail(true);
     try {
       await api.sendReceiptEmail({
-        saleId: selectedSale.id,
+        saleId: selectedReceipt.id,
         email: customerEmail,
         shopName,
-        receiptNumber: receiptNumberOf(selectedSale),
-        items: selectedSale.items,
-        subtotal: selectedSale.subtotal,
-        discount: selectedSale.discount,
-        total: selectedSale.totalAmount,
-        date: new Date(selectedSale.createdAt).toISOString(),
+        receiptNumber: receiptNumberOf(selectedReceipt),
+        items: selectedReceipt.items,
+        subtotal: selectedReceipt.subtotal,
+        discount: selectedReceipt.discount,
+        total: selectedReceipt.totalAmount,
+        date: new Date(selectedReceipt.createdAt).toISOString(),
       });
       showToast('Receipt emailed successfully', 'success');
       setShowEmailModal(false);
@@ -119,27 +174,13 @@ export function Sales() {
   };
 
   const handleShareWhatsApp = () => {
-    if (!selectedSale) return;
-    const text = encodeURIComponent(buildReceiptText(selectedSale));
+    if (!selectedReceipt) return;
+    const text = encodeURIComponent(buildReceiptText(selectedReceipt));
     window.open(`https://wa.me/?text=${text}`, '_blank', 'noopener,noreferrer');
   };
 
-  // Filter sales by date
-  const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const weekStart = new Date(todayStart.getTime() - 7 * 24 * 60 * 60 * 1000);
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-
-  const filteredSales = sales.filter(sale => {
-    const saleDate = new Date(sale.createdAt);
-    if (dateFilter === 'today') return saleDate >= todayStart;
-    if (dateFilter === 'week') return saleDate >= weekStart;
-    if (dateFilter === 'month') return saleDate >= monthStart;
-    return true;
-  });
-
   // Group sales by date
-  const salesByDate = filteredSales.reduce((acc, sale) => {
+  const salesByDate = sales.reduce((acc, sale) => {
     const dateKey = formatDate(sale.createdAt);
     if (!acc[dateKey]) acc[dateKey] = [];
     acc[dateKey].push(sale);
@@ -147,12 +188,12 @@ export function Sales() {
   }, {} as Record<string, Sale[]>);
 
   // Calculate totals
-  const totalSales = filteredSales.reduce((sum, s) => sum + s.totalAmount, 0);
-  const totalTransactions = filteredSales.length;
+  const totalSales = sales.reduce((sum, s) => sum + s.totalAmount, 0);
+  const totalTransactions = sales.length;
   const avgTransaction = totalTransactions > 0 ? totalSales / totalTransactions : 0;
 
   // Payment method breakdown
-  const paymentBreakdown = filteredSales.reduce((acc, sale) => {
+  const paymentBreakdown = sales.reduce((acc, sale) => {
     acc[sale.paymentMethod] = (acc[sale.paymentMethod] || 0) + sale.totalAmount;
     return acc;
   }, {} as Record<string, number>);
@@ -186,7 +227,8 @@ export function Sales() {
         ].map(filter => (
           <button
             key={filter.key}
-            onClick={() => setDateFilter(filter.key as typeof dateFilter)}
+            onClick={() => { setDateFilter(filter.key as typeof dateFilter); setPage(1); }}
+            aria-pressed={dateFilter === filter.key}
             className={`px-4 py-2 rounded-sharp whitespace-nowrap transition-all ${
               dateFilter === filter.key
                 ? 'bg-brand text-ink'
@@ -198,22 +240,37 @@ export function Sales() {
         ))}
       </div>
 
+      <form className="flex flex-wrap gap-2" onSubmit={event => {
+        event.preventDefault();
+        if (receiptQuery.trim()) { setSelectedSale(null); setLookup({ query: receiptQuery.trim(), retry: 0 }); }
+      }}>
+        <label htmlFor="receipt-search" className="sr-only">Receipt number</label>
+        <input id="receipt-search" className="border border-line-strong bg-sand px-3 py-2" placeholder="Enter receipt number" value={receiptQuery} onChange={event => setReceiptQuery(event.target.value)} />
+        <Button type="submit" disabled={!receiptQuery.trim()}>Find receipt</Button>
+        <p className="w-full text-sm text-mute">Search receipts across all dates.</p>
+      </form>
+      {lookup && lookupState?.request !== lookup && <p role="status">Finding receipt…</p>}
+      {lookup && lookupState?.request === lookup && lookupState.error && <div role="alert">{lookupState.error} <Button onClick={() => setLookup({ ...lookup, retry: lookup.retry + 1 })}>Retry receipt lookup</Button></div>}
+      {loading && <p role="status">Loading sales…</p>}
+      {error && <div role="alert">{error} <Button onClick={() => setRetry(retry + 1)}>Retry</Button></div>}
+      {!loading && !error && shop && <>
+      <p className="text-sm text-mute">Figures below cover this page only, including all sale statuses.</p>
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
-          <p className="text-sm text-mute">Total Sales</p>
+          <p className="text-sm text-mute">Sales on this page</p>
           <p className="m text-2xl font-bold text-ink mt-1">{formatCurrency(totalSales)}</p>
         </Card>
         <Card>
-          <p className="text-sm text-mute">Transactions</p>
+          <p className="text-sm text-mute">Transactions on this page</p>
           <p className="text-2xl font-bold text-ink mt-1">{totalTransactions}</p>
         </Card>
         <Card>
-          <p className="text-sm text-mute">Avg. Transaction</p>
+          <p className="text-sm text-mute">Page average</p>
           <p className="m text-2xl font-bold text-ink mt-1">{formatCurrency(avgTransaction)}</p>
         </Card>
         <Card>
-          <p className="text-sm text-mute">Payment Split</p>
+          <p className="text-sm text-mute">Page payment split</p>
           <div className="flex gap-2 mt-2">
             {Object.entries(paymentBreakdown).slice(0, 3).map(([method]) => (
               <span key={method} className="text-mute" title={method}>
@@ -227,7 +284,7 @@ export function Sales() {
       {/* Payment Breakdown */}
       {Object.keys(paymentBreakdown).length > 0 && (
         <Card>
-          <CardHeader title="Payment Methods" subtitle="Breakdown by payment type" />
+          <CardHeader title="Payment Methods" subtitle="Payment amounts on this page" />
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {Object.entries(paymentBreakdown).map(([method, amount]) => {
               const pm = PAYMENT_METHODS.find(p => p.value === method);
@@ -240,7 +297,7 @@ export function Sales() {
                     <span className="font-medium text-ink">{pm?.label}</span>
                   </div>
                   <p className="m text-lg font-bold text-brick">{formatCurrency(amount)}</p>
-                  <p className="text-xs text-mist">{percentage}% of total</p>
+                  <p className="text-xs text-mist">{percentage}% of page total</p>
                 </div>
               );
             })}
@@ -260,7 +317,7 @@ export function Sales() {
                   <CalendarIcon className="w-4 h-4 text-mute" />
                   <span className="font-medium text-body">{date}</span>
                 </div>
-                <span className="m text-[14px] font-semibold">{formatCurrency(dayTotal)}</span>
+                <span className="m text-[14px] font-semibold">{formatCurrency(dayTotal)} (this page)</span>
               </div>
               
               <div className="border border-line-strong bg-cream">
@@ -274,7 +331,7 @@ export function Sales() {
                 {dateSales.map((sale) => (
                   <button
                     key={sale.id}
-                    onClick={() => setSelectedSale(sale)}
+                    onClick={() => { setLookup(null); setSelectedSale(sale); }}
                     className="flex w-full items-center gap-4 border-b border-line px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-sand"
                   >
                     <span className="m hidden w-[62px] text-[12px] text-mute sm:block">
@@ -321,26 +378,32 @@ export function Sales() {
         )}
       </div>
 
+      {metadata && <nav aria-label="Sales pagination" className="flex flex-wrap items-center gap-4">
+        <Button disabled={!metadata.hasPrev} onClick={() => setPage(page - 1)}>Previous</Button>
+        <span>Page {metadata.page} of {Math.max(1, Math.ceil(metadata.total / metadata.limit))} · {metadata.total} matching sales</span>
+        <Button disabled={!metadata.hasNext} onClick={() => setPage(page + 1)}>Next</Button>
+      </nav>}
+      </>}
       {/* Sale Detail Modal */}
-      {selectedSale && (
+      {selectedReceipt && (
         <div className="modal-backdrop flex items-center justify-center p-4">
           <div 
             className="absolute inset-0" 
-            onClick={() => setSelectedSale(null)}
+            onClick={() => { setSelectedSale(null); setLookup(null); }}
           />
           <div className="relative w-full max-w-md bg-sand rounded-sharp shadow-2xl border border-line animate-slide-up">
             <div className="p-4 border-b border-line">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-ink">Receipt</h2>
                 <button
-                  onClick={() => setSelectedSale(null)}
+                  onClick={() => { setSelectedSale(null); setLookup(null); }}
                   className="p-1 hover:bg-shade rounded-sharp"
                 >
                   <XMarkIcon className="h-5 w-5" />
                 </button>
               </div>
               <p className="text-sm text-mute">
-                {formatDate(selectedSale.createdAt)} at {formatTime(selectedSale.createdAt)}
+                {formatDate(selectedReceipt.createdAt)} at {formatTime(selectedReceipt.createdAt)}
               </p>
             </div>
 
@@ -355,12 +418,12 @@ export function Sales() {
                 </div>
 
                 <div className="text-xs text-mist mb-3">
-                  <p>Date: {formatDate(selectedSale.createdAt)} {formatTime(selectedSale.createdAt)}</p>
-                  <p className="font-bold text-black">Receipt #: {receiptNumberOf(selectedSale)}</p>
+                  <p>Date: {formatDate(selectedReceipt.createdAt)} {formatTime(selectedReceipt.createdAt)}</p>
+                  <p className="font-bold text-black">Receipt #: {receiptNumberOf(selectedReceipt)}</p>
                 </div>
 
                 <div className="border-b border-dashed border-line-strong pb-3 mb-3">
-                  {selectedSale.items.map((item) => (
+                  {selectedReceipt.items.map((item) => (
                     <div key={item.id} className="flex justify-between py-1">
                       <span className="flex-1">{item.productName}</span>
                       <span className="w-8 text-center">x{item.quantity}</span>
@@ -372,37 +435,37 @@ export function Sales() {
                 <div className="space-y-1 mb-2">
                   <div className="flex justify-between text-sm">
                     <span>Subtotal</span>
-                    <span className="m">{formatCurrency(selectedSale.subtotal)}</span>
+                    <span className="m">{formatCurrency(selectedReceipt.subtotal)}</span>
                   </div>
-                  {selectedSale.discount > 0 && (
+                  {selectedReceipt.discount > 0 && (
                     <div className="flex justify-between text-sm text-ok">
                       <span>Discount</span>
-                      <span>-{formatCurrency(selectedSale.discount)}</span>
+                      <span>-{formatCurrency(selectedReceipt.discount)}</span>
                     </div>
                   )}
-                  {selectedSale.tax && selectedSale.tax > 0 ? (
+                  {selectedReceipt.tax && selectedReceipt.tax > 0 ? (
                     <>
                       {/* Net (VAT-exclusive) amount so Net + VAT = TOTAL
                           reconciles — required for a compliant VAT receipt. */}
                       <div className="flex justify-between text-sm">
                         <span>Net (excl. VAT)</span>
-                        <span className="m">{formatCurrency(selectedSale.totalAmount - selectedSale.tax)}</span>
+                        <span className="m">{formatCurrency(selectedReceipt.totalAmount - selectedReceipt.tax)}</span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span>VAT{shop?.taxRate ? ` (${shop.taxRate}%${shop.taxInclusive ? ' incl.' : ''})` : ''}</span>
-                        <span className="m">{formatCurrency(selectedSale.tax)}</span>
+                        <span className="m">{formatCurrency(selectedReceipt.tax)}</span>
                       </div>
                     </>
                   ) : null}
                   <div className="flex justify-between text-sm">
                     <span>Payment</span>
-                    <span>{PAYMENT_METHODS.find(p => p.value === selectedSale.paymentMethod)?.label || selectedSale.paymentMethod}</span>
+                    <span>{PAYMENT_METHODS.find(p => p.value === selectedReceipt.paymentMethod)?.label || selectedReceipt.paymentMethod}</span>
                   </div>
                 </div>
 
                 <div className="flex justify-between font-bold text-lg border-t border-line-strong pt-2">
                   <span>TOTAL</span>
-                  <span className="m">{formatCurrency(selectedSale.totalAmount)}</span>
+                  <span className="m">{formatCurrency(selectedReceipt.totalAmount)}</span>
                 </div>
 
                 {shop?.taxNumber && (
@@ -419,8 +482,8 @@ export function Sales() {
               <div className="flex justify-between items-center print:hidden">
                 <span className="text-mute">Payment</span>
                 <Badge variant="success">
-                  <PaymentMethodIcon method={selectedSale.paymentMethod} className="h-3.5 w-3.5" />
-                  {PAYMENT_METHODS.find(p => p.value === selectedSale.paymentMethod)?.label}
+                  <PaymentMethodIcon method={selectedReceipt.paymentMethod} className="h-3.5 w-3.5" />
+                  {PAYMENT_METHODS.find(p => p.value === selectedReceipt.paymentMethod)?.label}
                 </Badge>
               </div>
 
