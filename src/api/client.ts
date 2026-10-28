@@ -513,10 +513,11 @@ class ApiClient {
   private async request<T>(
     endpoint: string,
     options: RequestInit = {},
-    opts: { retried?: boolean } = {},
+    opts: { retried?: boolean; token?: string; isCurrent?: () => boolean } = {},
   ): Promise<ApiResponse<T>> {
     const url = `${API_URL}${endpoint}`;
-    const token = await this.getActiveToken();
+    const token = opts.token ?? await this.getActiveToken();
+    if (opts.isCurrent && !opts.isCurrent()) return { error: 'Session changed. Sale remains saved.' };
 
     // FormData bodies (multipart uploads) must NOT get a manual Content-Type:
     // the browser needs to set its own with the multipart boundary.
@@ -535,6 +536,15 @@ class ApiClient {
       return { error: NETWORK_ERROR };
     }
 
+    if (response.status === 401 && opts.isCurrent && !opts.isCurrent()) {
+      return { error: 'Session changed. Sale remains saved.' };
+    }
+
+    // Scoped requests never refresh from shared browser credentials.
+    if (response.status === 401 && opts.token) {
+      return { error: 'Session expired. Sign in again to sync saved sales.', status: 401 };
+    }
+
     if (
       response.status === 401 &&
       !opts.retried &&
@@ -549,8 +559,9 @@ class ApiClient {
       // Owner mode: try one silent refresh, then retry.
       yeboid.clearTokens();
       const fresh = await yeboid.getAccessToken();
+      if (opts.isCurrent && !opts.isCurrent()) return { error: 'Session changed. Sale remains saved.' };
       if (fresh) {
-        return this.request<T>(endpoint, options, { retried: true });
+        return this.request<T>(endpoint, options, { ...opts, retried: true });
       }
       this.forceLogout();
       return { error: 'Session expired. Please sign in again.' };
@@ -587,7 +598,7 @@ class ApiClient {
   }
 
   /** Staff PIN login. Returns the yebomart-issued token; caller stores it. */
-  async staffLogin(phone: string, pin: string) {
+  async staffLogin(phone: string, pin: string, isCurrent?: () => boolean) {
     const response = await this.request<{
       accessToken: string;
       shop: Shop;
@@ -595,8 +606,9 @@ class ApiClient {
     }>('/api/auth/login/user', {
       method: 'POST',
       body: JSON.stringify({ phone, pin }),
-    });
+    }, { isCurrent });
 
+    if (isCurrent && !isCurrent()) return { error: 'Sign-in was cancelled' };
     if (response.data) {
       this.setStaffToken(response.data.accessToken);
       return {
@@ -622,9 +634,9 @@ class ApiClient {
     return { error: response.error || 'Login failed', details: response.details };
   }
 
-  async getMe() {
+  async getMe(token?: string) {
     return this.request<{ user: User; shop: Shop; subscription: Subscription }>(
-      '/api/auth/me',
+      '/api/auth/me', {}, { token },
     );
   }
 
@@ -773,11 +785,16 @@ class ApiClient {
     // actually rung up. See SaleService.create + the syncQueue drain.
     localId?: string;
     offlineAt?: string;
-  }) {
+  }, scope?: { shopId: string; token: string; isCurrent: () => boolean }) {
+    // A scoped replay must never fall through to shared browser credentials.
+    if (scope && (!scope.token || !scope.shopId)) {
+      return { error: 'Verified session required. Sale remains saved.' };
+    }
     return this.request<Sale>('/api/sales', {
       method: 'POST',
       body: JSON.stringify(data),
-    });
+      ...(scope && { headers: { 'X-Shop-Id': scope.shopId } }),
+    }, { isCurrent: scope?.isCurrent, token: scope?.token });
   }
 
   // ── Stock ─────────────────────────────────────────────────────────────

@@ -1,3 +1,4 @@
+import { setSyncContext } from '@/lib/outboxContext';
 import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import type { SyncQueueItem } from '@/types';
 
@@ -33,6 +34,7 @@ async function enqueueSale(overrides: Partial<SyncQueueItem> = {}): Promise<stri
     data: { localId: id, amountPaid: 10, items: [] },
     createdAt: new Date(),
     attempts: 0,
+    context: { principalId: 'user-1', mode: 'staff', shopId: 'shop-1' },
     ...overrides,
   };
   await db.syncQueue.add(item);
@@ -40,6 +42,7 @@ async function enqueueSale(overrides: Partial<SyncQueueItem> = {}): Promise<stri
 }
 
 beforeEach(async () => {
+  setSyncContext({ principalId: 'user-1', mode: 'staff', shopId: 'shop-1' }, 'verified-token');
   vi.clearAllMocks();
   setOnline(true);
   await db.syncQueue.clear();
@@ -86,6 +89,13 @@ describe('syncStore.replay — per-item outcomes', () => {
     expect(result).toEqual({ synced: 1, failed: 0 });
     expect(await db.syncQueue.count()).toBe(0);
     expect(useSyncStore.getState().pendingCount).toBe(0);
+  });
+
+  it('does not discard a sale on a malformed success without an acknowledgement id', async () => {
+    createSale.mockResolvedValue({ data: {} });
+    await enqueueSale();
+    expect((await useSyncStore.getState().replay()).failed).toBe(1);
+    expect(await db.syncQueue.count()).toBe(1);
   });
 
   it('transport failure → "retry": item kept, NO attempt burned', async () => {

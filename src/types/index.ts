@@ -229,8 +229,15 @@ export interface DashboardMetrics {
   recentSales: Sale[];
 }
 
+export interface SyncContext {
+  principalId: string;
+  mode: 'owner' | 'staff';
+  shopId: string;
+}
+
 // Sync Queue Item
 export interface SyncQueueItem {
+  context?: SyncContext; // Unscoped historical entries are retained but never replayed.
   id: string;
   table: string;
   action: 'create' | 'update' | 'delete';
