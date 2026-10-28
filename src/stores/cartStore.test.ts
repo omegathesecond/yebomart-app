@@ -1,3 +1,4 @@
+import { setSyncContext } from '@/lib/outboxContext';
 import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import type { Product } from '@/types';
 import type { Customer } from '@/api/client';
@@ -74,6 +75,7 @@ function setOnline(value: boolean) {
 }
 
 beforeEach(() => {
+  setSyncContext({ principalId: 'user-1', mode: 'staff', shopId: 'shop-1' }, 'verified-token');
   vi.clearAllMocks();
   setOnline(true);
   useCartStore.getState().clear();

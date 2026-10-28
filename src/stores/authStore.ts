@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { User, Shop, Subscription } from '@/types';
 import api from '@/api/client';
+import { credentialSnapshot, setSyncContext, verifiedOwnerId } from '@/lib/outboxContext';
+import { useSyncStore, waitForSyncDrain } from '@/stores/syncStore';
 import { clearDatabase } from '@/lib/db';
 import { useLocaleStore } from '@/stores/localeStore';
 import { setCurrencyConfig } from '@/types';
@@ -17,6 +19,16 @@ function syncShopLocale(shop: Shop | null) {
 }
 
 let storeInitialized = false;
+let authRevision = 0;
+let loggingOut: Promise<void> | null = null;
+function currentAuthAttempt(revision: number) {
+  const credentials = credentialSnapshot();
+  return () => revision === authRevision && credentials === credentialSnapshot();
+}
+function resumeSync() {
+  void useSyncStore.getState().refreshPending();
+  void useSyncStore.getState().replay();
+}
 
 interface AuthState {
   user: User | null;
@@ -73,10 +85,22 @@ export const useAuthStore = create<AuthState>()(
         },
 
         exchangeYeboidToken: async (accessToken, bootstrap) => {
+          await loggingOut;
+          // The callback stored this token before handing it to us. A newer
+          // sign-in in another tab must not be paired with this old identity.
+          if (localStorage.getItem('yebomart_staff_token') ||
+            localStorage.getItem('yebomart.accessToken') !== accessToken) {
+            return { success: false, error: 'Sign-in was cancelled' };
+          }
+          const revision = ++authRevision;
+          const isCurrent = currentAuthAttempt(revision);
+          setSyncContext(null);
           const { data, error } = await api.exchangeYeboid(accessToken, bootstrap);
+          if (!isCurrent()) return { success: false, error: 'Sign-in was cancelled' };
           if (error || !data) {
             return { success: false, error: error ?? 'Sign-in failed' };
           }
+          setSyncContext({ principalId: verifiedOwnerId(accessToken), mode: 'owner', shopId: data.shop.id }, accessToken);
           set({
             user: null,
             shop: data.shop,
@@ -85,14 +109,23 @@ export const useAuthStore = create<AuthState>()(
             authMode: 'owner',
           });
           syncShopLocale(data.shop);
+          resumeSync();
           return { success: true, isNewShop: data.isNewShop };
         },
 
         staffLogin: async (phone, pin) => {
           try {
-            const { data, error } = await api.staffLogin(phone, pin);
+            await loggingOut;
+            const revision = ++authRevision;
+            const isCurrent = currentAuthAttempt(revision);
+            setSyncContext(null);
+            const { data, error } = await api.staffLogin(phone, pin, isCurrent);
+            if (revision !== authRevision) return false;
             if (error || !data) return false;
+            if (localStorage.getItem('yebomart_staff_token') !== data.token ||
+              localStorage.getItem('yebomart.accessToken')) return false;
 
+            setSyncContext({ principalId: data.user.id, mode: 'staff', shopId: data.shop.id }, data.token);
             set({
               user: data.user,
               shop: data.shop,
@@ -101,6 +134,7 @@ export const useAuthStore = create<AuthState>()(
               authMode: 'staff',
             });
             syncShopLocale(data.shop);
+            resumeSync();
             return true;
           } catch (err) {
             console.error('Staff login failed:', err);
@@ -109,37 +143,65 @@ export const useAuthStore = create<AuthState>()(
         },
 
         logout: async () => {
+          if (loggingOut) return loggingOut;
+          // Close the gate synchronously before clearing credentials. Already
+          // sent requests may acknowledge; no further queued request may start.
+          ++authRevision;
+          setSyncContext(null);
           api.clearAllTokens();
-          await clearDatabase();
-          set({
-            user: null,
-            shop: null,
-            subscription: null,
-            isAuthenticated: false,
-            authMode: null,
-          });
+          useSyncStore.setState({ pendingCount: 0, lastSyncedAt: null });
+          set({ user: null, shop: null, subscription: null,
+            isAuthenticated: false, authMode: null, isLoading: false });
+          loggingOut = (async () => {
+            await waitForSyncDrain();
+            await clearDatabase();
+          })();
+          try { await loggingOut; } finally { loggingOut = null; }
         },
 
         loadUser: async () => {
+          await loggingOut;
+          const revision = ++authRevision;
+          let isCurrent = () => revision === authRevision;
           try {
+            setSyncContext(null);
+            useSyncStore.setState({ pendingCount: 0 });
             set({ isLoading: true });
 
             const staffToken = localStorage.getItem('yebomart_staff_token');
-            const yeboidToken = await yeboid.getAccessToken();
+            const yeboidToken = staffToken ? null : await yeboid.getAccessToken();
+            if (revision !== authRevision) return;
+            if (localStorage.getItem('yebomart_staff_token') !== staffToken ||
+              (!staffToken && localStorage.getItem('yebomart.accessToken') !== yeboidToken)) {
+              set({ user: null, shop: null, subscription: null,
+                isAuthenticated: false, authMode: null, isLoading: false });
+              return;
+            }
+            isCurrent = currentAuthAttempt(revision);
             const hasToken = !!staffToken || !!yeboidToken;
 
             if (!hasToken) {
-              set({ isLoading: false, isAuthenticated: false, authMode: null });
+              await get().logout();
               return;
             }
 
-            const { data, error } = await api.getMe();
+            const { data, error } = await api.getMe(staffToken || yeboidToken!);
+            if (revision !== authRevision) return;
+            if (!isCurrent()) {
+              // Another tab installed credentials while /me was in flight.
+              // Do not attribute its credentials to this response's identity,
+              // or log out and erase that tab's new session.
+              set({ user: null, shop: null, subscription: null,
+                isAuthenticated: false, authMode: null, isLoading: false });
+              return;
+            }
             if (error || !data) {
-              api.clearAllTokens();
-              set({ isLoading: false, isAuthenticated: false, authMode: null });
+              await get().logout();
               return;
             }
 
+            setSyncContext({ principalId: staffToken ? data.user.id : verifiedOwnerId(yeboidToken!),
+              mode: staffToken ? 'staff' : 'owner', shopId: data.shop.id }, staffToken || yeboidToken!);
             set({
               user: data.user,
               shop: data.shop,
@@ -149,10 +211,10 @@ export const useAuthStore = create<AuthState>()(
               authMode: staffToken ? 'staff' : 'owner',
             });
             syncShopLocale(data.shop);
+            resumeSync();
           } catch (err) {
             console.error('Failed to load user:', err);
-            api.clearAllTokens();
-            set({ isLoading: false, isAuthenticated: false, authMode: null });
+            if (isCurrent()) await get().logout();
           }
         },
 
@@ -190,3 +252,17 @@ export const useAuthStore = create<AuthState>()(
     },
   ),
 );
+
+// Other tabs share credentials, but cannot update this tab's verified identity.
+// Invalidate locally without clearing the other tab's newly installed tokens.
+window.addEventListener('storage', (event) => {
+  if (event.key === null || ['yebomart_staff_token', 'yebomart.accessToken'].includes(event.key)) {
+    ++authRevision;
+    setSyncContext(null);
+    useSyncStore.setState({ pendingCount: 0 });
+    useAuthStore.setState({
+      user: null, shop: null, subscription: null,
+      isAuthenticated: false, authMode: null, isLoading: false,
+    });
+  }
+});

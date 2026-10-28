@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { CartItem, Product, PaymentMethod, Sale, SaleItem } from '@/types';
 import type { Customer } from '@/api/client';
 import api, { NETWORK_ERROR } from '@/api/client';
+import { getSyncContext, getSyncToken } from '@/lib/outboxContext';
 import { addToSyncQueue } from '@/lib/db';
 import { computeCartTotal } from '@/lib/money';
 import { useSyncStore } from '@/stores/syncStore';
@@ -191,8 +192,14 @@ export const useCartStore = create<CartState>((set, get) => ({
   // Dexie syncQueue and optimistically complete the sale locally. The drain in
   // syncStore replays it on reconnect; the server dedups on `localId` so an
   // online attempt whose response was lost is never double-applied.
-  checkout: async () => {
+  checkout: async (_userId, _shopId) => {
     const { items, paymentMethod, discount, customer } = get();
+
+    const context = getSyncContext();
+    if (!context || context.shopId !== _shopId || items.some(item => item.product.shopId !== context.shopId)) {
+      set({ error: 'Sign in to this shop before completing the sale', isProcessing: false });
+      return null;
+    }
 
     // Calculate subtotal with custom/pack pricing
     const subtotal = items.reduce((sum, item) => {
@@ -323,7 +330,7 @@ export const useCartStore = create<CartState>((set, get) => ({
       await addToSyncQueue('sales', 'create', {
         ...payload,
         offlineAt: new Date().toISOString(),
-      });
+      }, context);
       void useSyncStore.getState().refreshPending();
 
       const receiptItems = buildReceiptItems(localId);
@@ -353,7 +360,9 @@ export const useCartStore = create<CartState>((set, get) => ({
 
     try {
       // Create sale via API
-      const { data, error } = await api.createSale(payload);
+      const token = getSyncToken();
+      if (!token) throw new Error('Sign in again before completing a sale');
+      const { data, error } = await api.createSale(payload, { token, shopId: context.shopId, isCurrent: () => getSyncContext() === context });
 
       if (!data) {
         // Transport failure → queue + complete offline (retryable).
