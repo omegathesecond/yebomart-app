@@ -1,55 +1,64 @@
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
+import { Button } from '@/components/ui/Button';
+import { credentialSnapshot } from '@/lib/outboxContext';
 
 interface InitialSyncProps {
   children: React.ReactNode;
 }
 
 export function InitialSync({ children }: InitialSyncProps) {
-  const shopId = useAuthStore((state) => state.shop?.id);
-  return <ShopSync key={shopId}>{children}</ShopSync>;
+  const { shop, user, authMode, isAuthenticated } = useAuthStore();
+  const sessionKey = JSON.stringify([shop?.id, user?.id, authMode, isAuthenticated, credentialSnapshot()]);
+  return <ShopSync key={sessionKey}>{children}</ShopSync>;
 }
 
 function ShopSync({ children }: InitialSyncProps) {
   const { shop, isAuthenticated } = useAuthStore();
-  const { loadAll, lastSync, isLoading } = useInventoryStore();
+  const { loadAll, lastSync, isLoading, syncError, clearAll } = useInventoryStore();
   const [hasSynced, setHasSynced] = useState(false);
-  const [syncStatus, setSyncStatus] = useState('Connecting...');
+  const [attempt, setAttempt] = useState(0);
+  const shopId = shop?.id;
+
+  useEffect(() => () => clearAll(), [clearAll]);
+
   useEffect(() => {
-    const doSync = async () => {
-      if (!isAuthenticated || !shop) return;
-      
-      // Check if we've already synced this session for this shop
-      if (lastSync && hasSynced) return;
+    let active = true;
+    if (isAuthenticated && shopId) {
+      void loadAll(shopId).then(success => {
+        if (active && success) setHasSynced(true);
+      });
+    }
+    return () => { active = false; };
+  }, [isAuthenticated, shopId, loadAll, attempt]);
 
-      setSyncStatus('Syncing products...');
-      await loadAll(shop.id);
-      setSyncStatus('Done!');
-      setHasSynced(true);
-    };
+  const retry = () => {
+    if (hasSynced && shopId) void loadAll(shopId);
+    else setAttempt(value => value + 1);
+  };
 
-    doSync();
-  }, [isAuthenticated, shop, loadAll, lastSync, hasSynced]);
+  if (!isAuthenticated || !shopId) return <>{children}</>;
 
-  // Show sync screen if authenticated but haven't synced yet
-  if (isAuthenticated && shop && !hasSynced && isLoading) {
+  if (!hasSynced) {
     return (
       <div className="min-h-screen bg-cream flex flex-col items-center justify-center p-6">
-        <div className="w-16 h-16 bg-brand rounded-sharp flex items-center justify-center mb-6">
-          <svg className="w-8 h-8 text-ink" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-          </svg>
-        </div>
         <h2 className="text-xl font-bold text-ink mb-2">YeboMart</h2>
-        <p className="text-mute text-sm mb-6">{syncStatus}</p>
-        <div className="w-48 h-1 bg-shade rounded-full overflow-hidden">
-          <div className="h-full bg-brand rounded-full animate-pulse" style={{ width: '60%' }} />
-        </div>
-        <p className="text-mist text-xs mt-4">Loading your shop data...</p>
+        {syncError ? (
+          <div role="alert" className="text-center space-y-4">
+            <p>Could not sync shop data. {syncError}</p>
+            <Button onClick={retry} isLoading={isLoading}>Retry sync</Button>
+          </div>
+        ) : <p role="status">Loading your shop data...</p>}
       </div>
     );
   }
 
-  return <>{children}</>;
+  return <>
+    {syncError && <div role="alert" className="bg-cream text-ink p-4 border-b space-y-2">
+      <p>Shop data may be out of date. Showing the last successful sync{lastSync ? ` (${lastSync.toLocaleString()})` : ''}. {syncError}</p>
+      <Button size="sm" onClick={retry} isLoading={isLoading}>Retry sync</Button>
+    </div>}
+    {children}
+  </>;
 }
