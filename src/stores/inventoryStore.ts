@@ -10,6 +10,10 @@ import type {
   Expense
 } from '@/types';
 import api from '@/api/client';
+import { getSyncContext } from '@/lib/outboxContext';
+
+let loadRevision = 0;
+let snapshotContext: ReturnType<typeof getSyncContext> = null;
 
 interface InventoryState {
   products: Product[];
@@ -27,7 +31,8 @@ interface InventoryState {
   error: string | null;
   
   // Actions
-  loadAll: (shopId: string) => Promise<void>;
+  loadAll: (shopId: string) => Promise<boolean>;
+  syncError: string | null;
   setOnlineStatus: (online: boolean) => void;
   clearError: () => void;
   clearAll: () => void;
@@ -84,10 +89,19 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
   lastSync: null,
   isOnline: navigator.onLine,
   error: null,
+  syncError: null,
 
   // Load all data directly from API
   loadAll: async (_shopId: string) => {
-    set({ isLoading: true, error: null });
+    const context = getSyncContext();
+    if (!context || (_shopId && context.shopId !== _shopId)) return false;
+    if (snapshotContext !== context) {
+      get().clearAll();
+      snapshotContext = context;
+    }
+    const revision = ++loadRevision;
+    const current = () => revision === loadRevision && getSyncContext() === context;
+    set({ isLoading: true });
     try {
       // Fetch products from API
       let allProducts: Product[] = [];
@@ -96,19 +110,21 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
       
       while (hasMore) {
         const { data, error } = await api.getProducts({ page, limit: 100 });
-        if (error || !data) {
-          if (error) set({ error });
-          break;
+        if (error || !Array.isArray(data)) {
+          throw new Error(error || 'Failed to load products.');
         }
         
+        if (!current()) return false;
         allProducts = [...allProducts, ...data];
         hasMore = data.length === 100;
         page++;
       }
 
       // Fetch sales
-      const { data: salesData } = await api.getSales();
-      const sales = (salesData || []).map((s) => ({
+      const { data: salesData, error: salesError } = await api.getSales();
+      if (!current()) return false;
+      if (salesError || !Array.isArray(salesData)) throw new Error(salesError || 'Failed to load sales.');
+      const sales = salesData.map((s) => ({
         ...s,
         createdAt: new Date(s.createdAt),
         paymentMethod: (s.paymentMethod?.toLowerCase() || 'cash') as Sale['paymentMethod'],
@@ -117,35 +133,25 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
 
       // Fetch staff
       const { data: staffData, error: staffError } = await api.getStaff();
-      console.log('[inventoryStore] Staff API response:', { staffData, staffError });
-      const staffArray = Array.isArray(staffData) ? staffData : [];
-      let staff: User[] = [];
-      try {
-        staff = staffArray.map((u) => {
-          console.log('[inventoryStore] Mapping user:', u);
-          return {
-            id: u.id,
-            shopId: u.shopId || _shopId,
-            name: u.name || '',
-            phone: u.phone || '',
-            email: u.email || undefined,
-            pin: u.pin || '',
-            role: (String(u.role || 'CASHIER').toLowerCase()) as User['role'],
-            isActive: u.isActive !== false,
-            lastLogin: u.lastLoginAt ? new Date(u.lastLoginAt) : undefined,
-            createdAt: u.createdAt ? new Date(u.createdAt) : new Date()
-          };
-        });
-      } catch (mapError) {
-        console.error('[inventoryStore] Error mapping staff:', mapError);
-      }
-      console.log('[inventoryStore] Mapped staff:', staff);
+      if (!current()) return false;
+      if (staffError || !Array.isArray(staffData)) throw new Error(staffError || 'Failed to load staff.');
+      const staff: User[] = staffData.map(u => ({
+        id: u.id,
+        shopId: u.shopId || context.shopId,
+        name: u.name,
+        phone: u.phone,
+        email: u.email || undefined,
+        pin: u.pin || '',
+        role: String(u.role).toLowerCase() as User['role'],
+        isActive: u.isActive !== false,
+        lastLogin: u.lastLoginAt ? new Date(u.lastLoginAt) : undefined,
+        createdAt: new Date(u.createdAt),
+      }));
 
       // Fetch expenses (API scopes to the caller's shop automatically)
       const { data: expensesData, error: expensesError } = await api.listExpenses({ limit: 100 });
-      if (expensesError) {
-        console.error('[inventoryStore] Failed to load expenses:', expensesError);
-      }
+      if (!current()) return false;
+      if (expensesError || !Array.isArray(expensesData?.expenses)) throw new Error(expensesError || 'Failed to load expenses.');
 
       // Calculate low stock alerts from products
       const alerts: LowStockAlert[] = allProducts
@@ -165,15 +171,16 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
         products: allProducts.filter(p => p.isActive),
         sales: sales.slice(0, 50),
         staff,
-        expenses: expensesData?.expenses || [],
+        expenses: expensesData.expenses,
         alerts,
         isLoading: false,
+        syncError: null,
         lastSync: new Date()
       });
-      
+      return true;
     } catch (error) {
-      console.error('Failed to load inventory data:', error);
-      set({ isLoading: false, error: 'Failed to load data. Check your connection.' });
+      if (current()) set({ isLoading: false, syncError: error instanceof Error ? error.message : 'Failed to load shop data. Check your connection.' });
+      return false;
     }
   },
 
@@ -181,20 +188,25 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
   clearError: () => set({ error: null }),
   
   // Clear all data (call on logout)
-  clearAll: () => set({
-    products: [],
-    sales: [],
-    stockLogs: [],
-    alerts: [],
-    insights: [],
-    insightsLoading: false,
-    insightsError: null,
-    staff: [],
-    expenses: [],
-    isLoading: false,
-    lastSync: null,
-    error: null
-  }),
+  clearAll: () => {
+    ++loadRevision;
+    snapshotContext = null;
+    set({
+      syncError: null,
+      products: [],
+      sales: [],
+      stockLogs: [],
+      alerts: [],
+      insights: [],
+      insightsLoading: false,
+      insightsError: null,
+      staff: [],
+      expenses: [],
+      isLoading: false,
+      lastSync: null,
+      error: null
+    });
+  },
 
   // Products - Direct API calls
   addProduct: async (productData) => {
