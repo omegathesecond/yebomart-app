@@ -38,23 +38,41 @@ it('keeps content visible with a stale warning and retry after refresh fails', a
   fireEvent.click(screen.getByRole('button', { name: 'Retry sync' }));
   await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
 });
-it('retains the verified snapshot across an offline route remount and retries the refresh', async () => {
-  const view = render(<InitialSync><div>Shop content</div></InitialSync>);
-  await screen.findByText('Shop content');
+it('retains the same-session catalogue across a desktop-to-mobile remount offline and retries', async () => {
+  const product = { id: 'saved-product', name: 'Saved product', isActive: true, quantity: 10, reorderAt: 1 };
+  vi.mocked(api.getProducts).mockResolvedValue({ data: [product] } as never);
+  function Catalogue() {
+    const products = useInventoryStore(state => state.products);
+    return <div>{products.map(item => <span key={item.id}>{item.name}</span>)}</div>;
+  }
+  const desktop = render(<InitialSync><Catalogue /></InitialSync>);
+  await screen.findByText('Saved product');
   const snapshot = useInventoryStore.getState();
-  view.unmount();
+  desktop.unmount();
+  expect(useInventoryStore.getState().products).toBe(snapshot.products);
   expect(useInventoryStore.getState().lastSync).toBe(snapshot.lastSync);
   vi.mocked(api.getProducts).mockRejectedValueOnce(new Error('Offline'));
-  render(<InitialSync><div>Shop content</div></InitialSync>);
-  expect(screen.getByText('Shop content')).toBeInTheDocument();
+  render(<InitialSync><Catalogue /></InitialSync>);
+  expect(screen.getByText('Saved product')).toBeInTheDocument();
   expect(await screen.findByRole('alert')).toHaveTextContent('Offline');
   expect(screen.getByRole('alert')).toHaveTextContent('last successful sync');
-  expect(useInventoryStore.getState().products).toBe(snapshot.products);
   expect(useInventoryStore.getState().lastSync).toBe(snapshot.lastSync);
   fireEvent.click(screen.getByRole('button', { name: 'Retry sync' }));
   await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
-  expect(screen.getByText('Shop content')).toBeInTheDocument();
+  expect(screen.getByText('Saved product')).toBeInTheDocument();
 });
+it('does not reuse a retained snapshot in a new session for the same shop', async () => {
+  const first = render(<InitialSync><div>Shop content</div></InitialSync>);
+  await screen.findByText('Shop content');
+  first.unmount();
+  setSyncContext({ principalId: 'owner', shopId: 'shop', mode: 'owner' }, 'new-token');
+  vi.mocked(api.getProducts).mockResolvedValueOnce({ error: 'Offline in new session' });
+  render(<InitialSync><div>Shop content</div></InitialSync>);
+  expect(screen.queryByText('Shop content')).not.toBeInTheDocument();
+  expect(await screen.findByRole('alert')).toHaveTextContent('Offline in new session');
+  expect(useInventoryStore.getState().lastSync).toBeNull();
+});
+
 it.each([
   { principalId: 'owner', shopId: 'shop', mode: 'owner' as const },
   { principalId: 'another-owner', shopId: 'shop', mode: 'owner' as const },
