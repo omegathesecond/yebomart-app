@@ -16,26 +16,24 @@ export function InitialSync({ children }: InitialSyncProps) {
 
 function ShopSync({ children }: InitialSyncProps) {
   const { shop, isAuthenticated } = useAuthStore();
-  const { loadAll, lastSync, isLoading, syncError, clearAll } = useInventoryStore();
-  const [hasSynced, setHasSynced] = useState(false);
+  const { loadAll, lastSync, isLoading, syncError, hasSnapshot, clearAll } = useInventoryStore();
   const [attempt, setAttempt] = useState(0);
   const shopId = shop?.id;
 
-  useEffect(() => () => clearAll(), [clearAll]);
+  const hasSynced = !!shopId && hasSnapshot(shopId);
 
   useEffect(() => {
-    let active = true;
     if (isAuthenticated && shopId) {
-      void loadAll(shopId).then(success => {
-        if (active && success) setHasSynced(true);
-      });
+      void loadAll(shopId);
+    } else {
+      clearAll();
     }
-    return () => { active = false; };
-  }, [isAuthenticated, shopId, loadAll, attempt]);
+    // Route unmounts must retain the verified session's successful snapshot.
+    // loadAll invalidates snapshots and outstanding loads when context changes.
+  }, [isAuthenticated, shopId, loadAll, clearAll, attempt]);
 
   const retry = () => {
-    if (hasSynced && shopId) void loadAll(shopId);
-    else setAttempt(value => value + 1);
+    setAttempt(value => value + 1);
   };
 
   if (!isAuthenticated || !shopId) return <>{children}</>;
