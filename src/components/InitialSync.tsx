@@ -16,21 +16,16 @@ export function InitialSync({ children }: InitialSyncProps) {
 
 function ShopSync({ children }: InitialSyncProps) {
   const { shop, isAuthenticated } = useAuthStore();
-  const { loadAll, lastSync, isLoading, syncError, clearAll } = useInventoryStore();
-  const [hasSynced, setHasSynced] = useState(false);
+  const { loadAll, lastSync, isLoading, syncError, hasVerifiedSnapshot } = useInventoryStore();
   const [attempt, setAttempt] = useState(0);
   const shopId = shop?.id;
 
-  useEffect(() => () => clearAll(), [clearAll]);
+  const hasSynced = !!shopId && hasVerifiedSnapshot(shopId);
 
   useEffect(() => {
-    let active = true;
     if (isAuthenticated && shopId) {
-      void loadAll(shopId).then(success => {
-        if (active && success) setHasSynced(true);
-      });
+      void loadAll(shopId);
     }
-    return () => { active = false; };
   }, [isAuthenticated, shopId, loadAll, attempt]);
 
   const retry = () => {

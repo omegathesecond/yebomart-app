@@ -33,6 +33,7 @@ interface InventoryState {
   // Actions
   loadAll: (shopId: string) => Promise<boolean>;
   syncError: string | null;
+  hasVerifiedSnapshot: (shopId: string) => boolean;
   setOnlineStatus: (online: boolean) => void;
   clearError: () => void;
   clearAll: () => void;
@@ -90,6 +91,11 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
   isOnline: navigator.onLine,
   error: null,
   syncError: null,
+
+  hasVerifiedSnapshot: (shopId) => {
+    const context = getSyncContext();
+    return !!context && context === snapshotContext && context.shopId === shopId && get().lastSync !== null;
+  },
 
   // Load all data directly from API
   loadAll: async (_shopId: string) => {
