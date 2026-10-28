@@ -102,7 +102,7 @@ describe('exchange replacement selection', () => {
   async function openExchange() {
     vi.mocked(api.searchSaleByReceipt).mockResolvedValue({ data: { ...creditSale, paymentMethod: 'CASH' } });
     vi.mocked(api.getReturnEntitlement).mockResolvedValue({ data: [{ productId: 'product', productName: 'Tea', remainingQuantity: 2, remainingCents: 2300 }] });
-    vi.mocked(api.getProducts).mockResolvedValue({ data: [{ id: 'replacement', name: 'Coffee', sellPrice: 10, quantity: 5, isActive: true }] });
+    vi.mocked(api.getProducts).mockResolvedValue({ data: [{ id: 'replacement', shopId: 'shop', name: 'Coffee', costPrice: 5, sellPrice: 10, quantity: 5, reorderAt: 1, unit: 'each', isActive: true, createdAt: new Date('2026-10-26'), updatedAt: new Date('2026-10-26') }] });
     render(<Returns />);
     fireEvent.click(screen.getByRole('button', { name: 'New Return' }));
     const search = screen.getByPlaceholderText('e.g., RCP-260212-0001 or just 0001');
