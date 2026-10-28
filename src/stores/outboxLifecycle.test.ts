@@ -17,14 +17,39 @@ import { getSyncContext, setSyncContext } from '@/lib/outboxContext';
 import { useAuthStore } from './authStore';
 import { useCartStore } from './cartStore';
 import { useSyncStore, waitForSyncDrain } from './syncStore';
-import type { Product } from '@/types';
+import type { Product, Sale, Shop, User } from '@/types';
+
+function shopFixture(id = 'shop'): Shop {
+  return {
+    id, name: 'Test shop', ownerName: 'Owner', ownerPhone: '+26878422613',
+    phoneCountryCode: 'SZ', countryCode: 'SZ', businessType: 'retail',
+    assistantName: 'Assistant', currency: 'SZL', currencySymbol: 'E',
+    timezone: 'Africa/Mbabane', createdAt: new Date(), updatedAt: new Date(),
+  };
+}
+function userFixture(id = 'cashier', shopId = 'shop'): User {
+  return {
+    id, shopId, name: 'Cashier', phone: '+26878422613', pin: '',
+    role: 'cashier', isActive: true, createdAt: new Date(),
+  };
+}
+function saleResponse(id: string): Awaited<ReturnType<typeof api.createSale>> {
+  const data: Sale = {
+    id, shopId: 'shop', userId: 'cashier', subtotal: 10, discount: 0,
+    totalAmount: 10, paymentMethod: 'cash', items: [], createdAt: new Date(),
+  };
+  return { data };
+}
+function meResponse(): Awaited<ReturnType<typeof api.getMe>> {
+  return { data: { user: userFixture(), shop: shopFixture(), subscription: null } };
+}
 
 function online(value: boolean) {
   Object.defineProperty(navigator, 'onLine', { configurable: true, value });
 }
 async function login(id = 'cashier', shopId = 'shop') {
   vi.mocked(api.staffLogin).mockResolvedValue({ data: {
-    user: { id, shopId } as any, shop: { id: shopId } as any, token: 'token',
+    user: userFixture(id, shopId), shop: shopFixture(shopId), token: 'token',
   } });
   expect(await useAuthStore.getState().staffLogin('phone', 'pin')).toBe(true);
   await waitForSyncDrain();
@@ -54,7 +79,7 @@ describe('durable, session-scoped POS outbox', () => {
     await useAuthStore.getState().logout();
     expect(await db.syncQueue.count()).toBe(1);
     expect(useSyncStore.getState().pendingCount).toBe(0);
-    vi.mocked(api.createSale).mockResolvedValue({ data: { id: 'server-sale' } });
+    vi.mocked(api.createSale).mockResolvedValue(saleResponse('server-sale'));
     online(true);
     await login();
     await useSyncStore.getState().replay();
@@ -109,7 +134,7 @@ describe('durable, session-scoped POS outbox', () => {
     await login();
     await sale();
     await sale();
-    let finish!: (value: any) => void;
+    let finish!: (value: Awaited<ReturnType<typeof api.createSale>>) => void;
     let sent!: () => void;
     const started = new Promise<void>(resolve => { sent = resolve; });
     vi.mocked(api.createSale).mockImplementationOnce(() => { sent(); return new Promise(resolve => { finish = resolve; }); });
@@ -118,7 +143,7 @@ describe('durable, session-scoped POS outbox', () => {
     await started;
     const logout = useAuthStore.getState().logout();
     expect(getSyncContext()).toBeNull();
-    finish(acknowledged ? { data: { id: 'server' } } : { error: NETWORK_ERROR });
+    finish(acknowledged ? saleResponse('server') : { error: NETWORK_ERROR });
     await Promise.all([drain, logout]);
     expect(api.createSale).toHaveBeenCalledTimes(1);
     expect(await db.syncQueue.count()).toBe(acknowledged ? 1 : 2);
@@ -126,7 +151,7 @@ describe('durable, session-scoped POS outbox', () => {
     const serverIds = new Set([vi.mocked(api.createSale).mock.calls[0][0].localId]);
     vi.mocked(api.createSale).mockImplementation(async payload => {
       serverIds.add(payload.localId);
-      return { data: { id: payload.localId } };
+      return saleResponse(payload.localId!);
     });
     await login();
     expect(await db.syncQueue.count()).toBe(0);
@@ -149,7 +174,7 @@ describe('durable, session-scoped POS outbox', () => {
     expect(useSyncStore.getState().pendingCount).toBe(0);
     expect(api.createSale).not.toHaveBeenCalled();
     localStorage.setItem('yebomart_staff_token', 'verified-on-reload');
-    vi.mocked(api.getMe).mockResolvedValue({ data: { user: { id: 'cashier' }, shop: { id: 'shop' }, subscription: null } });
+    vi.mocked(api.getMe).mockResolvedValue(meResponse());
     vi.mocked(api.createSale).mockResolvedValue({ error: NETWORK_ERROR });
     await useAuthStore.getState().loadUser();
     await waitForSyncDrain();
@@ -167,7 +192,7 @@ describe('durable, session-scoped POS outbox', () => {
 
   it('binds an owner queue to the API-accepted YeboID subject, never another owner of the same shop', async () => {
     const token = (sub: string) => `header.${btoa(JSON.stringify({ sub }))}.signature`;
-    vi.mocked(api.exchangeYeboid).mockResolvedValue({ data: { shop: { id: 'shop' }, isNewShop: false } });
+    vi.mocked(api.exchangeYeboid).mockResolvedValue({ data: { shop: shopFixture(), isNewShop: false } });
     await useAuthStore.getState().exchangeYeboidToken(token('owner-one'));
     await sale();
     expect((await db.syncQueue.toArray())[0].context?.principalId).toBe('owner-one');
@@ -178,7 +203,7 @@ describe('durable, session-scoped POS outbox', () => {
     expect(api.createSale).not.toHaveBeenCalled();
     expect(useSyncStore.getState().pendingCount).toBe(0);
     await useAuthStore.getState().logout();
-    vi.mocked(api.createSale).mockResolvedValue({ data: { id: 'server-sale' } });
+    vi.mocked(api.createSale).mockResolvedValue(saleResponse('server-sale'));
     await useAuthStore.getState().exchangeYeboidToken(token('owner-one'));
     await waitForSyncDrain();
     expect(api.createSale).toHaveBeenCalledTimes(1);
@@ -191,7 +216,7 @@ describe('durable, session-scoped POS outbox', () => {
     const item = (await db.syncQueue.toArray())[0];
     await db.syncQueue.update(item.id, { attempts: 5 });
     online(true);
-    vi.mocked(api.createSale).mockResolvedValue({ data: { id: 'server-sale' } });
+    vi.mocked(api.createSale).mockResolvedValue(saleResponse('server-sale'));
     await useSyncStore.getState().replay();
     expect(api.createSale).not.toHaveBeenCalled();
     expect(useSyncStore.getState().pendingCount).toBe(1);
@@ -204,7 +229,7 @@ describe('durable, session-scoped POS outbox', () => {
     await login();
     await sale();
     localStorage.setItem('yebomart_staff_token', 'old-session');
-    let respond!: (value: any) => void;
+    let respond!: (value: Awaited<ReturnType<typeof api.getMe>>) => void;
     let started!: () => void;
     const requested = new Promise<void>(resolve => { started = resolve; });
     vi.mocked(api.getMe).mockImplementationOnce(() => {
@@ -214,7 +239,7 @@ describe('durable, session-scoped POS outbox', () => {
     const load = useAuthStore.getState().loadUser();
     await requested;
     await useAuthStore.getState().logout();
-    respond({ data: { user: { id: 'cashier' }, shop: { id: 'shop' }, subscription: null } });
+    respond(meResponse());
     await load;
     online(true);
     await useSyncStore.getState().replay();
@@ -270,7 +295,7 @@ it.each(['yebomart_staff_token', 'yebomart.accessToken'])(
     await login();
     await sale();
     localStorage.setItem('yebomart_staff_token', 'token-A');
-    let respond!: (value: any) => void;
+    let respond!: (value: Awaited<ReturnType<typeof api.getMe>>) => void;
     let started!: () => void;
     const requested = new Promise<void>(resolve => { started = resolve; });
     vi.mocked(api.getMe).mockImplementationOnce(() => {
@@ -281,7 +306,7 @@ it.each(['yebomart_staff_token', 'yebomart.accessToken'])(
     await requested;
     expect(api.getMe).toHaveBeenCalledWith('token-A');
     localStorage.setItem(key, 'token-B');
-    respond({ data: { user: { id: 'cashier' }, shop: { id: 'shop' } } });
+    respond(meResponse());
     await load;
     online(true);
     await useSyncStore.getState().refreshPending();
