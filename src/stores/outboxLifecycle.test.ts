@@ -48,9 +48,11 @@ function online(value: boolean) {
   Object.defineProperty(navigator, 'onLine', { configurable: true, value });
 }
 async function login(id = 'cashier', shopId = 'shop') {
-  vi.mocked(api.staffLogin).mockResolvedValue({ data: {
-    user: userFixture(id, shopId), shop: shopFixture(shopId), token: 'token',
-  } });
+  vi.mocked(api.staffLogin).mockImplementation(async () => {
+    localStorage.removeItem('yebomart.accessToken');
+    localStorage.setItem('yebomart_staff_token', 'token');
+    return { data: { user: userFixture(id, shopId), shop: shopFixture(shopId), token: 'token' } };
+  });
   expect(await useAuthStore.getState().staffLogin('phone', 'pin')).toBe(true);
   await waitForSyncDrain();
   await useSyncStore.getState().refreshPending();
@@ -193,17 +195,20 @@ describe('durable, session-scoped POS outbox', () => {
   it('binds an owner queue to the API-accepted YeboID subject, never another owner of the same shop', async () => {
     const token = (sub: string) => `header.${btoa(JSON.stringify({ sub }))}.signature`;
     vi.mocked(api.exchangeYeboid).mockResolvedValue({ data: { shop: shopFixture(), isNewShop: false } });
+    localStorage.setItem('yebomart.accessToken', token('owner-one'));
     await useAuthStore.getState().exchangeYeboidToken(token('owner-one'));
     await sale();
     expect((await db.syncQueue.toArray())[0].context?.principalId).toBe('owner-one');
     await useAuthStore.getState().logout();
     online(true);
+    localStorage.setItem('yebomart.accessToken', token('owner-two'));
     await useAuthStore.getState().exchangeYeboidToken(token('owner-two'));
     await waitForSyncDrain();
     expect(api.createSale).not.toHaveBeenCalled();
     expect(useSyncStore.getState().pendingCount).toBe(0);
     await useAuthStore.getState().logout();
     vi.mocked(api.createSale).mockResolvedValue(saleResponse('server-sale'));
+    localStorage.setItem('yebomart.accessToken', token('owner-one'));
     await useAuthStore.getState().exchangeYeboidToken(token('owner-one'));
     await waitForSyncDrain();
     expect(api.createSale).toHaveBeenCalledTimes(1);
@@ -344,3 +349,64 @@ it('rejects an owner token returned after another tab replaces shared credential
   expect(localStorage.getItem('yebomart.accessToken')).toBe('owner-B');
   expect(await db.syncQueue.count()).toBe(1);
 });
+
+
+it.each(['yebomart_staff_token', 'yebomart.accessToken'])(
+  'rejects delayed owner exchange after %s changes before the storage event', async key => {
+    const token = `header.${btoa(JSON.stringify({ sub: 'owner-A' }))}.signature`;
+    vi.mocked(api.exchangeYeboid).mockResolvedValue({ data: { shop: shopFixture(), isNewShop: false } });
+    localStorage.setItem('yebomart.accessToken', token);
+    await useAuthStore.getState().exchangeYeboidToken(token);
+    await sale();
+    await useAuthStore.getState().logout();
+    localStorage.setItem('yebomart.accessToken', token);
+    let respond!: (value: Awaited<ReturnType<typeof api.exchangeYeboid>>) => void;
+    let started!: () => void;
+    const requested = new Promise<void>(resolve => { started = resolve; });
+    vi.mocked(api.exchangeYeboid).mockImplementationOnce(() => {
+      started();
+      return new Promise(resolve => { respond = resolve; });
+    });
+    const attempt = useAuthStore.getState().exchangeYeboidToken(token);
+    await requested;
+    localStorage.setItem(key, 'account-B');
+    respond({ data: { shop: shopFixture(), isNewShop: false } });
+    expect((await attempt).success).toBe(false);
+    online(true);
+    await useSyncStore.getState().refreshPending();
+    await useSyncStore.getState().replay();
+    expect(getSyncContext()).toBeNull();
+    expect(useAuthStore.getState().isAuthenticated).toBe(false);
+    expect(useSyncStore.getState().pendingCount).toBe(0);
+    expect(api.createSale).not.toHaveBeenCalled();
+    expect(await db.syncQueue.count()).toBe(1);
+    expect(localStorage.getItem(key)).toBe('account-B');
+  },
+);
+
+
+it.each(['yebomart_staff_token', 'yebomart.accessToken'])(
+  'rejects an owner callback already superseded by %s before exchange starts', async key => {
+    const token = `header.${btoa(JSON.stringify({ sub: 'owner-A' }))}.signature`;
+    localStorage.setItem('yebomart.accessToken', token);
+    localStorage.setItem(key, 'account-B');
+    expect((await useAuthStore.getState().exchangeYeboidToken(token)).success).toBe(false);
+    expect(api.exchangeYeboid).not.toHaveBeenCalled();
+    expect(getSyncContext()).toBeNull();
+    expect(localStorage.getItem(key)).toBe('account-B');
+  },
+);
+
+
+it.each(['yebomart_staff_token', 'yebomart.accessToken'])(
+  'rejects staff credentials replaced at result acceptance by %s', async key => {
+    vi.mocked(api.staffLogin).mockImplementationOnce(async () => {
+      localStorage.setItem('yebomart_staff_token', 'token-A');
+      localStorage.setItem(key, 'token-B');
+      return { data: { user: userFixture(), shop: shopFixture(), token: 'token-A' } };
+    });
+    expect(await useAuthStore.getState().staffLogin('phone', 'pin')).toBe(false);
+    expect(getSyncContext()).toBeNull();
+    expect(localStorage.getItem(key)).toBe('token-B');
+  },
+);

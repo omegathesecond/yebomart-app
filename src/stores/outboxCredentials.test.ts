@@ -4,6 +4,8 @@ import { db } from '@/lib/db';
 import { setSyncContext } from '@/lib/outboxContext';
 import { useSyncStore, waitForSyncDrain } from './syncStore';
 import * as yeboid from '@/lib/yeboid';
+import { useAuthStore } from './authStore';
+import { getSyncContext } from '@/lib/outboxContext';
 
 beforeEach(async () => {
   await waitForSyncDrain();
@@ -60,3 +62,31 @@ it.each([200, 401])('credential changes during an HTTP %s replay cannot substitu
   expect(useSyncStore.getState().pendingCount).toBe(0);
   expect(localStorage.getItem('yebomart_staff_token')).toBe('token-B');
 });
+
+
+it.each(['yebomart_staff_token', 'yebomart.accessToken'])(
+  'late staff login cannot replace another tab credentials after %s changes', async key => {
+    let respond!: (value: Response) => void;
+    let started!: () => void;
+    const requested = new Promise<void>(resolve => { started = resolve; });
+    vi.stubGlobal('fetch', vi.fn(() => {
+      started();
+      return new Promise<Response>(resolve => { respond = resolve; });
+    }));
+    const attempt = useAuthStore.getState().staffLogin('+26878422613', '1234');
+    await requested;
+    localStorage.setItem(key, 'account-B');
+    respond(new Response(JSON.stringify({ data: {
+      accessToken: 'late-A', shop: { id: 'shop-A' }, user: { id: 'A' },
+    } }), { status: 200 }));
+    expect(await attempt).toBe(false);
+    await useSyncStore.getState().refreshPending();
+    await useSyncStore.getState().replay();
+    expect(getSyncContext()).toBeNull();
+    expect(useSyncStore.getState().pendingCount).toBe(0);
+    expect(await db.syncQueue.count()).toBe(1);
+    expect(localStorage.getItem(key)).toBe('account-B');
+    expect(localStorage.getItem('yebomart_staff_token')).not.toBe('late-A');
+    expect(fetch).toHaveBeenCalledTimes(1);
+  },
+);

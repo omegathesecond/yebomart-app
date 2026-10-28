@@ -21,6 +21,10 @@ function syncShopLocale(shop: Shop | null) {
 let storeInitialized = false;
 let authRevision = 0;
 let loggingOut: Promise<void> | null = null;
+function currentAuthAttempt(revision: number) {
+  const credentials = credentialSnapshot();
+  return () => revision === authRevision && credentials === credentialSnapshot();
+}
 function resumeSync() {
   void useSyncStore.getState().refreshPending();
   void useSyncStore.getState().replay();
@@ -82,10 +86,17 @@ export const useAuthStore = create<AuthState>()(
 
         exchangeYeboidToken: async (accessToken, bootstrap) => {
           await loggingOut;
+          // The callback stored this token before handing it to us. A newer
+          // sign-in in another tab must not be paired with this old identity.
+          if (localStorage.getItem('yebomart_staff_token') ||
+            localStorage.getItem('yebomart.accessToken') !== accessToken) {
+            return { success: false, error: 'Sign-in was cancelled' };
+          }
           const revision = ++authRevision;
+          const isCurrent = currentAuthAttempt(revision);
           setSyncContext(null);
           const { data, error } = await api.exchangeYeboid(accessToken, bootstrap);
-          if (revision !== authRevision) return { success: false, error: 'Sign-in was cancelled' };
+          if (!isCurrent()) return { success: false, error: 'Sign-in was cancelled' };
           if (error || !data) {
             return { success: false, error: error ?? 'Sign-in failed' };
           }
@@ -106,10 +117,13 @@ export const useAuthStore = create<AuthState>()(
           try {
             await loggingOut;
             const revision = ++authRevision;
+            const isCurrent = currentAuthAttempt(revision);
             setSyncContext(null);
-            const { data, error } = await api.staffLogin(phone, pin, () => revision === authRevision);
+            const { data, error } = await api.staffLogin(phone, pin, isCurrent);
             if (revision !== authRevision) return false;
             if (error || !data) return false;
+            if (localStorage.getItem('yebomart_staff_token') !== data.token ||
+              localStorage.getItem('yebomart.accessToken')) return false;
 
             setSyncContext({ principalId: data.user.id, mode: 'staff', shopId: data.shop.id }, data.token);
             set({
@@ -163,8 +177,7 @@ export const useAuthStore = create<AuthState>()(
                 isAuthenticated: false, authMode: null, isLoading: false });
               return;
             }
-            const credentials = credentialSnapshot();
-            isCurrent = () => revision === authRevision && credentials === credentialSnapshot();
+            isCurrent = currentAuthAttempt(revision);
             const hasToken = !!staffToken || !!yeboidToken;
 
             if (!hasToken) {
