@@ -6,11 +6,12 @@ import { render, screen, waitFor, fireEvent, within } from '@testing-library/rea
 vi.mock('@/api/client', () => ({
   api: {
     getExpenseSummary: vi.fn(),
+    getCurrentCashSession: vi.fn(),
     uploadImage: vi.fn(),
   },
 }));
 
-const mockAuthState = { user: { role: 'owner' }, authMode: 'owner' };
+const mockAuthState = { user: { role: 'owner' }, authMode: 'owner', shop: { id: 'shop-1' } };
 vi.mock('@/stores/authStore', () => ({
   useAuthStore: () => mockAuthState,
 }));
@@ -40,6 +41,8 @@ const RECEIPT = 'https://cdn.yebomart.com/expenses/receipt-1.jpg';
 
 beforeEach(() => {
   vi.clearAllMocks();
+  sessionStorage.clear();
+  vi.mocked(api.getCurrentCashSession).mockResolvedValue({ data: null });
   mockExpenses = [];
   loadExpenses.mockResolvedValue(undefined);
   addExpense.mockResolvedValue('new-expense-id');
@@ -63,6 +66,8 @@ async function renderAndOpenCreate() {
   const view = render(<Expenses />);
   await waitFor(() => expect(getExpenseSummary).toHaveBeenCalled());
   fireEvent.click(screen.getByRole('button', { name: /record expense/i }));
+  await screen.findByText('Choose funding source');
+  fireEvent.change(screen.getByRole('combobox', { name: /paid from/i }), { target: { value: 'OUTSIDE_TILL' } });
   return view;
 }
 
@@ -265,4 +270,136 @@ describe('Expenses — receipt visible in the list', () => {
 
     expect(screen.queryByTitle('View receipt')).not.toBeInTheDocument();
   });
+});
+
+describe('Expense funding and safe retries', () => {
+  it('requires an explicit funding choice and blocks till payout without an open till', async () => {
+    await renderAndOpenCreate();
+    setAmount('50');
+    fireEvent.change(screen.getByRole('combobox', { name: /paid from/i }), { target: { value: '' } });
+    fireEvent.click(screen.getByRole('button', { name: /^record$/i }));
+    expect(await screen.findByText('Choose how this expense was paid')).toBeInTheDocument();
+    expect(addExpense).not.toHaveBeenCalled();
+    fireEvent.change(screen.getByRole('combobox', { name: /paid from/i }), { target: { value: 'TILL_CASH' } });
+    fireEvent.click(screen.getByRole('button', { name: /^record$/i }));
+    await waitFor(() => expect(screen.getAllByText(/Open a till before paying/).length).toBeGreaterThan(0));
+    expect(addExpense).not.toHaveBeenCalled();
+  });
+
+  it('submits outside-till expense with no drawer membership and a retry key', async () => {
+    await renderAndOpenCreate(); setAmount('50');
+    fireEvent.click(screen.getByRole('button', { name: /^record$/i }));
+    await waitFor(() => expect(addExpense).toHaveBeenCalledOnce());
+    expect(addExpense.mock.calls[0][0]).toMatchObject({ amount: 50, fundingSource: 'OUTSIDE_TILL', submissionKey: expect.any(String) });
+    expect(addExpense.mock.calls[0][0].cashSessionId).toBeUndefined();
+  });
+
+  it('surfaces till lookup failures without submitting', async () => {
+    vi.mocked(api.getCurrentCashSession).mockResolvedValue({ error: 'Till unavailable' });
+    await renderAndOpenCreate(); setAmount('50');
+    fireEvent.change(screen.getByRole('combobox', { name: /paid from/i }), { target: { value: 'TILL_CASH' } });
+    expect(await screen.findByRole('alert')).toHaveTextContent('Till unavailable');
+    fireEvent.click(screen.getByRole('button', { name: /^record$/i }));
+    expect(addExpense).not.toHaveBeenCalled();
+  });
+
+  it.each(['Response lost', 'Till is closed; expense payout was not recorded'])('keeps ambiguous retries pinned after remount and close without an explicit rejection code: %s', async (message) => {
+    vi.mocked(api.getCurrentCashSession).mockResolvedValue({ data: { id: 'till-1', status: 'OPEN' } } as never);
+    addExpense.mockRejectedValueOnce(new Error(message));
+    const view = await renderAndOpenCreate(); setAmount('50');
+    await waitFor(() => expect(api.getCurrentCashSession).toHaveBeenCalled());
+    fireEvent.change(screen.getByRole('combobox', { name: /paid from/i }), { target: { value: 'TILL_CASH' } });
+    fireEvent.click(screen.getByRole('button', { name: /^record$/i }));
+    await screen.findByText(message);
+    const original = addExpense.mock.calls[0][0];
+    expect(original).toMatchObject({ fundingSource: 'TILL_CASH', amount: 50, cashSessionId: 'till-1' });
+    view.unmount();
+    vi.mocked(api.getCurrentCashSession).mockResolvedValue({ data: null });
+    render(<Expenses />);
+    fireEvent.click(await screen.findByRole('button', { name: /record expense/i }));
+    await screen.findByText(/Unconfirmed expense/);
+    setAmount('60');
+    fireEvent.click(screen.getByRole('button', { name: /^record$/i }));
+    await screen.findByText('Retry the unchanged expense before recording another entry.');
+    expect(addExpense).toHaveBeenCalledOnce();
+    setAmount('50');
+    fireEvent.click(screen.getByRole('button', { name: /^record$/i }));
+    await waitFor(() => expect(addExpense).toHaveBeenCalledTimes(2));
+    expect(addExpense.mock.calls[1][0]).toEqual(original);
+    await waitFor(() => expect(sessionStorage.getItem('expense-attempt:shop-1')).toBeNull());
+  });
+
+  it('hides edit/delete controls for till payouts and labels historical sources unknown', async () => {
+    mockExpenses = [{ id: 'payout', category: 'transport', amount: 50, date: new Date(), fundingSource: 'TILL_CASH', cashSessionId: 'till' },
+      { id: 'old', category: 'rent', amount: 40, date: new Date() }];
+    render(<Expenses />);
+    await screen.findByText('Till cash · payout cannot be edited or deleted');
+    expect(screen.queryByRole('button', { name: /edit transport expense/i })).toBeNull();
+    expect(screen.getByText('Funding source unknown')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /edit rent expense/i })).toBeInTheDocument();
+  });
+});
+
+it('pins the till on immediate retry and ignores repeated clicks while the payout is in flight', async () => {
+  vi.mocked(api.getCurrentCashSession).mockResolvedValue({ data: { id: 'till-1', status: 'OPEN' } } as never);
+  let reject!: (error: Error) => void;
+  addExpense.mockReturnValueOnce(new Promise((_, no) => { reject = no; }));
+  await renderAndOpenCreate(); setAmount('50');
+  fireEvent.change(screen.getByRole('combobox', { name: /paid from/i }), { target: { value: 'TILL_CASH' } });
+  const submit = screen.getByRole('button', { name: /^record$/i });
+  fireEvent.click(submit); fireEvent.click(submit);
+  expect(addExpense).toHaveBeenCalledOnce();
+  const original = addExpense.mock.calls[0][0];
+  reject(new Error('Connection interrupted'));
+  await screen.findByText('Connection interrupted');
+  fireEvent.click(screen.getByRole('button', { name: /^record$/i }));
+  await waitFor(() => expect(addExpense).toHaveBeenCalledTimes(2));
+  expect(addExpense.mock.calls[1][0]).toEqual(original);
+});
+
+for (const fundingSource of ['OUTSIDE_TILL', 'TILL_CASH']) {
+  it(`recovers after a confirmed close-wins rejection and remount for ${fundingSource}`, async () => {
+    vi.mocked(api.getCurrentCashSession).mockResolvedValue({ data: { id: 'closed-till', status: 'OPEN' } } as never);
+    addExpense.mockRejectedValueOnce(Object.assign(new Error('Till is closed; expense payout was not recorded'), {
+      code: 'EXPENSE_PAYOUT_NOT_RECORDED',
+    }));
+    const view = await renderAndOpenCreate();
+    setAmount('50');
+    fireEvent.change(screen.getByRole('combobox', { name: /paid from/i }), { target: { value: 'TILL_CASH' } });
+    fireEvent.click(screen.getByRole('button', { name: /^record$/i }));
+    await screen.findByText('Till is closed; expense payout was not recorded');
+    const rejected = addExpense.mock.calls[0][0];
+    expect(rejected.cashSessionId).toBe('closed-till');
+    expect(sessionStorage.getItem('expense-attempt:shop-1')).toBeNull();
+    expect(screen.queryByText(/Unconfirmed expense/)).toBeNull();
+    // The stale lookup must not be reused after a definite rejection.
+    fireEvent.click(screen.getByRole('button', { name: /^record$/i }));
+    expect(addExpense).toHaveBeenCalledOnce();
+    view.unmount();
+    vi.mocked(api.getCurrentCashSession).mockResolvedValue({ data: { id: 'new-till', status: 'OPEN' } } as never);
+    await renderAndOpenCreate();
+    setAmount('50');
+    fireEvent.change(screen.getByRole('combobox', { name: /paid from/i }), { target: { value: fundingSource } });
+    fireEvent.click(screen.getByRole('button', { name: /^record$/i }));
+    await waitFor(() => expect(addExpense).toHaveBeenCalledTimes(2));
+    const accepted = addExpense.mock.calls[1][0];
+    expect(accepted.submissionKey).not.toBe(rejected.submissionKey);
+    expect(accepted.cashSessionId).toBe(fundingSource === 'TILL_CASH' ? 'new-till' : undefined);
+    expect(accepted.fundingSource).toBe(fundingSource);
+    await waitFor(() => expect(sessionStorage.getItem('expense-attempt:shop-1')).toBeNull());
+  });
+}
+
+it('allows outside-till recovery immediately after confirmed non-creation', async () => {
+  vi.mocked(api.getCurrentCashSession).mockResolvedValue({ data: { id: 'old-till', status: 'OPEN' } } as never);
+  addExpense.mockRejectedValueOnce(Object.assign(new Error('Payout rejected'), { code: 'EXPENSE_PAYOUT_NOT_RECORDED' }));
+  await renderAndOpenCreate(); setAmount('50');
+  fireEvent.change(screen.getByRole('combobox', { name: /paid from/i }), { target: { value: 'TILL_CASH' } });
+  fireEvent.click(screen.getByRole('button', { name: /^record$/i }));
+  await screen.findByText('Payout rejected');
+  fireEvent.change(screen.getByRole('combobox', { name: /paid from/i }), { target: { value: 'OUTSIDE_TILL' } });
+  fireEvent.click(screen.getByRole('button', { name: /^record$/i }));
+  await waitFor(() => expect(addExpense).toHaveBeenCalledTimes(2));
+  expect(addExpense.mock.calls[1][0]).toMatchObject({ fundingSource: 'OUTSIDE_TILL', amount: 50 });
+  expect(addExpense.mock.calls[1][0].cashSessionId).toBeUndefined();
 });

@@ -5,7 +5,8 @@ import { CashUp } from './CashUp';
 vi.mock('@/api/client', () => ({ default: { getCurrentCashSession: vi.fn(), getCashSessionHistory: vi.fn(), getCashSessionZReport: vi.fn() } }));
 vi.mock('@/stores/authStore', () => ({ useAuthStore: () => ({ shop: { name: 'Test shop', currency: 'SZL' } }) }));
 const session: CashSession = { id: 'old-shift', shopId: 'shop', userId: 'cashier', user: { id: 'cashier', name: 'Jane' }, status: 'CLOSED', openedAt: '2026-08-01T08:00:00Z', closedAt: '2026-08-01T17:00:00Z', openingFloat: 100, expectedCash: 120, countedCash: 115, variance: -5, notes: 'Saved note' };
-const report: CashSessionZReport = { cashCollectionsTotal: null, cashCollectionsCount: null, session: { ...session, cashier: session.user }, cashRefundsTotal: 0, cashRefundsCount: 0, transactionCount: 1, gross: 20, totalDiscount: 0, net: 20, tax: 0, totalAmount: 20, byPaymentMethod: [] };
+const report: CashSessionZReport = {
+  expensePayoutsTotal: 50, expensePayoutsCount: 1, cashCollectionsTotal: null, cashCollectionsCount: null, session: { ...session, cashier: session.user }, cashRefundsTotal: 0, cashRefundsCount: 0, transactionCount: 1, gross: 20, totalDiscount: 0, net: 20, tax: 0, totalAmount: 20, byPaymentMethod: [] };
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(api.getCurrentCashSession).mockResolvedValue({ data: null });
@@ -71,4 +72,24 @@ for (const cashCollectionsTotal of [0, 100, null]) it(`shows saved collections $
   expect(labels).toHaveLength(2);
   for (const label of labels) expect(label.parentElement).toHaveTextContent(cashCollectionsTotal == null ? 'Unknown attribution' : cashCollectionsTotal.toFixed(2));
   expect(document.querySelector('#zreport-print')?.textContent).toContain(cashCollectionsTotal == null ? '250.00' : (250 + cashCollectionsTotal).toFixed(2));
+});
+
+for (const expensePayoutsTotal of [0, 50, null]) it(`shows saved expense payout subtotal ${expensePayoutsTotal} on screen and print`, async () => {
+  vi.mocked(api.getCashSessionZReport).mockResolvedValue({ data: { ...report, expensePayoutsTotal, expensePayoutsCount: expensePayoutsTotal === null ? null : Number(expensePayoutsTotal > 0) } });
+  render(<CashUp />);
+  fireEvent.click(await screen.findByText('View Z-report'));
+  await screen.findByText('Print historical Z-report');
+  const rows = screen.getAllByText(/^Till expenses paid/);
+  expect(rows).toHaveLength(2);
+  for (const row of rows) expect(row.parentElement).toHaveTextContent(expensePayoutsTotal === null ? 'Unknown' : expensePayoutsTotal.toFixed(2));
+});
+
+it('shows current till payouts separately from sales and uses the server expected drawer balance', async () => {
+  vi.mocked(api.getCurrentCashSession).mockResolvedValue({ data: { ...session, status: 'OPEN', closedAt: null, openingFloat: 200,
+    expectedCash: 150, expensePayoutsTotal: 50, expensePayoutsCount: 1, cashSalesTotal: 0 } });
+  render(<CashUp />);
+  const label = await screen.findByText('Till expenses paid');
+  expect(label.parentElement).toHaveTextContent('50.00');
+  expect(screen.getByText('Expected in drawer').parentElement).toHaveTextContent('150.00');
+  expect(screen.getByText('Cash sales').parentElement).toHaveTextContent('0.00');
 });

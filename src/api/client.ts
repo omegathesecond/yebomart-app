@@ -86,6 +86,8 @@ interface ApiResponse<T> {
 
 // ── Cash session shapes (mirror api/src/services/cashSession.service.ts) ──
 export interface CashSession {
+  expensePayoutsTotal?: number | null;
+  expensePayoutsCount?: number | null;
   id: string;
   shopId: string;
   userId: string | null;
@@ -108,6 +110,8 @@ export interface CashSession {
 }
 
 export interface CashSessionZReport {
+  expensePayoutsTotal: number | null;
+  expensePayoutsCount: number | null;
   cashCollectionsTotal: number | null;
   cashCollectionsCount: number | null;
   cashRefundsTotal: number;
@@ -402,6 +406,9 @@ export interface WeeklyReport {
 
 /** Raw expense as returned by yebomart-api (UPPERCASE category, ISO dates). */
 interface ApiExpense {
+  fundingSource: Expense['fundingSource'];
+  cashSessionId: string | null;
+  submissionKey?: string;
   id: string;
   shopId: string;
   userId?: string | null;
@@ -467,6 +474,9 @@ export interface TaxSettings {
 /** Map the API's expense shape into the app's domain `Expense` (lowercase category, Date objects). */
 function mapApiExpense(e: ApiExpense): Expense {
   return {
+    fundingSource: e.fundingSource,
+    cashSessionId: e.cashSessionId,
+    submissionKey: e.submissionKey,
     id: e.id,
     shopId: e.shopId,
     category: (e.category?.toLowerCase() || 'other') as ExpenseCategory,
@@ -1306,17 +1316,20 @@ class ApiClient {
 
   /** POST /api/expenses — manager-only on the API (managerAuth). */
   async createExpense(data: {
+    fundingSource: 'OUTSIDE_TILL' | 'TILL_CASH';
+    cashSessionId?: string;
+    submissionKey: string;
     category: ExpenseCategory | string;
     amount: number;
     description?: string;
-    date?: string;
+    date: string;
     receiptUrl?: string;
   }): Promise<ApiResponse<Expense>> {
     const res = await this.request<ApiExpense>('/api/expenses', {
       method: 'POST',
       body: JSON.stringify({ ...data, category: String(data.category).toUpperCase() }),
     });
-    if (res.error || !res.data) return { error: res.error ?? 'Failed to record expense', details: res.details };
+    if (res.error || !res.data) return { error: res.error ?? 'Failed to record expense', details: res.details, code: res.code, status: res.status };
     return { data: mapApiExpense(res.data), message: res.message };
   }
 
