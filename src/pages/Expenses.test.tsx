@@ -356,3 +356,23 @@ it('pins the till on immediate retry and ignores repeated clicks while the payou
   await waitFor(() => expect(addExpense).toHaveBeenCalledTimes(2));
   expect(addExpense.mock.calls[1][0]).toEqual(original);
 });
+
+it.each(['OUTSIDE_TILL', 'TILL_CASH'])('recovers from close-wins rejection across remount for %s', async fundingSource => {
+  vi.mocked(api.getCurrentCashSession).mockResolvedValue({ data: { id: 'closed-till', status: 'OPEN' } } as never);
+  addExpense.mockRejectedValueOnce(Object.assign(new Error('Till is closed; expense payout was not recorded'), { code: 'EXPENSE_TILL_NOT_RECORDED' }));
+  const view = await renderAndOpenCreate(); setAmount('50');
+  fireEvent.change(screen.getByRole('combobox', { name: /paid from/i }), { target: { value: 'TILL_CASH' } });
+  fireEvent.click(screen.getByRole('button', { name: /^record$/i }));
+  await screen.findByText('Till is closed; expense payout was not recorded');
+  expect(sessionStorage.getItem('expense-attempt:shop-1')).toBeNull();
+  const rejectedKey = addExpense.mock.calls[0][0].submissionKey;
+  view.unmount();
+  vi.mocked(api.getCurrentCashSession).mockResolvedValue({ data: { id: 'new-till', status: 'OPEN' } } as never);
+  await renderAndOpenCreate(); setAmount('50');
+  fireEvent.change(screen.getByRole('combobox', { name: /paid from/i }), { target: { value: fundingSource } });
+  fireEvent.click(screen.getByRole('button', { name: /^record$/i }));
+  await waitFor(() => expect(addExpense).toHaveBeenCalledTimes(2));
+  expect(addExpense.mock.calls[1][0]).toMatchObject({ fundingSource, amount: 50 });
+  expect(addExpense.mock.calls[1][0].submissionKey).not.toBe(rejectedKey);
+  expect(addExpense.mock.calls[1][0].cashSessionId).toBe(fundingSource === 'TILL_CASH' ? 'new-till' : undefined);
+});

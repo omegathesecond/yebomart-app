@@ -249,6 +249,14 @@ export function Expenses() {
       const { data } = await api.getExpenseSummary();
       if (data) setSummary(data);
     } catch (e: unknown) {
+      // Only this transaction rejection proves the retry key created no expense.
+      // Network errors, generic 4xx/5xx and post-create refresh errors remain pinned.
+      if (!editingId && e instanceof Error && 'code' in e && e.code === 'EXPENSE_TILL_NOT_RECORDED') {
+        sessionStorage.removeItem(retryStorageKey);
+        attempt.current = null;
+        setTillId('');
+        setTillError('Reopen the expense form to select the current till.');
+      }
       showToast(
         getErrorMessage(e) || (editingId ? 'Failed to update expense' : 'Failed to record expense'),
         'error',
