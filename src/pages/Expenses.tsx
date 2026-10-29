@@ -44,6 +44,8 @@ function todayInput(): string {
 }
 
 const emptyForm = () => ({
+  fundingSource: '' as '' | 'OUTSIDE_TILL' | 'TILL_CASH',
+  cashSessionId: '',
   category: 'supplies' as ExpenseCategory,
   amount: '',
   description: '',
@@ -54,7 +56,7 @@ const emptyForm = () => ({
 
 export function Expenses() {
   const { toast, showToast, dismissToast } = useToast();
-  const { user, authMode } = useAuthStore();
+  const { user, authMode, shop } = useAuthStore();
   const { expenses, loadExpenses, addExpense, updateExpense, deleteExpense } =
     useInventoryStore();
 
@@ -78,6 +80,11 @@ export function Expenses() {
   const [receiptError, setReceiptError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const attempt = useRef<{ key: string; payload: string } | null>(null);
+  const savingRef = useRef(false);
+  const retryStorageKey = `expense-attempt:${shop?.id}`;
+  const [tillId, setTillId] = useState('');
+  const [tillError, setTillError] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const refresh = async () => {
@@ -107,15 +114,38 @@ export function Expenses() {
     setReceiptError('');
   };
 
-  const openCreate = () => {
-    setFormData(emptyForm());
-    setEditingId(null);
-    resetReceiptState();
-    setShowFormModal(true);
+  const openCreate = async () => {
+    try {
+      const saved = sessionStorage.getItem(retryStorageKey);
+      if (saved) {
+        const previous = JSON.parse(saved) as { key: string; payload: string };
+        const payload = JSON.parse(previous.payload);
+        if (!previous.key || !['OUTSIDE_TILL', 'TILL_CASH'].includes(payload.fundingSource) || !payload.date || !(payload.amount > 0)) {
+          throw new Error('Saved expense retry is invalid. Resolve its outcome before recording another expense.');
+        }
+        attempt.current = previous;
+        setFormData({ ...payload, amount: String(payload.amount), date: toDateInput(new Date(payload.date)), description: payload.description || '', receiptUrl: payload.receiptUrl || '', cashSessionId: payload.cashSessionId || '' });
+      } else {
+        attempt.current = null;
+        setFormData(emptyForm());
+      }
+      setEditingId(null);
+      resetReceiptState();
+      setShowFormModal(true);
+      setTillError('');
+      setTillId('');
+      const result = await api.getCurrentCashSession();
+      if (result.error) setTillError(result.error);
+      else if (result.data?.status === 'OPEN') setTillId(result.data.id);
+      else setTillError('Open a till before paying an expense from it.');
+    } catch (error) { showToast(getErrorMessage(error) || 'Unable to load expense retry', 'error'); }
   };
 
   const openEdit = (expense: Expense) => {
+    attempt.current = null;
     setFormData({
+      fundingSource: expense.fundingSource ?? '',
+      cashSessionId: expense.cashSessionId ?? '',
       category: expense.category,
       amount: String(expense.amount),
       description: expense.description || '',
@@ -168,11 +198,17 @@ export function Expenses() {
   const displayReceiptUrl = receiptPreviewUrl || formData.receiptUrl;
 
   const handleSave = async () => {
+    if (savingRef.current) return;
     const amount = parseFloat(formData.amount);
     if (!amount || amount <= 0) {
       showToast('Enter a valid amount', 'error');
       return;
     }
+    if (!editingId && !formData.fundingSource) { showToast('Choose how this expense was paid', 'error'); return; }
+    if (!editingId && !attempt.current && formData.fundingSource === 'TILL_CASH' && !tillId) {
+      showToast(tillError || 'Open a till before paying an expense from it.', 'error'); return;
+    }
+    savingRef.current = true;
     setSaving(true);
     try {
       if (editingId) {
@@ -187,8 +223,10 @@ export function Expenses() {
         });
         showToast('Expense updated');
       } else {
-        await addExpense({
-          shopId: '', // server derives shopId from the token; ignored by the client
+        const payload = {
+          shopId: shop?.id || '',
+          fundingSource: formData.fundingSource as 'OUTSIDE_TILL' | 'TILL_CASH',
+          ...(formData.fundingSource === 'TILL_CASH' ? { cashSessionId: attempt.current ? JSON.parse(attempt.current.payload).cashSessionId as string : tillId } : {}),
           category: formData.category,
           amount,
           description: formData.description.trim() || undefined,
@@ -196,7 +234,14 @@ export function Expenses() {
           // Omitted when unset — the API's create schema rejects an
           // empty-string uri.
           receiptUrl: formData.receiptUrl || undefined,
-        });
+        };
+        const serialized = JSON.stringify(payload);
+        if (attempt.current && attempt.current.payload !== serialized) throw new Error('Retry the unchanged expense before recording another entry.');
+        if (!attempt.current) attempt.current = { key: crypto.randomUUID(), payload: serialized };
+        sessionStorage.setItem(retryStorageKey, JSON.stringify(attempt.current));
+        await addExpense({ ...payload, submissionKey: attempt.current.key });
+        sessionStorage.removeItem(retryStorageKey);
+        attempt.current = null;
         showToast('Expense recorded');
       }
       closeForm();
@@ -209,6 +254,7 @@ export function Expenses() {
         'error',
       );
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };
@@ -337,6 +383,7 @@ export function Expenses() {
                       </Badge>
                       <span className="text-xs text-mist">{formatDate(e.date)}</span>
                     </div>
+                    <p className="text-sm text-mute">{e.fundingSource === 'TILL_CASH' ? 'Till cash · payout cannot be edited or deleted' : e.fundingSource === 'OUTSIDE_TILL' ? 'Paid outside till' : 'Funding source unknown'}</p>
                     {e.description && (
                       <p className="text-sm text-body mt-1 truncate">
                         {e.description}
@@ -348,7 +395,7 @@ export function Expenses() {
                   <span className="m text-lg font-semibold text-brick">
                     {formatCurrency(e.amount)}
                   </span>
-                  {canManage && (
+                  {canManage && e.fundingSource !== 'TILL_CASH' && (
                     <button
                       onClick={() => openEdit(e)}
                       className="p-1.5 rounded-sharp bg-shade hover:bg-shade text-body hover:text-ink transition-colors"
@@ -358,7 +405,7 @@ export function Expenses() {
                       <PencilSquareIcon className="w-4 h-4" />
                     </button>
                   )}
-                  {canManage && (
+                  {canManage && e.fundingSource !== 'TILL_CASH' && (
                     <button
                       onClick={() => handleDelete(e.id)}
                       disabled={deletingId === e.id}
@@ -386,6 +433,14 @@ export function Expenses() {
         title={editingId ? 'Edit Expense' : 'Record Expense'}
       >
         <div className="space-y-4">
+          {!editingId && <>
+            <Select aria-label="Paid from" label="Paid from" value={formData.fundingSource}
+              onChange={e => setFormData({ ...formData, fundingSource: e.target.value as typeof formData.fundingSource })}
+              options={[{ value: '', label: 'Choose funding source' }, { value: 'OUTSIDE_TILL', label: 'Outside till' }, { value: 'TILL_CASH', label: 'Till cash' }]} />
+            <p className="text-sm text-mute">Till cash reduces the open drawer balance. Till payouts cannot be edited or deleted.</p>
+            {tillError && formData.fundingSource === 'TILL_CASH' && !attempt.current && <p role="alert">{tillError}</p>}
+            {attempt.current && <p role="status">Unconfirmed expense: retry the unchanged entry to check its outcome.</p>}
+          </>}
           <Select
             label="Category"
             value={formData.category}

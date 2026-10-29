@@ -201,6 +201,7 @@ export function CashUp() {
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <Stat label="Opening float" value={formatCurrency(session.openingFloat)} />
+              <Stat label="Till expenses paid" value={session.expensePayoutsTotal == null ? 'Unknown' : formatCurrency(session.expensePayoutsTotal)} />
               <Stat label="Cash sales" value={formatCurrency(session.cashSalesTotal ?? 0)} sub={`${session.cashSalesCount ?? 0} sale(s)`} />
               <Stat label="Cash debt collections" value={session.cashCollectionsTotal == null ? 'Unknown attribution' : formatCurrency(session.cashCollectionsTotal)} />
               <Stat label="Cash refunds paid" value={formatCurrency(session.cashRefundsTotal ?? 0)} sub={`${session.cashRefundsCount ?? 0} refund(s)`} />
@@ -425,6 +426,7 @@ function ZReportCard({ z, shopName }: { z: CashSessionZReport; shopName?: string
           <Row key={m.method} label={`${m.method} (${m.count})`} value={formatCurrency(m.total)} />
         ))}
         <div className="border-t border-line my-2" />
+        <Row label={`Till expenses paid (${z.expensePayoutsCount ?? 'unknown'})`} value={z.expensePayoutsTotal == null ? 'Unknown' : formatCurrency(z.expensePayoutsTotal)} />
         <Row label="Opening float" value={formatCurrency(z.session.openingFloat)} />
         <Row label="Cash debt collections" value={z.cashCollectionsTotal == null ? 'Unknown attribution' : formatCurrency(z.cashCollectionsTotal)} />
         <Row label={`Cash refunds paid (${z.cashRefundsCount})`} value={formatCurrency(z.cashRefundsTotal)} />
@@ -453,6 +455,7 @@ function ZReportCard({ z, shopName }: { z: CashSessionZReport; shopName?: string
           <PrintRow key={m.method} label={`${m.method} (${m.count})`} value={formatCurrency(m.total)} />
         ))}
         <hr />
+        <PrintRow label={`Till expenses paid (${z.expensePayoutsCount ?? 'unknown'})`} value={z.expensePayoutsTotal == null ? 'Unknown' : formatCurrency(z.expensePayoutsTotal)} />
         <PrintRow label="Opening float" value={formatCurrency(z.session.openingFloat)} />
         <PrintRow label="Cash debt collections" value={z.cashCollectionsTotal == null ? 'Unknown attribution' : formatCurrency(z.cashCollectionsTotal)} />
         <PrintRow label={`Cash refunds paid (${z.cashRefundsCount})`} value={formatCurrency(z.cashRefundsTotal)} />

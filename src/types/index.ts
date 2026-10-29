@@ -148,6 +148,9 @@ export interface StockLog {
 
 // Expense
 export interface Expense {
+  fundingSource?: 'OUTSIDE_TILL' | 'TILL_CASH' | null;
+  cashSessionId?: string | null;
+  submissionKey?: string;
   id: string;
   shopId: string;
   category: ExpenseCategory;

@@ -58,7 +58,7 @@ interface InventoryState {
   
   // Expenses
   loadExpenses: () => Promise<void>;
-  addExpense: (expense: Omit<Expense, 'id' | 'createdAt'>) => Promise<string>;
+  addExpense: (expense: Omit<Expense, 'id' | 'createdAt' | 'fundingSource'> & { fundingSource: 'OUTSIDE_TILL' | 'TILL_CASH'; submissionKey: string }) => Promise<string>;
   updateExpense: (id: string, updates: Partial<Omit<Expense, 'id' | 'createdAt' | 'shopId'>>) => Promise<void>;
   deleteExpense: (id: string) => Promise<void>;
   
@@ -470,10 +470,13 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
 
   addExpense: async (expenseData) => {
     const { data, error } = await api.createExpense({
+      fundingSource: expenseData.fundingSource,
+      cashSessionId: expenseData.cashSessionId ?? undefined,
+      submissionKey: expenseData.submissionKey,
       category: expenseData.category,
       amount: expenseData.amount,
       description: expenseData.description,
-      date: expenseData.date ? new Date(expenseData.date).toISOString() : undefined,
+      date: new Date(expenseData.date).toISOString(),
       // The API's create schema rejects an empty-string uri, so only send a
       // receipt when one was actually uploaded.
       ...(expenseData.receiptUrl ? { receiptUrl: expenseData.receiptUrl } : {}),
