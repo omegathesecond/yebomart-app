@@ -5,7 +5,7 @@ import { CashUp } from './CashUp';
 vi.mock('@/api/client', () => ({ default: { getCurrentCashSession: vi.fn(), getCashSessionHistory: vi.fn(), getCashSessionZReport: vi.fn() } }));
 vi.mock('@/stores/authStore', () => ({ useAuthStore: () => ({ shop: { name: 'Test shop', currency: 'SZL' } }) }));
 const session: CashSession = { id: 'old-shift', shopId: 'shop', userId: 'cashier', user: { id: 'cashier', name: 'Jane' }, status: 'CLOSED', openedAt: '2026-08-01T08:00:00Z', closedAt: '2026-08-01T17:00:00Z', openingFloat: 100, expectedCash: 120, countedCash: 115, variance: -5, notes: 'Saved note' };
-const report: CashSessionZReport = { session: { ...session, cashier: session.user }, cashRefundsTotal: 0, cashRefundsCount: 0, transactionCount: 1, gross: 20, totalDiscount: 0, net: 20, tax: 0, totalAmount: 20, byPaymentMethod: [] };
+const report: CashSessionZReport = { cashCollectionsTotal: null, cashCollectionsCount: null, session: { ...session, cashier: session.user }, cashRefundsTotal: 0, cashRefundsCount: 0, transactionCount: 1, gross: 20, totalDiscount: 0, net: 20, tax: 0, totalAmount: 20, byPaymentMethod: [] };
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(api.getCurrentCashSession).mockResolvedValue({ data: null });
@@ -60,4 +60,15 @@ describe('saved cash-ups', () => {
     expect(document.querySelector('#zreport-print')).toBeNull();
   });
 
+});
+
+for (const cashCollectionsTotal of [0, 100, null]) it(`shows saved collections ${cashCollectionsTotal} separately in on-screen and printed Z report`, async () => {
+  vi.mocked(api.getCashSessionZReport).mockResolvedValue({ data: { ...report, cashCollectionsTotal, cashCollectionsCount: cashCollectionsTotal == null ? null : Number(cashCollectionsTotal > 0), session: { ...report.session, expectedCash: cashCollectionsTotal == null ? 250 : 250 + cashCollectionsTotal } } });
+  render(<CashUp />);
+  fireEvent.click(await screen.findByText('View Z-report'));
+  await screen.findByText('Print historical Z-report');
+  const labels = screen.getAllByText('Cash debt collections');
+  expect(labels).toHaveLength(2);
+  for (const label of labels) expect(label.parentElement).toHaveTextContent(cashCollectionsTotal == null ? 'Unknown attribution' : cashCollectionsTotal.toFixed(2));
+  expect(document.querySelector('#zreport-print')?.textContent).toContain(cashCollectionsTotal == null ? '250.00' : (250 + cashCollectionsTotal).toFixed(2));
 });

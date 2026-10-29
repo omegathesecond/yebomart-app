@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   PlusIcon,
   MagnifyingGlassIcon,
@@ -60,6 +60,9 @@ export function Customers() {
   const [paymentType, setPaymentType] = useState<'PAYMENT' | 'ADJUSTMENT' | 'REFUND'>('PAYMENT');
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentNote, setPaymentNote] = useState('');
+  const [collectionMethod, setCollectionMethod] = useState<'' | 'CASH' | 'EXTERNAL_NONCASH'>('');
+  const paymentAttempt = useRef<{ key: string; payload: string } | null>(null);
+  const paymentBusy = useRef(false);
   const [recordingPayment, setRecordingPayment] = useState(false);
 
   // Send statement / reminder via YeboLink (WhatsApp → SMS)
@@ -143,6 +146,29 @@ export function Customers() {
   };
 
   const openPaymentModal = () => {
+    try {
+      const saved = sessionStorage.getItem(`customer-collection:${detail?.id}`);
+      if (saved) {
+        const attempt = JSON.parse(saved) as { key: string; payload: string };
+        const payload = JSON.parse(attempt.payload);
+        if (typeof attempt.key !== 'string' || payload.customerId !== detail?.id || payload.type !== 'PAYMENT' ||
+            !['CASH', 'EXTERNAL_NONCASH'].includes(payload.collectionMethod) || !Number.isFinite(payload.amount) || payload.amount <= 0) {
+          throw new Error('Saved collection retry is invalid. Resolve its outcome before recording another payment.');
+        }
+        paymentAttempt.current = attempt;
+        setPaymentType(payload.type);
+        setPaymentAmount(String(payload.amount));
+        setPaymentNote(payload.note ?? '');
+        setCollectionMethod(payload.collectionMethod);
+        setShowPaymentModal(true);
+        return;
+      }
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Unable to load saved payment retry', 'error');
+      return;
+    }
+    paymentAttempt.current = null;
+    setCollectionMethod('');
     setPaymentType('PAYMENT');
     setPaymentAmount('');
     setPaymentNote('');
@@ -154,26 +180,50 @@ export function Customers() {
   // are positive magnitudes that pay the balance down.
   const isPaymentAmountValid = () => {
     const amount = parseFloat(paymentAmount);
-    if (Number.isNaN(amount)) return false;
+    if (!Number.isFinite(amount)) return false;
     return paymentType === 'ADJUSTMENT' ? amount !== 0 : amount > 0;
   };
 
   const handleRecordPayment = async () => {
-    if (!detail || !isPaymentAmountValid()) return;
+    if (paymentBusy.current || !detail || !isPaymentAmountValid() || (paymentType === 'PAYMENT' && !collectionMethod)) return;
     const amount = parseFloat(paymentAmount);
-    setRecordingPayment(true);
-    const { data, error } = await api.addCustomerCredit(detail.id, {
-      type: paymentType,
-      amount,
-      note: paymentNote.trim() || undefined,
-    });
-    setRecordingPayment(false);
-    if (error || !data) {
-      // No silent fallback — surface the API failure loudly, including the
-      // 422 a positive over-limit ADJUSTMENT returns (owner override required).
-      showToast(error || 'Failed to record entry', 'error');
+    const payload = { type: paymentType, amount, note: paymentNote.trim() || undefined,
+      ...(paymentType === 'PAYMENT' ? { collectionMethod: collectionMethod as 'CASH' | 'EXTERNAL_NONCASH' } : {}) };
+    const serialized = JSON.stringify({ customerId: detail.id, ...payload });
+    if (paymentAttempt.current && paymentAttempt.current.payload !== serialized) {
+      showToast('Retry the unchanged entry first to confirm its outcome.', 'error');
       return;
     }
+    if (paymentType === 'PAYMENT') {
+      paymentAttempt.current ??= { key: crypto.randomUUID(), payload: serialized };
+      try {
+        sessionStorage.setItem(`customer-collection:${detail.id}`, JSON.stringify(paymentAttempt.current));
+      } catch {
+        showToast('Unable to save payment retry. Enable browser storage before recording this payment.', 'error');
+        return;
+      }
+    }
+    paymentBusy.current = true;
+    setRecordingPayment(true);
+    try {
+      const { data, error } = await api.addCustomerCredit(detail.id, {
+        ...payload, ...(paymentType === 'PAYMENT' ? { collectionKey: paymentAttempt.current!.key } : {}),
+      });
+      if (error || !data) throw new Error(error || 'Failed to record entry');
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Failed to record entry', 'error');
+      return;
+    } finally {
+      paymentBusy.current = false;
+      setRecordingPayment(false);
+    }
+    try {
+      sessionStorage.removeItem(`customer-collection:${detail.id}`);
+    } catch {
+      showToast('Payment recorded, but its retry record could not be cleared. Retry this entry to confirm; do not record it again.', 'error');
+      return;
+    }
+    paymentAttempt.current = null;
     showToast(`${CREDIT_TYPE_LABEL[paymentType]} of ${formatCurrency(Math.abs(amount))} recorded`);
     setShowPaymentModal(false);
     // Refresh the detail (new balance + ledger) and the list balance badges.
@@ -509,6 +559,7 @@ export function Customers() {
                       <div>
                         <p className="text-sm text-ink">
                           {CREDIT_TYPE_LABEL[cr.type] || cr.type}
+                          {cr.type === 'PAYMENT' && ` · ${cr.collectionMethod === 'CASH' ? 'Cash' : cr.collectionMethod === 'EXTERNAL_NONCASH' ? 'External noncash' : 'Unknown payment attribution'}`}
                         </p>
                         <p className="text-xs text-mist">
                           {new Date(cr.createdAt).toLocaleDateString()}
@@ -585,7 +636,7 @@ export function Customers() {
       {/* Record payment / ledger adjustment */}
       <Modal
         isOpen={showPaymentModal}
-        onClose={() => setShowPaymentModal(false)}
+        onClose={() => { if (!paymentBusy.current) setShowPaymentModal(false); }}
         title="Record Payment"
         size="sm"
       >
@@ -608,6 +659,8 @@ export function Customers() {
 
             <Select
               label="Type"
+              aria-label="Entry type"
+              disabled={recordingPayment || !!paymentAttempt.current}
               value={paymentType}
               onChange={(e) =>
                 setPaymentType(e.target.value as 'PAYMENT' | 'ADJUSTMENT' | 'REFUND')
@@ -619,9 +672,25 @@ export function Customers() {
               ]}
             />
 
+            {paymentType === 'PAYMENT' && <Select
+              label="Payment received as"
+              aria-label="Payment received as"
+              value={collectionMethod}
+              disabled={recordingPayment || !!paymentAttempt.current}
+              onChange={e => setCollectionMethod(e.target.value as typeof collectionMethod)}
+              options={[
+                { value: '', label: 'Choose payment method' },
+                { value: 'CASH', label: 'Cash — place in the open till' },
+                { value: 'EXTERNAL_NONCASH', label: 'Noncash — already received externally' },
+              ]}
+            />}
+            {paymentType === 'PAYMENT' && <p className="text-xs text-mute">Cash requires an open till. Confirm noncash funds have arrived before recording; this does not charge the customer.</p>}
+            {paymentAttempt.current && <p role="status" className="text-sm text-mute">Outcome unconfirmed. Retry this unchanged entry to avoid recording it twice.</p>}
             <Input
               label="Amount *"
+              aria-label="Amount"
               type="number"
+              disabled={recordingPayment || !!paymentAttempt.current}
               value={paymentAmount}
               onChange={(e) => setPaymentAmount(e.target.value)}
               placeholder="0.00"
@@ -649,6 +718,8 @@ export function Customers() {
 
             <Textarea
               label="Note"
+              aria-label="Payment note"
+              disabled={recordingPayment || !!paymentAttempt.current}
               value={paymentNote}
               onChange={(e) => setPaymentNote(e.target.value)}
               placeholder="Optional — e.g. cash, mobile money reference, reason for adjustment"
@@ -669,7 +740,7 @@ export function Customers() {
                 variant="success"
                 className="flex-1"
                 onClick={handleRecordPayment}
-                disabled={!isPaymentAmountValid() || recordingPayment}
+                disabled={!isPaymentAmountValid() || recordingPayment || (paymentType === 'PAYMENT' && !collectionMethod)}
                 isLoading={recordingPayment}
               >
                 {paymentType === 'PAYMENT'

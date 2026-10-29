@@ -101,11 +101,15 @@ export interface CashSession {
   // Present on GET /current (live tally since openedAt):
   cashSalesTotal?: number;
   cashSalesCount?: number;
+  cashCollectionsTotal?: number | null;
+  cashCollectionsCount?: number | null;
   cashRefundsTotal?: number;
   cashRefundsCount?: number;
 }
 
 export interface CashSessionZReport {
+  cashCollectionsTotal: number | null;
+  cashCollectionsCount: number | null;
   cashRefundsTotal: number;
   cashRefundsCount: number;
   session: {
@@ -194,6 +198,8 @@ export interface Customer {
 export type CreditType = 'PURCHASE' | 'PAYMENT' | 'ADJUSTMENT' | 'REFUND';
 
 export interface CustomerCredit {
+  collectionMethod: 'CASH' | 'EXTERNAL_NONCASH' | null;
+  cashSessionId: string | null;
   id: string;
   customerId: string;
   type: CreditType;
@@ -1229,6 +1235,8 @@ class ApiClient {
     id: string,
     data: {
       type: 'PURCHASE' | 'PAYMENT' | 'ADJUSTMENT' | 'REFUND';
+      collectionMethod?: 'CASH' | 'EXTERNAL_NONCASH';
+      collectionKey?: string;
       amount: number;
       note?: string;
       saleId?: string;
