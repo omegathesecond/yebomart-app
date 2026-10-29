@@ -1,3 +1,4 @@
+import { receiptTaxLabel, receiptTaxIdentity } from '@/lib/receiptTax';
 // Web Bluetooth ESC/POS thermal-receipt printing for the POS.
 //
 // Cheap 58mm/80mm Bluetooth receipt printers (Goojprt, Xprinter, BT58, MUNBYN,
@@ -191,6 +192,11 @@ export function buildReceiptBytes(sale: ReceiptSale, shop: Shop | null): Uint8Ar
   // Totals.
   b.line(twoColumns('Subtotal', formatCurrency(sale.subtotal || sale.total)));
   if (sale.discount > 0) b.line(twoColumns('Discount', `-${formatCurrency(sale.discount)}`));
+  if (sale.tax > 0) {
+    b.line(twoColumns('Net (excl. VAT)', formatCurrency(sale.total - sale.tax)));
+    b.line(twoColumns(receiptTaxLabel(sale), formatCurrency(sale.tax)));
+  }
+  b.line(receiptTaxIdentity(sale));
   b.bold(true).line(twoColumns('TOTAL', formatCurrency(sale.total))).bold(false);
 
   // Cash tendered / change, when paid in cash.

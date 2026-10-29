@@ -1,3 +1,4 @@
+import { receiptTaxLabel, receiptTaxIdentity } from '@/lib/receiptTax';
 import { getErrorMessage } from '@/utils/errorMessages';
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
@@ -108,12 +109,10 @@ export function Sales() {
     if (sale.tax && sale.tax > 0) {
       // Net (VAT-exclusive) so Net + VAT = TOTAL reconciles on the shared receipt.
       lines.push(`Net (excl. VAT): ${formatCurrency(sale.totalAmount - sale.tax)}`);
-      lines.push(`VAT${shop?.taxRate ? ` (${shop.taxRate}%${shop.taxInclusive ? ' incl.' : ''})` : ''}: ${formatCurrency(sale.tax)}`);
+      lines.push(`${receiptTaxLabel(sale)}: ${formatCurrency(sale.tax)}`);
     }
     lines.push(`TOTAL: ${formatCurrency(sale.totalAmount)}`);
-    if (shop?.taxNumber) {
-      lines.push(`VAT No: ${shop.taxNumber}`);
-    }
+    lines.push(receiptTaxIdentity(sale));
     lines.push('', 'Thank you for shopping with us!');
     return lines.join('\n');
   };
@@ -389,7 +388,7 @@ export function Sales() {
                         <span className="m">{formatCurrency(selectedSale.totalAmount - selectedSale.tax)}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span>VAT{shop?.taxRate ? ` (${shop.taxRate}%${shop.taxInclusive ? ' incl.' : ''})` : ''}</span>
+                        <span>{receiptTaxLabel(selectedSale)}</span>
                         <span className="m">{formatCurrency(selectedSale.tax)}</span>
                       </div>
                     </>
@@ -405,9 +404,7 @@ export function Sales() {
                   <span className="m">{formatCurrency(selectedSale.totalAmount)}</span>
                 </div>
 
-                {shop?.taxNumber && (
-                  <p className="text-center text-xs text-mist mt-2">VAT No: {shop.taxNumber}</p>
-                )}
+                <p className="text-center text-xs text-mist mt-2">{receiptTaxIdentity(selectedSale)}</p>
 
                 <div className="text-center mt-4 pt-3 border-t border-dashed border-line-strong">
                   <p className="text-xs text-mist">Thank you for shopping with us!</p>

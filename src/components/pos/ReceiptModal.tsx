@@ -1,3 +1,4 @@
+import { receiptTaxLabel, receiptTaxIdentity, type ReceiptTax } from '@/lib/receiptTax';
 import { useState } from 'react';
 import {
   CheckCircleIcon,
@@ -24,7 +25,7 @@ import {
  * cart store's `checkout()` returns, flattened for display (the totals are
  * already computed and the items already carry `productName`/`totalPrice`).
  */
-export interface ReceiptSale {
+export interface ReceiptSale extends ReceiptTax {
   total: number;
   subtotal: number;
   discount: number;
@@ -231,7 +232,7 @@ export function ReceiptModal({ isOpen, onClose, sale, shop, customerPhone }: Rec
                       <span className="m">{formatCurrency(sale.total - sale.tax)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span>VAT ({shop?.taxRate}%{shop?.taxInclusive ? ' incl.' : ''})</span>
+                      <span>{receiptTaxLabel(sale)}</span>
                       <span className="m">{formatCurrency(sale.tax)}</span>
                     </div>
                   </>
@@ -243,9 +244,7 @@ export function ReceiptModal({ isOpen, onClose, sale, shop, customerPhone }: Rec
                 <span className="m">{formatCurrency(sale.total)}</span>
               </div>
 
-              {shop?.taxNumber && (
-                <p className="text-xs text-mist mt-2">VAT No: {shop.taxNumber}</p>
-              )}
+              <p className="text-xs text-mist mt-2">{receiptTaxIdentity(sale)}</p>
 
               {/* Cash Payment Details */}
               {sale.paymentMethod === 'cash' && sale.cashReceived && (

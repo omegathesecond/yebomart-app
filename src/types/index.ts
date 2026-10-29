@@ -1,3 +1,4 @@
+import type { ReceiptTax } from '@/lib/receiptTax';
 // Core types for YeboMart - Multi-Country Shop Management
 
 export type UserRole = 'owner' | 'manager' | 'cashier';
@@ -93,7 +94,7 @@ export interface Product {
 }
 
 // Sale
-export interface Sale {
+export interface Sale extends ReceiptTax {
   id: string;
   shopId: string;
   userId: string;
