@@ -38,3 +38,29 @@ it('keeps content visible with a stale warning and retry after refresh fails', a
   fireEvent.click(screen.getByRole('button', { name: 'Retry sync' }));
   await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
 });
+
+it('retains a verified snapshot across same-session offline remount and recovers on retry', async () => {
+  const view = render(<InitialSync><div>Shop content</div></InitialSync>);
+  await screen.findByText('Shop content');
+  const snapshot = useInventoryStore.getState();
+  view.unmount();
+  vi.mocked(api.getProducts).mockRejectedValueOnce(new Error('Offline'));
+  render(<InitialSync><div>Shop content</div></InitialSync>);
+  expect(screen.getByText('Shop content')).toBeInTheDocument();
+  expect(await screen.findByRole('alert')).toHaveTextContent('Offline');
+  expect(useInventoryStore.getState().lastSync).toBe(snapshot.lastSync);
+  expect(useInventoryStore.getState().products).toBe(snapshot.products);
+  fireEvent.click(screen.getByRole('button', { name: 'Retry sync' }));
+  await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
+});
+it('blocks a new verified session from using the previous snapshot on offline remount', async () => {
+  const view = render(<InitialSync><div>Shop content</div></InitialSync>);
+  await screen.findByText('Shop content');
+  view.unmount();
+  setSyncContext({ principalId: 'owner', shopId: 'shop', mode: 'owner' }, 'new-token');
+  vi.mocked(api.getProducts).mockRejectedValueOnce(new Error('Offline'));
+  render(<InitialSync><div>Shop content</div></InitialSync>);
+  expect(screen.queryByText('Shop content')).not.toBeInTheDocument();
+  expect(await screen.findByRole('alert')).toHaveTextContent('Could not sync shop data');
+  expect(useInventoryStore.getState().lastSync).toBeNull();
+});

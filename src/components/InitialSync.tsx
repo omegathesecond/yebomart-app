@@ -16,21 +16,16 @@ export function InitialSync({ children }: InitialSyncProps) {
 
 function ShopSync({ children }: InitialSyncProps) {
   const { shop, isAuthenticated } = useAuthStore();
-  const { loadAll, lastSync, isLoading, syncError, clearAll } = useInventoryStore();
-  const [hasSynced, setHasSynced] = useState(false);
+  const { loadAll, lastSync, isLoading, syncError, hasCurrentSnapshot } = useInventoryStore();
+  // Route remounts retain the store snapshot; only its verified session may reuse it.
+  const hasSynced = !!lastSync && hasCurrentSnapshot();
   const [attempt, setAttempt] = useState(0);
   const shopId = shop?.id;
 
-  useEffect(() => () => clearAll(), [clearAll]);
-
   useEffect(() => {
-    let active = true;
     if (isAuthenticated && shopId) {
-      void loadAll(shopId).then(success => {
-        if (active && success) setHasSynced(true);
-      });
+      void loadAll(shopId);
     }
-    return () => { active = false; };
   }, [isAuthenticated, shopId, loadAll, attempt]);
 
   const retry = () => {
