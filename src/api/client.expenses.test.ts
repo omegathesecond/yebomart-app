@@ -20,3 +20,11 @@ for (const fundingSource of ['TILL_CASH', 'OUTSIDE_TILL'] as const) it(`sends ${
   else expect(sent.cashSessionId).toBeUndefined();
   expect(useInventoryStore.getState().expenses[0]).toMatchObject({ fundingSource, cashSessionId: expense.cashSessionId, submissionKey: expense.submissionKey });
 });
+
+for (const code of ['EXPENSE_PAYOUT_NOT_RECORDED', undefined]) it(`preserves only the API error code (${code}) through client and store`, async () => {
+  vi.mocked(fetch).mockResolvedValue(new Response(JSON.stringify({ success: false, message: 'Payout failed', code }), { status: code ? 409 : 500 }));
+  await expect(useInventoryStore.getState().addExpense({ shopId: 'shop', category: 'transport', amount: 50,
+    date: new Date(), fundingSource: 'TILL_CASH', cashSessionId: 'till', submissionKey: crypto.randomUUID(),
+  })).rejects.toMatchObject({ message: 'Payout failed', code });
+  expect(fetch).toHaveBeenCalledOnce();
+});

@@ -469,7 +469,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
   },
 
   addExpense: async (expenseData) => {
-    const { data, error } = await api.createExpense({
+    const { data, error, code } = await api.createExpense({
       fundingSource: expenseData.fundingSource,
       cashSessionId: expenseData.cashSessionId ?? undefined,
       submissionKey: expenseData.submissionKey,
@@ -483,7 +483,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
     });
     if (error || !data) {
       set({ error: error || 'Failed to record expense' });
-      throw new Error(error || 'Failed to record expense');
+      throw Object.assign(new Error(error || 'Failed to record expense'), { code });
     }
     // Refresh from the API so totals/order stay authoritative
     await get().loadExpenses();

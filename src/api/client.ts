@@ -1329,7 +1329,7 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify({ ...data, category: String(data.category).toUpperCase() }),
     });
-    if (res.error || !res.data) return { error: res.error ?? 'Failed to record expense', details: res.details };
+    if (res.error || !res.data) return { error: res.error ?? 'Failed to record expense', details: res.details, code: res.code, status: res.status };
     return { data: mapApiExpense(res.data), message: res.message };
   }
 

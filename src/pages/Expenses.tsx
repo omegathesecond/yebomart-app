@@ -249,6 +249,14 @@ export function Expenses() {
       const { data } = await api.getExpenseSummary();
       if (data) setSummary(data);
     } catch (e: unknown) {
+      // Only this explicit API rejection confirms that no payout was committed.
+      // Lost responses, server errors and payload conflicts must keep their key.
+      if (!editingId && e instanceof Error && 'code' in e && e.code === 'EXPENSE_PAYOUT_NOT_RECORDED') {
+        sessionStorage.removeItem(retryStorageKey);
+        attempt.current = null;
+        setTillId('');
+        setTillError('Reopen the expense form to select the current open till, or choose outside till.');
+      }
       showToast(
         getErrorMessage(e) || (editingId ? 'Failed to update expense' : 'Failed to record expense'),
         'error',
