@@ -86,6 +86,8 @@ interface ApiResponse<T> {
 
 // ── Cash session shapes (mirror api/src/services/cashSession.service.ts) ──
 export interface CashSession {
+  supplierPayoutsTotal: number | null;
+  supplierPayoutsCount: number | null;
   expensePayoutsTotal?: number | null;
   expensePayoutsCount?: number | null;
   id: string;
@@ -110,6 +112,8 @@ export interface CashSession {
 }
 
 export interface CashSessionZReport {
+  supplierPayoutsTotal: number | null;
+  supplierPayoutsCount: number | null;
   expensePayoutsTotal: number | null;
   expensePayoutsCount: number | null;
   cashCollectionsTotal: number | null;
@@ -1176,7 +1180,7 @@ class ApiClient {
    * Mirrors api/src/controllers/purchaseOrder.controller.ts recordPayment —
    * the server rejects (400) an amount exceeding the current balance due.
    */
-  async recordSupplierPayment(id: string, data: { amount: number; note?: string }) {
+  async recordSupplierPayment(id: string, data: { amount: number; note?: string; fundingSource: 'TILL_CASH' | 'OUTSIDE_TILL'; cashSessionId?: string; submissionKey: string }) {
     return this.request<PurchaseOrder>(`/api/purchase-orders/${id}/payments`, {
       method: 'POST',
       body: JSON.stringify(data),

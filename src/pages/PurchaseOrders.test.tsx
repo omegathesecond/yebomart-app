@@ -6,6 +6,7 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 // src/pages/AuditLog.test.tsx.
 vi.mock('@/api/client', () => ({
   api: {
+    getCurrentCashSession: vi.fn(),
     getPurchaseOrders: vi.fn(),
     getSuppliers: vi.fn(),
     getPurchaseOrder: vi.fn(),
@@ -88,6 +89,8 @@ async function openDetail(po: ReturnType<typeof makePo>) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  sessionStorage.clear();
+  vi.mocked(api.getCurrentCashSession).mockResolvedValue({ data: null });
   mockAuthState = { user: { role: 'owner' }, authMode: 'owner' };
 });
 
@@ -178,6 +181,7 @@ describe('PurchaseOrders — recording a supplier payment', () => {
     });
     await openPaymentModal();
 
+    fireEvent.change(screen.getByLabelText('Payment funding'), { target: { value: 'OUTSIDE_TILL' } });
     fireEvent.change(screen.getByPlaceholderText('0.00'), { target: { value: '100' } });
     fireEvent.click(submitButton());
 
@@ -186,7 +190,7 @@ describe('PurchaseOrders — recording a supplier payment', () => {
         'Payment of 100 exceeds the balance due of 50',
       ),
     );
-    expect(recordSupplierPayment).toHaveBeenCalledWith('po-1', { amount: 100, note: undefined });
+    expect(recordSupplierPayment).toHaveBeenCalledWith('po-1', { amount: 100, note: undefined, fundingSource: 'OUTSIDE_TILL', submissionKey: expect.any(String) });
   });
 
   it('refreshes the PO and the list after a successful payment', async () => {
@@ -195,6 +199,7 @@ describe('PurchaseOrders — recording a supplier payment', () => {
     });
     await openPaymentModal();
 
+    fireEvent.change(screen.getByLabelText('Payment funding'), { target: { value: 'OUTSIDE_TILL' } });
     fireEvent.change(screen.getByPlaceholderText('0.00'), { target: { value: '100' } });
     fireEvent.change(screen.getByPlaceholderText(/Optional/), { target: { value: 'EFT 4471' } });
     fireEvent.click(submitButton());
@@ -203,6 +208,7 @@ describe('PurchaseOrders — recording a supplier payment', () => {
       expect(recordSupplierPayment).toHaveBeenCalledWith('po-1', {
         amount: 100,
         note: 'EFT 4471',
+        fundingSource: 'OUTSIDE_TILL', submissionKey: expect.any(String),
       }),
     );
     // No full page reload: the detail modal re-fetches and the list refreshes.
@@ -210,4 +216,63 @@ describe('PurchaseOrders — recording a supplier payment', () => {
     expect(getPurchaseOrders.mock.calls.length).toBeGreaterThan(1);
     expect(screen.getByRole('alert')).toHaveTextContent('Payment of E100.00 recorded');
   });
+});
+
+const paymentSubmit = () => screen.getAllByRole('button', { name: 'Record Payment' }).at(-1)!;
+async function paymentForm(amountPaid = 200) {
+  await openDetail(makePo({ status: 'PARTIAL', amountReceived: 500, amountPaid }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Record Payment' }));
+  await screen.findByPlaceholderText('0.00');
+}
+it('requires explicit funding and an open till, and surfaces lookup failure', async () => {
+  vi.mocked(api.getCurrentCashSession).mockResolvedValue({ error: 'Till lookup unavailable' });
+  await paymentForm();
+  fireEvent.change(screen.getByPlaceholderText('0.00'), { target: { value: '50' } });
+  expect(paymentSubmit()).toBeDisabled();
+  fireEvent.change(screen.getByLabelText('Payment funding'), { target: { value: 'TILL_CASH' } });
+  expect(await screen.findByText('Till lookup unavailable')).toBeInTheDocument();
+  expect(paymentSubmit()).toBeDisabled();
+  expect(recordSupplierPayment).not.toHaveBeenCalled();
+  fireEvent.change(screen.getByLabelText('Payment funding'), { target: { value: 'OUTSIDE_TILL' } });
+  expect(paymentSubmit()).not.toBeDisabled();
+});
+it('retains the exact till, payload and retry key across remount after an uncertain response', async () => {
+  vi.mocked(api.getCurrentCashSession).mockResolvedValue({ data: { id: 'drawer-1', status: 'OPEN' } as never });
+  recordSupplierPayment.mockResolvedValue({ error: 'Network unavailable' });
+  await paymentForm();
+  fireEvent.change(screen.getByLabelText('Payment funding'), { target: { value: 'TILL_CASH' } });
+  fireEvent.change(screen.getByPlaceholderText('0.00'), { target: { value: '50' } });
+  fireEvent.click(paymentSubmit());
+  await screen.findByText('Network unavailable');
+  const first = recordSupplierPayment.mock.calls[0][1];
+  expect(first).toMatchObject({ amount: 50, fundingSource: 'TILL_CASH', cashSessionId: 'drawer-1', submissionKey: expect.any(String) });
+  // Simulate navigation/reload; a later drawer must not replace the original one.
+  const { cleanup } = await import('@testing-library/react');
+  cleanup();
+  vi.mocked(api.getCurrentCashSession).mockResolvedValue({ data: { id: 'drawer-2', status: 'OPEN' } as never });
+  recordSupplierPayment.mockResolvedValue({ data: makePo({ amountReceived: 500, amountPaid: 250 }) });
+  await paymentForm(500); // The accepted response may have fully settled the PO.
+  expect(screen.getByPlaceholderText('0.00')).toHaveValue(50);
+  expect(screen.getByPlaceholderText('0.00')).toBeDisabled();
+  fireEvent.click(paymentSubmit());
+  await waitFor(() => expect(recordSupplierPayment).toHaveBeenCalledTimes(2));
+  expect(recordSupplierPayment.mock.calls[1][1]).toEqual(first);
+  await waitFor(() => expect(sessionStorage.length).toBe(0));
+});
+it('unlocks a definitively rejected payment so its funding can be corrected', async () => {
+  vi.mocked(api.getCurrentCashSession).mockResolvedValue({ data: { id: 'drawer-1', status: 'OPEN' } as never });
+  recordSupplierPayment.mockResolvedValue({ error: 'Till closed; payment not recorded', code: 'SUPPLIER_PAYMENT_NOT_RECORDED' });
+  await paymentForm();
+  fireEvent.change(screen.getByLabelText('Payment funding'), { target: { value: 'TILL_CASH' } });
+  fireEvent.change(screen.getByPlaceholderText('0.00'), { target: { value: '50' } });
+  fireEvent.click(paymentSubmit());
+  await screen.findByText('Till closed; payment not recorded');
+  expect(screen.getByPlaceholderText('0.00')).not.toBeDisabled();
+  expect(sessionStorage.length).toBe(0);
+  recordSupplierPayment.mockResolvedValue({ data: makePo() });
+  fireEvent.change(screen.getByLabelText('Payment funding'), { target: { value: 'OUTSIDE_TILL' } });
+  fireEvent.click(paymentSubmit());
+  await waitFor(() => expect(recordSupplierPayment).toHaveBeenCalledTimes(2));
+  expect(recordSupplierPayment.mock.calls[1][1]).toMatchObject({ fundingSource: 'OUTSIDE_TILL', amount: 50 });
+  expect(recordSupplierPayment.mock.calls[1][1].cashSessionId).toBeUndefined();
 });

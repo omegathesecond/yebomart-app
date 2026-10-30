@@ -4,8 +4,9 @@ import api, { type CashSession, type CashSessionZReport } from '@/api/client';
 import { CashUp } from './CashUp';
 vi.mock('@/api/client', () => ({ default: { getCurrentCashSession: vi.fn(), getCashSessionHistory: vi.fn(), getCashSessionZReport: vi.fn() } }));
 vi.mock('@/stores/authStore', () => ({ useAuthStore: () => ({ shop: { name: 'Test shop', currency: 'SZL' } }) }));
-const session: CashSession = { id: 'old-shift', shopId: 'shop', userId: 'cashier', user: { id: 'cashier', name: 'Jane' }, status: 'CLOSED', openedAt: '2026-08-01T08:00:00Z', closedAt: '2026-08-01T17:00:00Z', openingFloat: 100, expectedCash: 120, countedCash: 115, variance: -5, notes: 'Saved note' };
+const session: CashSession = { supplierPayoutsTotal: null, supplierPayoutsCount: null, id: 'old-shift', shopId: 'shop', userId: 'cashier', user: { id: 'cashier', name: 'Jane' }, status: 'CLOSED', openedAt: '2026-08-01T08:00:00Z', closedAt: '2026-08-01T17:00:00Z', openingFloat: 100, expectedCash: 120, countedCash: 115, variance: -5, notes: 'Saved note' };
 const report: CashSessionZReport = {
+  supplierPayoutsTotal: null, supplierPayoutsCount: null,
   expensePayoutsTotal: 50, expensePayoutsCount: 1, cashCollectionsTotal: null, cashCollectionsCount: null, session: { ...session, cashier: session.user }, cashRefundsTotal: 0, cashRefundsCount: 0, transactionCount: 1, gross: 20, totalDiscount: 0, net: 20, tax: 0, totalAmount: 20, byPaymentMethod: [] };
 beforeEach(() => {
   vi.clearAllMocks();
@@ -92,4 +93,14 @@ it('shows current till payouts separately from sales and uses the server expecte
   expect(label.parentElement).toHaveTextContent('50.00');
   expect(screen.getByText('Expected in drawer').parentElement).toHaveTextContent('150.00');
   expect(screen.getByText('Cash sales').parentElement).toHaveTextContent('0.00');
+});
+
+for (const supplierPayoutsTotal of [0, 50, null]) it(`shows saved supplier subtotal ${supplierPayoutsTotal} separately on screen and print`, async () => {
+  vi.mocked(api.getCashSessionZReport).mockResolvedValue({ data: { ...report, supplierPayoutsTotal, supplierPayoutsCount: supplierPayoutsTotal === null ? null : Number(supplierPayoutsTotal > 0) } });
+  render(<CashUp />);
+  fireEvent.click(await screen.findByText('View Z-report'));
+  await screen.findByText('Print historical Z-report');
+  const rows = screen.getAllByText(/^Supplier payments from till/);
+  expect(rows).toHaveLength(2);
+  for (const row of rows) expect(row.parentElement).toHaveTextContent(supplierPayoutsTotal === null ? 'Unknown' : supplierPayoutsTotal.toFixed(2));
 });

@@ -1,5 +1,5 @@
 import type { PurchaseOrder } from '@/api/models';
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   PlusIcon,
@@ -12,7 +12,7 @@ import {
   BanknotesIcon,
 } from '@heroicons/react/24/outline';
 import { Button } from '@/components/ui/Button';
-import { Input, Textarea } from '@/components/ui/Input';
+import { Input, Select, Textarea } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { Modal } from '@/components/ui/Modal';
@@ -55,7 +55,7 @@ const STATUS_FILTERS = ['ALL', 'DRAFT', 'SENT', 'PARTIAL', 'RECEIVED', 'CANCELLE
 
 export function PurchaseOrders() {
   const { products, loadAll } = useInventoryStore();
-  const { user, authMode } = useAuthStore();
+  const { user, authMode, shop } = useAuthStore();
   const { toast, showToast, dismissToast } = useToast();
   const location = useLocation();
   const navigate = useNavigate();
@@ -96,6 +96,14 @@ export function PurchaseOrders() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentNote, setPaymentNote] = useState('');
+  const [fundingSource, setFundingSource] = useState<'' | 'TILL_CASH' | 'OUTSIDE_TILL'>('');
+  const [tillId, setTillId] = useState('');
+  const [tillError, setTillError] = useState('');
+  const paymentAttempt = useRef<{ key: string; payload: string } | null>(null);
+  const paymentBusy = useRef(false);
+  const retryStorageKey = `supplier-payment:${shop?.id}:${detail?.id}`;
+  const [retrying, setRetrying] = useState(false);
+  const [hasPendingPayment, setHasPendingPayment] = useState(false);
   const [recordingPayment, setRecordingPayment] = useState(false);
 
   const fetchOrders = useCallback(async () => {
@@ -287,6 +295,11 @@ export function PurchaseOrders() {
       return;
     }
     setDetail(data as PurchaseOrder);
+    try {
+      setHasPendingPayment(!!sessionStorage.getItem(`supplier-payment:${shop?.id}:${data.id}`));
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Unable to load payment retry', 'error');
+    }
     // Never render a failed history fetch as an empty history — an empty list
     // means "no payments yet", which is a very different thing from "we could
     // not reach the API".
@@ -299,10 +312,28 @@ export function PurchaseOrders() {
     }
   };
 
-  const openPaymentModal = () => {
-    setPaymentAmount('');
-    setPaymentNote('');
-    setShowPaymentModal(true);
+  const openPaymentModal = async () => {
+    try {
+      const saved = sessionStorage.getItem(retryStorageKey);
+      paymentAttempt.current = saved ? JSON.parse(saved) : null;
+      const payload = paymentAttempt.current ? JSON.parse(paymentAttempt.current.payload) : null;
+      if (payload && (!paymentAttempt.current?.key || !['TILL_CASH', 'OUTSIDE_TILL'].includes(payload.fundingSource) || !(payload.amount > 0))) {
+        throw new Error('Saved payment retry is invalid. Resolve its outcome before recording another payment.');
+      }
+      setPaymentAmount(payload ? String(payload.amount) : '');
+      setPaymentNote(payload?.note || '');
+      setFundingSource(payload?.fundingSource || '');
+      setRetrying(!!payload);
+      setTillId(payload?.cashSessionId || '');
+      setTillError('');
+      setShowPaymentModal(true);
+      if (!payload) {
+        const result = await api.getCurrentCashSession();
+        if (result.error) setTillError(result.error);
+        else if (result.data?.status === 'OPEN') setTillId(result.data.id);
+        else setTillError('Open a till before recording a payment from it.');
+      }
+    } catch (error) { showToast(error instanceof Error ? error.message : 'Unable to load payment retry', 'error'); }
   };
 
   const paymentAmountError = useMemo(() => {
@@ -311,28 +342,46 @@ export function PurchaseOrders() {
   }, [detail, paymentAmount]);
 
   const handleRecordPayment = async () => {
-    if (!detail) return;
+    if (!detail || paymentBusy.current || !fundingSource) return;
     const amount = parseFloat(paymentAmount);
-    if (validatePaymentAmount(amount, computeBalanceDue(detail))) return;
-
-    setRecordingPayment(true);
-    const { data, error } = await api.recordSupplierPayment(detail.id, {
-      amount,
-      note: paymentNote.trim() || undefined,
-    });
-    setRecordingPayment(false);
-
-    if (error || !data) {
-      // No silent fallback — surface the API's real error (e.g. the 400 for an
-      // amount exceeding the balance due) rather than a generic message.
-      showToast(error || 'Failed to record payment', 'error');
-      return;
+    if (!paymentAttempt.current && validatePaymentAmount(amount, computeBalanceDue(detail))) return;
+    if (fundingSource === 'TILL_CASH' && !tillId) {
+      showToast(tillError || 'Open a till before recording a payment from it.', 'error'); return;
     }
-    showToast(`Payment of ${formatCurrency(amount)} recorded`);
-    setShowPaymentModal(false);
-    // Refresh both the PO detail (new balance due) and the list.
-    openDetail(detail.id);
-    fetchOrders();
+    paymentBusy.current = true;
+    setRecordingPayment(true);
+    try {
+      const payload = { amount, note: paymentNote.trim() || undefined, fundingSource,
+        ...(fundingSource === 'TILL_CASH' ? { cashSessionId: tillId } : {}) };
+      const serialized = JSON.stringify(payload);
+      if (paymentAttempt.current && paymentAttempt.current.payload !== serialized) throw new Error('Retry the unchanged payment before recording another entry.');
+      if (!paymentAttempt.current) paymentAttempt.current = { key: crypto.randomUUID(), payload: serialized };
+      // Save before sending: an uncertain response must retain the same payload/key across reloads.
+      sessionStorage.setItem(retryStorageKey, JSON.stringify(paymentAttempt.current));
+      setRetrying(true);
+      setHasPendingPayment(true);
+      const { data, error, code } = await api.recordSupplierPayment(detail.id, { ...payload, submissionKey: paymentAttempt.current.key });
+      if (error || !data) {
+        // Only an explicit server guarantee permits editing a rejected attempt.
+        // Network/5xx/unknown responses retain the immutable retry payload.
+        if (code === 'SUPPLIER_PAYMENT_NOT_RECORDED') {
+          sessionStorage.removeItem(retryStorageKey);
+          paymentAttempt.current = null;
+          setRetrying(false);
+          setHasPendingPayment(false);
+        }
+        throw new Error(error || 'Failed to record payment');
+      }
+      sessionStorage.removeItem(retryStorageKey);
+      paymentAttempt.current = null;
+      setRetrying(false);
+      setHasPendingPayment(false);
+      showToast(`Payment of ${formatCurrency(amount)} recorded`);
+      setShowPaymentModal(false);
+      openDetail(detail.id);
+      fetchOrders();
+    } catch (error) { showToast(error instanceof Error ? error.message : 'Failed to record payment', 'error'); }
+    finally { paymentBusy.current = false; setRecordingPayment(false); }
   };
 
   const filteredProducts = useMemo(
@@ -761,7 +810,7 @@ export function PurchaseOrders() {
 
             {canManage &&
               detail.amountReceived > 0 &&
-              computeBalanceDue(detail) > 0 && (
+              (computeBalanceDue(detail) > 0 || hasPendingPayment) && (
                 <Button
                   variant="success"
                   className="w-full"
@@ -813,7 +862,7 @@ export function PurchaseOrders() {
       {/* Record Payment Modal */}
       <Modal
         isOpen={showPaymentModal}
-        onClose={() => setShowPaymentModal(false)}
+        onClose={() => { if (!recordingPayment) setShowPaymentModal(false); }}
         title="Record Supplier Payment"
         size="sm"
       >
@@ -824,7 +873,14 @@ export function PurchaseOrders() {
               <span className="m font-bold text-bad">{formatCurrency(computeBalanceDue(detail))}</span>
             </div>
 
+            <p className="text-sm text-mute">Record a payment you have already made. This does not send money.</p>
+            {retrying && <p className="text-sm text-mute">Retry this unchanged payment to confirm its outcome.</p>}
+            <Select id="supplier-payment-funding" aria-label="Payment funding" label="Payment funding" value={fundingSource} disabled={retrying || recordingPayment}
+              onChange={e => setFundingSource(e.target.value as typeof fundingSource)}
+              options={[{ value: '', label: 'Choose funding source' }, { value: 'TILL_CASH', label: 'Cash from this till' }, { value: 'OUTSIDE_TILL', label: 'Paid outside this till' }]} />
+            {fundingSource === 'TILL_CASH' && tillError && <p role="alert" className="text-sm text-bad">{tillError}</p>}
             <Input
+              disabled={retrying || recordingPayment}
               label="Amount *"
               type="number"
               value={paymentAmount}
@@ -836,6 +892,7 @@ export function PurchaseOrders() {
 
             <Textarea
               label="Note"
+              disabled={retrying || recordingPayment}
               value={paymentNote}
               onChange={(e) => setPaymentNote(e.target.value)}
               placeholder="Optional — e.g. cash, EFT reference"
@@ -856,7 +913,7 @@ export function PurchaseOrders() {
                 variant="success"
                 className="flex-1"
                 onClick={handleRecordPayment}
-                disabled={!paymentAmount || !!paymentAmountError || recordingPayment}
+                disabled={!paymentAmount || (!retrying && !!paymentAmountError) || !fundingSource || (fundingSource === 'TILL_CASH' && !tillId) || recordingPayment}
                 isLoading={recordingPayment}
               >
                 Record Payment
