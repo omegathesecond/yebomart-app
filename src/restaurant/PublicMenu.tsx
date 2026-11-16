@@ -162,7 +162,7 @@ export function RestaurantWebsite() {
   }
   const groups = [...new Set(m.items.map((i) => i.category || "Menu"))];
   return (
-    <div className="min-h-screen bg-cream text-ink">
+    <div className="min-h-screen bg-cream text-ink pb-20 lg:pb-0">
       <header className="bg-ink text-cream">
         <div className="max-w-5xl mx-auto px-5 py-12">
           <p className="eyebrow text-brand">
@@ -260,7 +260,7 @@ export function RestaurantWebsite() {
                   maxLength={1000}
                   value={question}
                   onChange={(e) => setQuestion(e.target.value)}
-                  placeholder="Something filling under E100?"
+                  placeholder="What would you suggest for lunch?"
                 />
                 <button
                   className="btn-primary"
@@ -355,7 +355,7 @@ export function RestaurantWebsite() {
             </section>
           ))}
         </div>
-        <aside>
+        <aside id="your-order" className="scroll-mt-5">
           <div className="lg:sticky lg:top-5 border border-line p-5 space-y-5">
             <p className="eyebrow">Your order</p>
             <h2 className="text-2xl font-semibold">Let’s get that ready.</h2>
@@ -625,6 +625,7 @@ export function RestaurantWebsite() {
           </div>
         </aside>
       </main>
+      {lines.length>0&&<a href="#your-order" className="fixed bottom-0 left-0 right-0 z-40 bg-ink text-cream px-5 py-4 flex justify-between items-center lg:hidden safe-area-bottom"><span>View my basket · {lines.reduce((n,l)=>n+l.quantity,0)} items</span><span className="m">{money(m.currency,total)} ↑</span></a>}
       <footer className="border-t border-line p-6 text-center text-xs text-mute">
         {m.name} · Powered by{" "}
         <a href="https://yebomart.com" className="underline">
