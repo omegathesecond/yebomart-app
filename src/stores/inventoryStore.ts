@@ -10,6 +10,7 @@ import type {
   Expense
 } from '@/types';
 import api from '@/api/client';
+import {call,type Workspace} from '@/restaurant/api';
 
 interface InventoryState {
   products: Product[];
@@ -89,67 +90,20 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
   loadAll: async (_shopId: string) => {
     set({ isLoading: true, error: null });
     try {
-      // Fetch products from API
-      let allProducts: Product[] = [];
-      let page = 1;
-      let hasMore = true;
-      
-      while (hasMore) {
-        const { data, error } = await api.getProducts({ page, limit: 100 });
-        if (error || !data) {
-          if (error) set({ error });
-          break;
-        }
-        
-        allProducts = [...allProducts, ...data];
-        hasMore = data.length === 100;
-        page++;
+      const workspace=await call<Workspace>('/workspace');
+      const can=(href:string)=>workspace.navigation.some(n=>n.href===href);
+      let allProducts:Product[]=[];
+      if(!workspace.kitchen&&(workspace.modules.includes('sell')||workspace.modules.includes('catalogue')||workspace.modules.includes('restaurant'))){
+        let page=1;
+        while(true){const response=await api.getProducts({page,limit:100});if(response.error||!response.data)throw new Error(response.error||'Products could not load.');allProducts.push(...response.data);if(response.data.length<100)break;page++;}
       }
-
-      // Fetch sales
-      const { data: salesData } = await api.getSales();
-      const sales = (salesData || []).map((s) => ({
-        ...s,
-        createdAt: new Date(s.createdAt),
-        paymentMethod: (s.paymentMethod?.toLowerCase() || 'cash') as Sale['paymentMethod'],
-        items: s.items || [],
-      }));
-
-      // Fetch staff
-      const { data: staffData, error: staffError } = await api.getStaff();
-      console.log('[inventoryStore] Staff API response:', { staffData, staffError });
-      const staffArray = Array.isArray(staffData) ? staffData : [];
-      let staff: User[] = [];
-      try {
-        staff = staffArray.map((u) => {
-          console.log('[inventoryStore] Mapping user:', u);
-          return {
-            id: u.id,
-            shopId: u.shopId || _shopId,
-            name: u.name || '',
-            phone: u.phone || '',
-            email: u.email || undefined,
-            pin: u.pin || '',
-            role: (String(u.role || 'CASHIER').toLowerCase()) as User['role'],
-            isActive: u.isActive !== false,
-            lastLogin: u.lastLoginAt ? new Date(u.lastLoginAt) : undefined,
-            createdAt: u.createdAt ? new Date(u.createdAt) : new Date()
-          };
-        });
-      } catch (mapError) {
-        console.error('[inventoryStore] Error mapping staff:', mapError);
-      }
-      console.log('[inventoryStore] Mapped staff:', staff);
-
-      // Fetch expenses (API scopes to the caller's shop automatically)
-      const { data: expensesData, error: expensesError } = await api.listExpenses({ limit: 100 });
-      if (expensesError) {
-        console.error('[inventoryStore] Failed to load expenses:', expensesError);
-      }
-
+      let sales:Sale[]=[];let staff:User[]=[];let expenses:Expense[]=[];
+      if(can('/sales')){const response=await api.getSales();if(response.error||!response.data)throw new Error(response.error||'Sales could not load.');sales=response.data.map(s=>({...s,createdAt:new Date(s.createdAt),paymentMethod:s.paymentMethod.toLowerCase() as Sale['paymentMethod'],items:s.items}));}
+      if(can('/staff')){const response=await api.getStaff();if(response.error||!response.data)throw new Error(response.error||'Team could not load.');staff=response.data.map(u=>({...u,role:String(u.role).toLowerCase() as User['role'],createdAt:new Date(u.createdAt)}));}
+      if(can('/expenses')){const response=await api.listExpenses({limit:100});if(response.error||!response.data)throw new Error(response.error||'Expenses could not load.');expenses=response.data.expenses;}
       // Calculate low stock alerts from products
       const alerts: LowStockAlert[] = allProducts
-        .filter(p => p.isActive && p.quantity <= p.reorderAt)
+        .filter(p => p.isActive && p.trackStock !== false && p.quantity <= p.reorderAt)
         .map(p => ({
           id: `alert-${p.id}`,
           productId: p.id,
@@ -165,7 +119,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
         products: allProducts.filter(p => p.isActive),
         sales: sales.slice(0, 50),
         staff,
-        expenses: expensesData?.expenses || [],
+        expenses,
         alerts,
         isLoading: false,
         lastSync: new Date()
@@ -173,7 +127,8 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
       
     } catch (error) {
       console.error('Failed to load inventory data:', error);
-      set({ isLoading: false, error: 'Failed to load data. Check your connection.' });
+      set({ isLoading: false, error: error instanceof Error ? error.message : 'Failed to load data. Check your connection.' });
+      throw error;
     }
   },
 

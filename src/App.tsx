@@ -9,6 +9,14 @@ import { useBillingStore } from '@/stores/billingStore';
 import { Layout } from '@/components/layout/Layout';
 import { InitialSync } from '@/components/InitialSync';
 import './index.css';
+import {useLocation} from 'react-router-dom';
+import {useWorkspace,ErrorMessage,Loading} from '@/restaurant/shared';
+import {WorkspaceMore,WorkspaceSettings} from '@/restaurant/Workspace';
+import {Overview} from '@/restaurant/Overview';
+import {RestaurantSetup} from '@/restaurant/Setup';
+import {RestaurantKitchen} from '@/restaurant/Kitchen';
+import {RestaurantReports} from '@/restaurant/Reports';
+import {RestaurantWebsite,RestaurantOrderStatus} from '@/restaurant/PublicMenu';
 
 // Lazy load all pages
 const Onboarding = lazy(() => import('@/pages/Onboarding').then(m => ({ default: m.Onboarding })));
@@ -88,6 +96,13 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function CapabilityGate({children}:{children:React.ReactNode}){
+ const workspace=useWorkspace();const {pathname}=useLocation();
+ if(workspace.isPending)return <Loading/>;if(workspace.error)return <ErrorMessage error={workspace.error}/>;
+ const allowed=pathname==='/more'||workspace.data.navigation.some(n=>n.href==='/'?pathname==='/':pathname===n.href||pathname.startsWith(n.href+'/'));
+ if(!allowed)return <div className="p-6"><h1 className="text-2xl mb-4">This tool is not part of your workspace.</h1><p>Ask the owner if your role or business activities need to change.</p><a className="btn-primary mt-5" href="/">Back to my overview</a></div>;
+ return <>{children}</>;
+}
 function AppRoutes() {
   const { loadUser, shop, isAuthenticated } = useAuthStore();
   const clearInventory = useInventoryStore(state => state.clearAll);
@@ -129,6 +144,8 @@ function AppRoutes() {
   return (
     <Suspense fallback={<AppLoader />}>
       <Routes>
+        <Route path="/r/:slug" element={<RestaurantWebsite/>}/>
+        <Route path="/r/:slug/order/:id" element={<RestaurantOrderStatus/>}/>
         {/* Onboarding - entry point for new users */}
         <Route
           path="/onboarding"
@@ -154,7 +171,7 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <InitialSync>
-                <Suspense fallback={<AppLoader />}><MobilePOS /></Suspense>
+                <Suspense fallback={<AppLoader />}><CapabilityGate><MobilePOS /></CapabilityGate></Suspense>
               </InitialSync>
             </ProtectedRoute>
           }
@@ -166,12 +183,17 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <InitialSync>
-                <Layout />
+                <CapabilityGate><Layout /></CapabilityGate>
               </InitialSync>
             </ProtectedRoute>
           }
         >
-          <Route index element={<Suspense fallback={<PageLoader />}><Dashboard /></Suspense>} />
+          <Route index element={<Suspense fallback={<PageLoader />}><Overview /></Suspense>} />
+          <Route path="restaurant/setup" element={<RestaurantSetup/>}/>
+          <Route path="restaurant/orders" element={<RestaurantKitchen/>}/>
+          <Route path="restaurant/reports" element={<RestaurantReports/>}/>
+          <Route path="workspace" element={<WorkspaceSettings/>}/>
+          <Route path="more" element={<WorkspaceMore/>}/>
           <Route path="pos" element={<Suspense fallback={<PageLoader />}><POS /></Suspense>} />
           <Route path="cash-up" element={<Suspense fallback={<PageLoader />}><CashUp /></Suspense>} />
           <Route path="products" element={<Suspense fallback={<PageLoader />}><Products /></Suspense>} />

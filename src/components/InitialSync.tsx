@@ -1,55 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect,useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { useInventoryStore } from '@/stores/inventoryStore';
-
-interface InitialSyncProps {
-  children: React.ReactNode;
-}
-
-export function InitialSync({ children }: InitialSyncProps) {
-  const shopId = useAuthStore((state) => state.shop?.id);
-  return <ShopSync key={shopId}>{children}</ShopSync>;
-}
-
-function ShopSync({ children }: InitialSyncProps) {
-  const { shop, isAuthenticated } = useAuthStore();
-  const { loadAll, lastSync, isLoading } = useInventoryStore();
-  const [hasSynced, setHasSynced] = useState(false);
-  const [syncStatus, setSyncStatus] = useState('Connecting...');
-  useEffect(() => {
-    const doSync = async () => {
-      if (!isAuthenticated || !shop) return;
-      
-      // Check if we've already synced this session for this shop
-      if (lastSync && hasSynced) return;
-
-      setSyncStatus('Syncing products...');
-      await loadAll(shop.id);
-      setSyncStatus('Done!');
-      setHasSynced(true);
-    };
-
-    doSync();
-  }, [isAuthenticated, shop, loadAll, lastSync, hasSynced]);
-
-  // Show sync screen if authenticated but haven't synced yet
-  if (isAuthenticated && shop && !hasSynced && isLoading) {
-    return (
-      <div className="min-h-screen bg-cream flex flex-col items-center justify-center p-6">
-        <div className="w-16 h-16 bg-brand rounded-sharp flex items-center justify-center mb-6">
-          <svg className="w-8 h-8 text-ink" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-          </svg>
-        </div>
-        <h2 className="text-xl font-bold text-ink mb-2">YeboMart</h2>
-        <p className="text-mute text-sm mb-6">{syncStatus}</p>
-        <div className="w-48 h-1 bg-shade rounded-full overflow-hidden">
-          <div className="h-full bg-brand rounded-full animate-pulse" style={{ width: '60%' }} />
-        </div>
-        <p className="text-mist text-xs mt-4">Loading your shop data...</p>
-      </div>
-    );
-  }
-
-  return <>{children}</>;
+import { useWorkspace,ErrorMessage,Loading } from '@/restaurant/shared';
+interface Props {children:React.ReactNode}
+export function InitialSync({children}:Props){const {shop,user}=useAuthStore();return <ShopSync key={shop?.id+':'+user?.id}>{children}</ShopSync>;}
+function ShopSync({children}:Props){const w=useWorkspace();const shop=useAuthStore(s=>s.shop);const [done,setDone]=useState(false);const [error,setError]=useState<unknown>();const [attempt,setAttempt]=useState(0);const signature=w.data?JSON.stringify([w.data.kitchen,w.data.modules,w.data.role]):'';
+ useEffect(()=>{if(!w.data||!shop)return;let current=true;setDone(false);setError(null);if(w.data.kitchen){useInventoryStore.getState().clearAll();setDone(true);return;}
+ useInventoryStore.getState().loadAll(shop.id).then(()=>{if(current)setDone(true);}).catch(e=>{if(current)setError(e);});return()=>{current=false;};},[signature,shop?.id,attempt]);
+ if(error||w.error)return <div className="max-w-lg mx-auto p-6 space-y-5"><ErrorMessage error={error||w.error}/><button className="btn-primary" onClick={()=>{w.refetch();setAttempt(a=>a+1);}}>Try connecting again</button></div>;
+ if(w.isPending||!done)return <Loading/>;return <>{children}</>;
 }

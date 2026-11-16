@@ -69,6 +69,7 @@ export interface User {
 
 // Product
 export interface Product {
+  trackStock?: boolean;
   id: string;
   shopId: string;
   barcode?: string;
