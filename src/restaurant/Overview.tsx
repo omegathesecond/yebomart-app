@@ -43,7 +43,20 @@ export function Overview() {
               : "See what needs attention, then get on with your day."}
         </p>
       </div>
-      {!d.website&&d.navigation.some(n=>n.href==='/restaurant/setup')&&<section className="bg-ink text-cream p-6 space-y-4"><p className="eyebrow">Start here</p><h2 className="text-2xl font-semibold">Put your menu to work.</h2><p className="text-mist">Photograph your menu, check the items and publish your included website.</p><Link className="btn btn-primary" to="/restaurant/setup">Set up my restaurant →</Link></section>}
+      {!d.website &&
+        d.navigation.some((n) => n.href === "/restaurant/setup") && (
+          <section className="bg-ink text-cream p-6 space-y-4">
+            <p className="eyebrow">Start here</p>
+            <h2 className="text-2xl font-semibold">Put your menu to work.</h2>
+            <p className="text-mist">
+              Photograph your menu or a meal, check the details and publish your included
+              website.
+            </p>
+            <Link className="btn btn-primary" to="/restaurant/setup">
+              Set up my restaurant →
+            </Link>
+          </section>
+        )}
       {d.website && (
         <div className="bg-ink text-cream p-6 flex flex-wrap gap-5 items-center justify-between">
           <div>
