@@ -149,7 +149,7 @@ export function RestaurantKitchen() {
                           t.status !== "CANCELLED" &&
                           (t.paymentMethod === "CASH" ? (
                             <button
-                              className="btn-secondary w-full"
+                              className="btn btn-secondary w-full"
                               disabled={!!busy}
                               onClick={() => {
                                 setPaying(t);
@@ -160,7 +160,7 @@ export function RestaurantKitchen() {
                             </button>
                           ) : (
                             <button
-                              className="btn-secondary w-full"
+                              className="btn btn-secondary w-full"
                               disabled={!!busy}
                               onClick={() => action(t.id, "payment", {})}
                             >
@@ -171,7 +171,7 @@ export function RestaurantKitchen() {
                     )}
                     {status === "NEW" && !kitchen && (
                       <button
-                        className="btn-primary w-full"
+                        className="btn btn-primary w-full"
                         disabled={
                           !!busy ||
                           (t.paymentMethod === "ONLINE" &&
@@ -186,7 +186,7 @@ export function RestaurantKitchen() {
                     )}
                     {status === "ACCEPTED" && (
                       <button
-                        className="btn-primary w-full"
+                        className="btn btn-primary w-full"
                         disabled={!!busy}
                         onClick={() =>
                           action(t.id, "status", { status: "PREPARING" })
@@ -197,7 +197,7 @@ export function RestaurantKitchen() {
                     )}
                     {status === "PREPARING" && (
                       <button
-                        className="btn-primary w-full"
+                        className="btn btn-primary w-full"
                         disabled={!!busy}
                         onClick={() =>
                           action(t.id, "status", { status: "READY" })
@@ -208,7 +208,7 @@ export function RestaurantKitchen() {
                     )}
                     {status === "READY" && !kitchen && (
                       <button
-                        className="btn-primary w-full"
+                        className="btn btn-primary w-full"
                         disabled={
                           !!busy || t.paymentStatus !== "PAID" || !t.saleId
                         }
@@ -224,7 +224,7 @@ export function RestaurantKitchen() {
                       t.paymentStatus !== "PAID" &&
                       t.checkoutState === "NONE" && (
                         <button
-                          className="btn-ghost w-full"
+                          className="btn btn-ghost w-full"
                           disabled={!!busy}
                           onClick={() => {
                             if (
@@ -294,12 +294,12 @@ export function RestaurantKitchen() {
             </p>
             <ErrorMessage error={error} />
             <div className="flex gap-3">
-              <button className="btn-primary" disabled={!!busy}>
+              <button className="btn btn-primary" disabled={!!busy}>
                 Confirm cash received
               </button>
               <button
                 type="button"
-                className="btn-secondary"
+                className="btn btn-secondary"
                 disabled={!!busy}
                 onClick={() => setPaying(undefined)}
               >

@@ -167,7 +167,7 @@ function CapabilityGate({ children }: { children: React.ReactNode }) {
           This tool is not part of your workspace.
         </h1>
         <p>Ask the owner if your role or business activities need to change.</p>
-        <a className="btn-primary mt-5" href="/">
+        <a className="btn btn-primary mt-5" href="/">
           Back to my overview
         </a>
       </div>

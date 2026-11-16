@@ -25,7 +25,7 @@ export function ErrorMessage({ error }: { error: unknown }) {
 export function Loading() {
   return (
     <p role="status" className="p-6 text-mute">
-      Connecting to your business…
+      Loading…
     </p>
   );
 }

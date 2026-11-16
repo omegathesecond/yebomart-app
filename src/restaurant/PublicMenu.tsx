@@ -84,7 +84,7 @@ export function RestaurantWebsite() {
       <main className="max-w-xl mx-auto p-6">
         <h1 className="text-2xl mb-5">The menu could not open</h1>
         <ErrorMessage error={q.error} />
-        <button className="btn-primary mt-5" onClick={() => q.refetch()}>
+        <button className="btn btn-primary mt-5" onClick={() => q.refetch()}>
           Try again
         </button>
       </main>
@@ -263,7 +263,7 @@ export function RestaurantWebsite() {
                   placeholder="What would you suggest for lunch?"
                 />
                 <button
-                  className="btn-primary"
+                  className="btn btn-primary"
                   disabled={asking || question.trim().length < 3}
                 >
                   {asking ? "Thinking…" : "Ask"}
@@ -274,7 +274,7 @@ export function RestaurantWebsite() {
                   <p>{answer.answer}</p>
                   {answer.suggestedItems.length > 0 && (
                     <button
-                      className="btn-secondary"
+                      className="btn btn-secondary"
                       onClick={() => {
                         answer.suggestedItems.forEach((i) =>
                           setBasket((b) => ({
@@ -330,7 +330,7 @@ export function RestaurantWebsite() {
                     {m.acceptingOrders && i.available && (
                       <div className="flex items-center gap-3 shrink-0">
                         <button
-                          className="btn-secondary px-3"
+                          className="btn btn-secondary px-3"
                           aria-label={"Remove one " + i.name}
                           disabled={!basket[i.id]?.quantity}
                           onClick={() => change(i.id, -1)}
@@ -341,7 +341,7 @@ export function RestaurantWebsite() {
                           {basket[i.id]?.quantity ?? 0}
                         </span>
                         <button
-                          className="btn-secondary px-3"
+                          className="btn btn-secondary px-3"
                           aria-label={"Add one " + i.name}
                           disabled={basket[i.id]?.quantity >= 20}
                           onClick={() => change(i.id, 1)}
@@ -385,7 +385,7 @@ export function RestaurantWebsite() {
                         </span>
                       </div>
                       <button
-                        className="btn-ghost text-xs mt-2"
+                        className="btn btn-ghost text-xs mt-2"
                         disabled={!!pending || busy}
                         onClick={() => {
                           setBasket((b) => ({
@@ -433,7 +433,7 @@ export function RestaurantWebsite() {
                       the same request to avoid placing it twice.
                     </p>
                     <button
-                      className="btn-primary"
+                      className="btn btn-primary"
                       disabled={busy}
                       onClick={submit}
                     >
@@ -605,7 +605,7 @@ export function RestaurantWebsite() {
                       </div>
                     )}
                     <button
-                      className="btn-primary w-full"
+                      className="btn btn-primary w-full"
                       disabled={busy || invalid || !m.acceptingOrders}
                     >
                       {busy
@@ -625,7 +625,7 @@ export function RestaurantWebsite() {
           </div>
         </aside>
       </main>
-      {lines.length>0&&<a href="#your-order" className="fixed bottom-0 left-0 right-0 z-40 bg-ink text-cream px-5 py-4 flex justify-between items-center lg:hidden safe-area-bottom"><span>View my basket · {lines.reduce((n,l)=>n+l.quantity,0)} items</span><span className="m">{money(m.currency,total)} ↑</span></a>}
+      {lines.length>0&&<a href="#your-order" className="fixed bottom-0 left-0 right-0 z-40 bg-ink text-cream px-5 py-4 flex justify-between items-center lg:hidden safe-area-bottom"><span>View my basket · {lines.reduce((n,l)=>n+l.quantity,0)}</span><span className="m">{money(m.currency,total)} →</span></a>}
       <footer className="border-t border-line p-6 text-center text-xs text-mute">
         {m.name} · Powered by{" "}
         <a href="https://yebomart.com" className="underline">
@@ -766,7 +766,7 @@ export function RestaurantOrderStatus() {
                 <div className="grid gap-3">
                   {["NONE", "READY"].includes(q.data.checkoutState!) && (
                     <button
-                      className="btn-primary"
+                      className="btn btn-primary"
                       disabled={busy}
                       onClick={pay}
                     >
@@ -776,7 +776,7 @@ export function RestaurantOrderStatus() {
                     </button>
                   )}
                   <button
-                    className="btn-secondary"
+                    className="btn btn-secondary"
                     disabled={busy}
                     onClick={confirm}
                   >
@@ -795,7 +795,7 @@ export function RestaurantOrderStatus() {
           </>
         )}
         {m.data?.phone && (
-          <a className="btn-secondary" href={"tel:" + m.data.phone}>
+          <a className="btn btn-secondary" href={"tel:" + m.data.phone}>
             Contact the restaurant
           </a>
         )}
