@@ -111,7 +111,7 @@ export function RestaurantSetup() {
   useEffect(() => {
     let live = true;
     setQr("");
-    if (query.data?.published)
+    if (query.data?.published && url)
       QRCode.toDataURL(url, {
         width: 360,
         margin: 3,
@@ -120,7 +120,9 @@ export function RestaurantSetup() {
         .then((r) => {
           if (live) setQr(r);
         })
-        .catch(setError);
+        .catch((e) => {
+          if (live) setError(e);
+        });
     return () => {
       live = false;
     };
