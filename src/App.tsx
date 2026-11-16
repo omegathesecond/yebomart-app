@@ -1,50 +1,103 @@
-import { useEffect, useRef, lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useAuthStore } from '@/stores/authStore';
-import { useInventoryStore } from '@/stores/inventoryStore';
-import { useCartStore } from '@/stores/cartStore';
-import { useSyncStore } from '@/stores/syncStore';
-import { useBillingStore } from '@/stores/billingStore';
-import { Layout } from '@/components/layout/Layout';
-import { InitialSync } from '@/components/InitialSync';
-import './index.css';
-import {useLocation} from 'react-router-dom';
-import {useWorkspace,ErrorMessage,Loading} from '@/restaurant/shared';
-import {WorkspaceMore,WorkspaceSettings} from '@/restaurant/Workspace';
-import {Overview} from '@/restaurant/Overview';
-import {RestaurantSetup} from '@/restaurant/Setup';
-import {RestaurantKitchen} from '@/restaurant/Kitchen';
-import {RestaurantReports} from '@/restaurant/Reports';
-import {RestaurantWebsite,RestaurantOrderStatus} from '@/restaurant/PublicMenu';
+import { useEffect, useRef, lazy, Suspense } from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useAuthStore } from "@/stores/authStore";
+import { useInventoryStore } from "@/stores/inventoryStore";
+import { useCartStore } from "@/stores/cartStore";
+import { useSyncStore } from "@/stores/syncStore";
+import { useBillingStore } from "@/stores/billingStore";
+import { Layout } from "@/components/layout/Layout";
+import { InitialSync } from "@/components/InitialSync";
+import "./index.css";
+import { useLocation } from "react-router-dom";
+import { useWorkspace, ErrorMessage, Loading } from "@/restaurant/shared";
+import { WorkspaceMore, WorkspaceSettings } from "@/restaurant/Workspace";
+import { Overview } from "@/restaurant/Overview";
+import { RestaurantSetup } from "@/restaurant/Setup";
+import { RestaurantKitchen } from "@/restaurant/Kitchen";
+import { RestaurantReports } from "@/restaurant/Reports";
+import {
+  RestaurantWebsite,
+  RestaurantOrderStatus,
+} from "@/restaurant/PublicMenu";
 
 // Lazy load all pages
-const Onboarding = lazy(() => import('@/pages/Onboarding').then(m => ({ default: m.Onboarding })));
-const Login = lazy(() => import('@/pages/Login').then(m => ({ default: m.Login })));
-const AuthCallback = lazy(() => import('@/pages/AuthCallback').then(m => ({ default: m.AuthCallback })));
-const Dashboard = lazy(() => import('@/pages/Dashboard').then(m => ({ default: m.Dashboard })));
-const POS = lazy(() => import('@/pages/POS').then(m => ({ default: m.POS })));
-const CashUp = lazy(() => import('@/pages/CashUp').then(m => ({ default: m.CashUp })));
-const Products = lazy(() => import('@/pages/Products').then(m => ({ default: m.Products })));
-const ProductForm = lazy(() => import('@/pages/ProductForm').then(m => ({ default: m.ProductForm })));
-const Stock = lazy(() => import('@/pages/Stock').then(m => ({ default: m.Stock })));
-const Sales = lazy(() => import('@/pages/Sales').then(m => ({ default: m.Sales })));
-const Settings = lazy(() => import('@/pages/Settings').then(m => ({ default: m.Settings })));
-const AIChat = lazy(() => import('@/pages/AIChat').then(m => ({ default: m.AIChat })));
-const Reports = lazy(() => import('@/pages/Reports').then(m => ({ default: m.Reports })));
-const Staff = lazy(() => import('@/pages/Staff').then(m => ({ default: m.Staff })));
-const StaffDetail = lazy(() => import('@/pages/StaffDetail').then(m => ({ default: m.StaffDetail })));
-const Returns = lazy(() => import('@/pages/Returns').then(m => ({ default: m.Returns })));
-const Suppliers = lazy(() => import('@/pages/Suppliers').then(m => ({ default: m.Suppliers })));
-const PurchaseOrders = lazy(() => import('@/pages/PurchaseOrders').then(m => ({ default: m.PurchaseOrders })));
-const Customers = lazy(() => import('@/pages/Customers').then(m => ({ default: m.Customers })));
-const Expenses = lazy(() => import('@/pages/Expenses').then(m => ({ default: m.Expenses })));
-const AuditLog = lazy(() => import('@/pages/AuditLog').then(m => ({ default: m.AuditLog })));
-const MobilePOS = lazy(() => import('@/pages/MobilePOS').then(m => ({ default: m.MobilePOS })));
-const Billing = lazy(() => import('@/pages/Billing').then(m => ({ default: m.Billing })));
-const BillingSuccess = lazy(() => import('@/pages/BillingSuccess').then(m => ({ default: m.BillingSuccess })));
-const BillingCancel = lazy(() => import('@/pages/BillingCancel').then(m => ({ default: m.BillingCancel })));
-const NotFound = lazy(() => import('@/pages/NotFound').then(m => ({ default: m.NotFound })));
+const Onboarding = lazy(() =>
+  import("@/pages/Onboarding").then((m) => ({ default: m.Onboarding })),
+);
+const Login = lazy(() =>
+  import("@/pages/Login").then((m) => ({ default: m.Login })),
+);
+const AuthCallback = lazy(() =>
+  import("@/pages/AuthCallback").then((m) => ({ default: m.AuthCallback })),
+);
+const Dashboard = lazy(() =>
+  import("@/pages/Dashboard").then((m) => ({ default: m.Dashboard })),
+);
+const POS = lazy(() => import("@/pages/POS").then((m) => ({ default: m.POS })));
+const CashUp = lazy(() =>
+  import("@/pages/CashUp").then((m) => ({ default: m.CashUp })),
+);
+const Products = lazy(() =>
+  import("@/pages/Products").then((m) => ({ default: m.Products })),
+);
+const ProductForm = lazy(() =>
+  import("@/pages/ProductForm").then((m) => ({ default: m.ProductForm })),
+);
+const Stock = lazy(() =>
+  import("@/pages/Stock").then((m) => ({ default: m.Stock })),
+);
+const Sales = lazy(() =>
+  import("@/pages/Sales").then((m) => ({ default: m.Sales })),
+);
+const Settings = lazy(() =>
+  import("@/pages/Settings").then((m) => ({ default: m.Settings })),
+);
+const AIChat = lazy(() =>
+  import("@/pages/AIChat").then((m) => ({ default: m.AIChat })),
+);
+const Reports = lazy(() =>
+  import("@/pages/Reports").then((m) => ({ default: m.Reports })),
+);
+const Staff = lazy(() =>
+  import("@/pages/Staff").then((m) => ({ default: m.Staff })),
+);
+const StaffDetail = lazy(() =>
+  import("@/pages/StaffDetail").then((m) => ({ default: m.StaffDetail })),
+);
+const Returns = lazy(() =>
+  import("@/pages/Returns").then((m) => ({ default: m.Returns })),
+);
+const Suppliers = lazy(() =>
+  import("@/pages/Suppliers").then((m) => ({ default: m.Suppliers })),
+);
+const PurchaseOrders = lazy(() =>
+  import("@/pages/PurchaseOrders").then((m) => ({ default: m.PurchaseOrders })),
+);
+const Customers = lazy(() =>
+  import("@/pages/Customers").then((m) => ({ default: m.Customers })),
+);
+const Expenses = lazy(() =>
+  import("@/pages/Expenses").then((m) => ({ default: m.Expenses })),
+);
+const AuditLog = lazy(() =>
+  import("@/pages/AuditLog").then((m) => ({ default: m.AuditLog })),
+);
+const MobilePOS = lazy(() =>
+  import("@/pages/MobilePOS").then((m) => ({ default: m.MobilePOS })),
+);
+const Billing = lazy(() =>
+  import("@/pages/Billing").then((m) => ({ default: m.Billing })),
+);
+const BillingSuccess = lazy(() =>
+  import("@/pages/BillingSuccess").then((m) => ({ default: m.BillingSuccess })),
+);
+const BillingCancel = lazy(() =>
+  import("@/pages/BillingCancel").then((m) => ({ default: m.BillingCancel })),
+);
+const NotFound = lazy(() =>
+  import("@/pages/NotFound").then((m) => ({ default: m.NotFound })),
+);
 
 // Create queryClient outside component to avoid re-creation
 const queryClient = new QueryClient({
@@ -55,7 +108,6 @@ const queryClient = new QueryClient({
     },
   },
 });
-
 
 // Loading spinner for lazy-loaded pages
 function PageLoader() {
@@ -96,17 +148,36 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-function CapabilityGate({children}:{children:React.ReactNode}){
- const workspace=useWorkspace();const {pathname}=useLocation();
- if(workspace.isPending)return <Loading/>;if(workspace.error)return <ErrorMessage error={workspace.error}/>;
- const allowed=pathname==='/more'||workspace.data.navigation.some(n=>n.href==='/'?pathname==='/':pathname===n.href||pathname.startsWith(n.href+'/'));
- if(!allowed)return <div className="p-6"><h1 className="text-2xl mb-4">This tool is not part of your workspace.</h1><p>Ask the owner if your role or business activities need to change.</p><a className="btn-primary mt-5" href="/">Back to my overview</a></div>;
- return <>{children}</>;
+function CapabilityGate({ children }: { children: React.ReactNode }) {
+  const workspace = useWorkspace();
+  const { pathname } = useLocation();
+  if (workspace.isPending) return <Loading />;
+  if (workspace.error) return <ErrorMessage error={workspace.error} />;
+  const allowed =
+    pathname === "/more" ||
+    workspace.data.navigation.some((n) =>
+      n.href === "/"
+        ? pathname === "/"
+        : pathname === n.href || pathname.startsWith(n.href + "/"),
+    );
+  if (!allowed)
+    return (
+      <div className="p-6">
+        <h1 className="text-2xl mb-4">
+          This tool is not part of your workspace.
+        </h1>
+        <p>Ask the owner if your role or business activities need to change.</p>
+        <a className="btn-primary mt-5" href="/">
+          Back to my overview
+        </a>
+      </div>
+    );
+  return <>{children}</>;
 }
 function AppRoutes() {
   const { loadUser, shop, isAuthenticated } = useAuthStore();
-  const clearInventory = useInventoryStore(state => state.clearAll);
-  const clearCart = useCartStore(state => state.clear);
+  const clearInventory = useInventoryStore((state) => state.clearAll);
+  const clearCart = useCartStore((state) => state.clear);
   const wasAuthenticated = useRef(isAuthenticated);
 
   useEffect(() => {
@@ -124,8 +195,8 @@ function AppRoutes() {
     const handleOnline = () => {
       useSyncStore.getState().replay();
     };
-    window.addEventListener('online', handleOnline);
-    return () => window.removeEventListener('online', handleOnline);
+    window.addEventListener("online", handleOnline);
+    return () => window.removeEventListener("online", handleOnline);
   }, []);
 
   // Clear all stores when user logs out
@@ -136,7 +207,7 @@ function AppRoutes() {
       clearCart();
       useBillingStore.getState().reset(); // Drop cached balance — never leak across shops
       queryClient.clear(); // Clear React Query cache too
-      console.log('[App] Cleared all stores and cache on logout');
+      console.log("[App] Cleared all stores and cache on logout");
     }
     wasAuthenticated.current = isAuthenticated;
   }, [isAuthenticated, clearInventory, clearCart]);
@@ -144,16 +215,20 @@ function AppRoutes() {
   return (
     <Suspense fallback={<AppLoader />}>
       <Routes>
-        <Route path="/r/:slug" element={<RestaurantWebsite/>}/>
-        <Route path="/r/:slug/order/:id" element={<RestaurantOrderStatus/>}/>
+        <Route path="/r/:slug" element={<RestaurantWebsite />} />
+        <Route path="/r/:slug/order/:id" element={<RestaurantOrderStatus />} />
         {/* Onboarding - entry point for new users */}
         <Route
           path="/onboarding"
           element={
-            isAuthenticated && shop ? <Navigate to="/" replace /> : <Onboarding />
+            isAuthenticated && shop ? (
+              <Navigate to="/" replace />
+            ) : (
+              <Onboarding />
+            )
           }
         />
-        
+
         {/* Login - for returning users */}
         <Route
           path="/login"
@@ -171,60 +246,227 @@ function AppRoutes() {
           element={
             <ProtectedRoute>
               <InitialSync>
-                <Suspense fallback={<AppLoader />}><CapabilityGate><MobilePOS /></CapabilityGate></Suspense>
+                <Suspense fallback={<AppLoader />}>
+                  <CapabilityGate>
+                    <MobilePOS />
+                  </CapabilityGate>
+                </Suspense>
               </InitialSync>
             </ProtectedRoute>
           }
         />
-        
+
         {/* Protected routes */}
         <Route
           path="/"
           element={
             <ProtectedRoute>
               <InitialSync>
-                <CapabilityGate><Layout /></CapabilityGate>
+                <CapabilityGate>
+                  <Layout />
+                </CapabilityGate>
               </InitialSync>
             </ProtectedRoute>
           }
         >
-          <Route index element={<Suspense fallback={<PageLoader />}><Overview /></Suspense>} />
-          <Route path="restaurant/setup" element={<RestaurantSetup/>}/>
-          <Route path="restaurant/orders" element={<RestaurantKitchen/>}/>
-          <Route path="restaurant/reports" element={<RestaurantReports/>}/>
-          <Route path="workspace" element={<WorkspaceSettings/>}/>
-          <Route path="more" element={<WorkspaceMore/>}/>
-          <Route path="pos" element={<Suspense fallback={<PageLoader />}><POS /></Suspense>} />
-          <Route path="cash-up" element={<Suspense fallback={<PageLoader />}><CashUp /></Suspense>} />
-          <Route path="products" element={<Suspense fallback={<PageLoader />}><Products /></Suspense>} />
-          <Route path="products/new" element={<Suspense fallback={<PageLoader />}><ProductForm /></Suspense>} />
-          <Route path="products/:id" element={<Suspense fallback={<PageLoader />}><ProductForm /></Suspense>} />
-          <Route path="stock" element={<Suspense fallback={<PageLoader />}><Stock /></Suspense>} />
-          <Route path="sales" element={<Suspense fallback={<PageLoader />}><Sales /></Suspense>} />
-          <Route path="reports" element={<Suspense fallback={<PageLoader />}><Reports /></Suspense>} />
-          <Route path="staff" element={<Suspense fallback={<PageLoader />}><Staff /></Suspense>} />
-          <Route path="staff/:id" element={<Suspense fallback={<PageLoader />}><StaffDetail /></Suspense>} />
-          <Route path="returns" element={<Suspense fallback={<PageLoader />}><Returns /></Suspense>} />
-          <Route path="suppliers" element={<Suspense fallback={<PageLoader />}><Suppliers /></Suspense>} />
-          <Route path="purchase-orders" element={<Suspense fallback={<PageLoader />}><PurchaseOrders /></Suspense>} />
-          <Route path="customers" element={<Suspense fallback={<PageLoader />}><Customers /></Suspense>} />
-          <Route path="expenses" element={<Suspense fallback={<PageLoader />}><Expenses /></Suspense>} />
-          <Route path="billing" element={<Suspense fallback={<PageLoader />}><Billing /></Suspense>} />
+          <Route
+            index
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <Overview />
+              </Suspense>
+            }
+          />
+          <Route path="restaurant/setup" element={<RestaurantSetup />} />
+          <Route path="restaurant/orders" element={<RestaurantKitchen />} />
+          <Route path="restaurant/reports" element={<RestaurantReports />} />
+          <Route path="workspace" element={<WorkspaceSettings />} />
+          <Route path="more" element={<WorkspaceMore />} />
+          <Route
+            path="pos"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <POS />
+              </Suspense>
+            }
+          />
+          <Route
+            path="cash-up"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <CashUp />
+              </Suspense>
+            }
+          />
+          <Route
+            path="products"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <Products />
+              </Suspense>
+            }
+          />
+          <Route
+            path="products/new"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <ProductForm />
+              </Suspense>
+            }
+          />
+          <Route
+            path="products/:id"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <ProductForm />
+              </Suspense>
+            }
+          />
+          <Route
+            path="stock"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <Stock />
+              </Suspense>
+            }
+          />
+          <Route
+            path="sales"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <Sales />
+              </Suspense>
+            }
+          />
+          <Route
+            path="reports"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <Reports />
+              </Suspense>
+            }
+          />
+          <Route
+            path="staff"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <Staff />
+              </Suspense>
+            }
+          />
+          <Route
+            path="staff/:id"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <StaffDetail />
+              </Suspense>
+            }
+          />
+          <Route
+            path="returns"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <Returns />
+              </Suspense>
+            }
+          />
+          <Route
+            path="suppliers"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <Suppliers />
+              </Suspense>
+            }
+          />
+          <Route
+            path="purchase-orders"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <PurchaseOrders />
+              </Suspense>
+            }
+          />
+          <Route
+            path="customers"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <Customers />
+              </Suspense>
+            }
+          />
+          <Route
+            path="expenses"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <Expenses />
+              </Suspense>
+            }
+          />
+          <Route
+            path="billing"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <Billing />
+              </Suspense>
+            }
+          />
           {/* YeboPay redirects back here after a hosted checkout. These live
               under the protected Layout so the owner is still authenticated to
               confirm the top-up — without explicit routes they'd fall through
               to the catch-all and dump a paid user on /onboarding. */}
-          <Route path="billing/success" element={<Suspense fallback={<PageLoader />}><BillingSuccess /></Suspense>} />
-          <Route path="billing/cancel" element={<Suspense fallback={<PageLoader />}><BillingCancel /></Suspense>} />
-          <Route path="assistant" element={<Suspense fallback={<PageLoader />}><AIChat /></Suspense>} />
-          <Route path="audit-log" element={<Suspense fallback={<PageLoader />}><AuditLog /></Suspense>} />
-          <Route path="settings" element={<Suspense fallback={<PageLoader />}><Settings /></Suspense>} />
+          <Route
+            path="billing/success"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <BillingSuccess />
+              </Suspense>
+            }
+          />
+          <Route
+            path="billing/cancel"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <BillingCancel />
+              </Suspense>
+            }
+          />
+          <Route
+            path="assistant"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <AIChat />
+              </Suspense>
+            }
+          />
+          <Route
+            path="audit-log"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <AuditLog />
+              </Suspense>
+            }
+          />
+          <Route
+            path="settings"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <Settings />
+              </Suspense>
+            }
+          />
           {/* Unknown in-app path → real 404 inside the Layout (keeps nav so the
               user can recover). Nesting it here means ProtectedRoute still
               bounces unauthenticated / no-shop users to /login or /onboarding,
               while authenticated users SEE the dead link instead of being
               silently redirected to onboarding. */}
-          <Route path="*" element={<Suspense fallback={<PageLoader />}><NotFound /></Suspense>} />
+          <Route
+            path="*"
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <NotFound />
+              </Suspense>
+            }
+          />
         </Route>
 
         {/* No top-level catch-all: every unmatched path resolves through the

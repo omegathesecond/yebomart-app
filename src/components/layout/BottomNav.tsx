@@ -1,4 +1,40 @@
-import { NavLink } from 'react-router-dom';
-import { Squares2X2Icon,Bars3Icon } from '@heroicons/react/24/outline';
-import { useWorkspace } from '@/restaurant/shared';
-export function BottomNav(){const w=useWorkspace();const items=[...(w.data?.navigation.filter(n=>n.group==='Today').slice(0,4)??[]),{name:'More',href:'/more'}];return <nav aria-label="Business navigation" className="safe-area-bottom fixed bottom-0 left-0 right-0 z-50 border-t border-line bg-cream md:hidden"><div className="flex items-stretch">{items.map(n=><NavLink key={n.href} to={n.href} end={n.href==='/'} className={({isActive})=>'flex min-h-[62px] min-w-0 flex-1 flex-col items-center justify-center gap-1 border-t-2 -mt-px px-1 '+(isActive?'border-brand text-ink':'border-transparent text-mute')}>{n.href==='/more'?<Bars3Icon className="h-5 w-5"/>:<Squares2X2Icon className="h-5 w-5"/>}<span className="m text-[9px] text-center">{n.name}</span></NavLink>)}</div></nav>;}
+import { NavLink } from "react-router-dom";
+import { Squares2X2Icon, Bars3Icon } from "@heroicons/react/24/outline";
+import { useWorkspace } from "@/restaurant/shared";
+export function BottomNav() {
+  const w = useWorkspace();
+  const items = [
+    ...(w.data?.navigation.filter((n) => n.group === "Today").slice(0, 4) ??
+      []),
+    { name: "More", href: "/more" },
+  ];
+  return (
+    <nav
+      aria-label="Business navigation"
+      className="safe-area-bottom fixed bottom-0 left-0 right-0 z-50 border-t border-line bg-cream md:hidden"
+    >
+      <div className="flex items-stretch">
+        {items.map((n) => (
+          <NavLink
+            key={n.href}
+            to={n.href}
+            end={n.href === "/"}
+            className={({ isActive }) =>
+              "flex min-h-[62px] min-w-0 flex-1 flex-col items-center justify-center gap-1 border-t-2 -mt-px px-1 " +
+              (isActive
+                ? "border-brand text-ink"
+                : "border-transparent text-mute")
+            }
+          >
+            {n.href === "/more" ? (
+              <Bars3Icon className="h-5 w-5" />
+            ) : (
+              <Squares2X2Icon className="h-5 w-5" />
+            )}
+            <span className="m text-[9px] text-center">{n.name}</span>
+          </NavLink>
+        ))}
+      </div>
+    </nav>
+  );
+}

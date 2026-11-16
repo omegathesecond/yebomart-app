@@ -1,3 +1,4 @@
+import {useWorkspace} from '@/restaurant/shared';
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { BellIcon } from '@heroicons/react/24/outline';
@@ -36,6 +37,7 @@ const pageNames: Record<string, string> = {
 
 export function TopBar() {
   const location = useLocation();
+  const workspace=useWorkspace();
   const { shop } = useAuthStore();
   const { shops, currentShop } = useShopStore();
   const { alerts, isOnline } = useInventoryStore();
@@ -49,7 +51,7 @@ export function TopBar() {
     return () => clearInterval(timer);
   }, []);
 
-  const pageName = pageNames[location.pathname] || 'YeboMart';
+  const pageName = workspace.data?.navigation.find(n=>n.href===location.pathname)?.name || pageNames[location.pathname] || 'YeboMart';
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-cream">

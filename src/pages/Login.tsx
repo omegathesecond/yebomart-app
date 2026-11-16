@@ -70,9 +70,9 @@ export function Login() {
     try {
       const success = await staffLogin(phone, pin);
       if (success) navigate('/');
-      else setError('Invalid phone or PIN');
-    } catch {
-      setError('Login failed. Please try again.');
+      else setError('Sign-in was cancelled. Please try again.');
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Login failed. Please try again.');
     } finally {
       setIsLoading(false);
     }

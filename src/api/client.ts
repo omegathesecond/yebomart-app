@@ -577,7 +577,7 @@ class ApiClient {
       return { error: errorMessage, details, code: json.code, meta: json.meta, status: response.status };
     }
 
-    return { data: json.data ?? json, message: json.message, status: response.status };
+    return { data: Object.prototype.hasOwnProperty.call(json, 'data') ? json.data : json, message: json.message, status: response.status };
   }
 
   // ── Auth ──────────────────────────────────────────────────────────────
