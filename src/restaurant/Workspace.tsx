@@ -52,7 +52,7 @@ export function WorkspaceSettings() {
         ))}
       </div>
       <button
-        className="btn-primary"
+        className="btn btn-primary"
         disabled={saving || !choices.length}
         onClick={async () => {
           setSaving(true);
@@ -95,7 +95,7 @@ export function WorkspaceMore() {
             </Link>
           ))}
       </div>
-      <button className="btn-secondary mt-5" onClick={logout}>
+      <button className="btn btn-secondary mt-5" onClick={logout}>
         Sign out
       </button>
     </div>

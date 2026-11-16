@@ -257,7 +257,7 @@ export function RestaurantSetup() {
                 }
               />
               <button
-                className="btn-ghost"
+                className="btn btn-ghost"
                 disabled={busy}
                 onClick={() =>
                   set(
@@ -272,7 +272,7 @@ export function RestaurantSetup() {
           ))}
         </div>
         <button
-          className="btn-secondary"
+          className="btn btn-secondary"
           disabled={p.hours.length >= 21}
           onClick={() =>
             set("hours", [
@@ -336,7 +336,7 @@ export function RestaurantSetup() {
           />
         </Field>
         <button
-          className="btn-primary"
+          className="btn btn-primary"
           disabled={busy}
           onClick={() =>
             act(async () => {
@@ -386,7 +386,7 @@ export function RestaurantSetup() {
               />
             )}
             <button
-              className="btn-primary"
+              className="btn btn-primary"
               disabled={busy || !photo}
               onClick={() =>
                 act(async () => {
@@ -530,7 +530,7 @@ export function RestaurantSetup() {
                   />
                 </Field>
                 <button
-                  className="btn-ghost"
+                  className="btn btn-ghost"
                   disabled={busy}
                   onClick={() => {
                     setRows(rows.filter((_, j) => j !== i));
@@ -551,7 +551,7 @@ export function RestaurantSetup() {
               menu.
             </label>
             <button
-              className="btn-primary"
+              className="btn btn-primary"
               disabled={
                 busy ||
                 !reviewed ||
@@ -641,7 +641,7 @@ export function RestaurantSetup() {
                   </p>
                 </div>
                 <button
-                  className="btn-secondary"
+                  className="btn btn-secondary"
                   disabled={busy}
                   onClick={() =>
                     act(async () => {
@@ -694,7 +694,7 @@ export function RestaurantSetup() {
               />
             </Field>
             <button
-              className="btn-secondary"
+              className="btn btn-secondary"
               disabled={busy || key.length < 20 || !query.data}
               onClick={() =>
                 act(async () => {
@@ -761,7 +761,7 @@ export function RestaurantSetup() {
           Start accepting collection and table orders
         </label>
         <button
-          className="btn-primary"
+          className="btn btn-primary"
           disabled={busy || !query.data}
           onClick={() =>
             act(async () => {
@@ -805,7 +805,7 @@ export function RestaurantSetup() {
               )}
               <div className="flex flex-wrap gap-2">
                 <button
-                  className="btn-secondary"
+                  className="btn btn-secondary"
                   onClick={() =>
                     act(async () => {
                       await navigator.clipboard.writeText(url);
@@ -817,7 +817,7 @@ export function RestaurantSetup() {
                 </button>
                 {qr && (
                   <a
-                    className="btn-secondary"
+                    className="btn btn-secondary"
                     download={
                       p.slug + (qrTable ? "-" + qrTable : "") + "-menu-qr.png"
                     }
@@ -887,10 +887,10 @@ export function RestaurantSetup() {
           </div>
         ))}
         <div className="flex flex-wrap gap-3">
-          <Link to="/restaurant/orders" className="btn-primary">
+          <Link to="/restaurant/orders" className="btn btn-primary">
             Open orders & kitchen →
           </Link>
-          <Link to="/restaurant/reports" className="btn-secondary">
+          <Link to="/restaurant/reports" className="btn btn-secondary">
             Choose reports & WhatsApp updates
           </Link>
         </div>

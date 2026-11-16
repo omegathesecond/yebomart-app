@@ -277,7 +277,7 @@ export function RestaurantReports() {
             I have permission to send these reports to this recipient and agree
             to the stated messaging usage.
           </label>
-          <button className="btn-primary" disabled={busy || !consent}>
+          <button className="btn btn-primary" disabled={busy || !consent}>
             {busy ? "Saving…" : "Subscribe to this report"}
           </button>
         </form>
@@ -298,7 +298,7 @@ export function RestaurantReports() {
             </div>
             {s.enabled && (
               <button
-                className="btn-secondary"
+                className="btn btn-secondary"
                 disabled={busy}
                 onClick={() =>
                   save({

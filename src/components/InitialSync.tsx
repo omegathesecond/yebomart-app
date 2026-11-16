@@ -46,7 +46,7 @@ function ShopSync({ children }: Props) {
       <div className="max-w-lg mx-auto p-6 space-y-5">
         <ErrorMessage error={error || w.error} />
         <button
-          className="btn-primary"
+          className="btn btn-primary"
           onClick={() => {
             w.refetch();
             setAttempt((a) => a + 1);
