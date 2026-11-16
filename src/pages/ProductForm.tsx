@@ -377,7 +377,7 @@ export function ProductForm() {
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/webp"
                   capture="environment"
                   className="hidden"
                   onChange={handleImageSelect}

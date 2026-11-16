@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import QRCode from "qrcode";
+import { DishPhotoEditor, prepareDishPhoto } from "./photos";
 import { Link } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
 import { useInventoryStore } from "@/stores/inventoryStore";
@@ -17,7 +18,12 @@ interface DraftItem {
 }
 interface ImportDraft {
   id: string;
-  draft: { items: Omit<DraftItem, "cost">[]; warnings: string[] };
+  draft: {
+    items: Omit<DraftItem, "cost">[];
+    warnings: string[];
+    kind?: string;
+    photo?: { url: string; key: string };
+  };
 }
 const days = [
   "Sunday",
@@ -54,6 +60,7 @@ export function RestaurantSetup() {
   const [reviewed, setReviewed] = useState(false);
   const [key, setKey] = useState("");
   const [photo, setPhoto] = useState<File>();
+  const [photoKind, setPhotoKind] = useState<"MENU" | "DISH">("DISH");
   const [photoUrl, setPhotoUrl] = useState("");
   const [qr, setQr] = useState("");
   const [qrTable, setQrTable] = useState("");
@@ -104,7 +111,7 @@ export function RestaurantSetup() {
   useEffect(() => {
     let live = true;
     setQr("");
-    if (query.data?.published)
+    if (query.data?.published && url)
       QRCode.toDataURL(url, {
         width: 360,
         margin: 3,
@@ -113,7 +120,9 @@ export function RestaurantSetup() {
         .then((r) => {
           if (live) setQr(r);
         })
-        .catch(setError);
+        .catch((e) => {
+          if (live) setError(e);
+        });
     return () => {
       live = false;
     };
@@ -353,28 +362,70 @@ export function RestaurantSetup() {
           Save business details
         </button>
       </Section>
-      <Section number="02" title="Show us your menu">
+      <Section number="02" title="Show us your menu—or just a meal">
         <p className="text-mute">
-          Take a clear photo of one page or section. Yebo AI reads the names and
-          prices; you check them before they become products. Menu reading uses
-          your AI allowance or 1 credit when the allowance is used.
+          Start with a photo of a meal, or photograph your printed menu. Yebo AI
+          prepares a draft for you to check before it becomes a product. Each
+          analysis uses your AI allowance or 1 credit when the allowance is
+          used.
         </p>
         {!query.data ? (
           <p className="text-sm">Save your business details first.</p>
         ) : (
           <>
+            <Field label="What are you photographing?">
+              <select
+                className="input"
+                value={photoKind}
+                disabled={busy}
+                onChange={(e) => {
+                  setPhotoKind(e.target.value as "MENU" | "DISH");
+                  setPhoto(undefined);
+                  setDraft(undefined);
+                }}
+              >
+                <option value="MENU">
+                  My printed menu · read names and prices
+                </option>
+                <option value="DISH">
+                  One meal · suggest a name and description
+                </option>
+              </select>
+            </Field>
+            <p className="text-sm text-mute">
+              A good photo helps guests choose. For a meal photo, you confirm
+              the real recipe and set the selling price. Yebo AI cannot
+              establish ingredients, allergens or a price from appearance.
+            </p>
             <Field
-              label="Take or choose a menu photo"
-              help="JPG, PNG or WebP, up to 6 MB. Photograph prices clearly."
+              label={
+                photoKind === "DISH"
+                  ? "Take or choose a meal photo"
+                  : "Take or choose a menu photo"
+              }
+              help={
+                photoKind === "DISH"
+                  ? "Photograph one meal in good light. JPG, PNG or WebP, up to 20 MB before resizing."
+                  : "JPG, PNG or WebP, up to 6 MB. Photograph prices clearly."
+              }
             >
               <input
                 className="input"
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
                 capture="environment"
-                onChange={(e) => {
-                  setPhoto(e.target.files?.[0]);
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = "";
+                  if (!file) return;
                   setDraft(undefined);
+                  await act(async () =>
+                    setPhoto(
+                      photoKind === "DISH"
+                        ? await prepareDishPhoto(file)
+                        : file,
+                    ),
+                  );
                 }}
               />
             </Field>
@@ -395,7 +446,9 @@ export function RestaurantSetup() {
                   const data = new FormData();
                   data.append("photo", photo);
                   const result = await call<ImportDraft>(
-                    "/restaurant/import",
+                    photoKind === "DISH"
+                      ? "/restaurant/import/dish"
+                      : "/restaurant/import",
                     "POST",
                     data,
                   );
@@ -410,7 +463,11 @@ export function RestaurantSetup() {
                 })
               }
             >
-              {busy ? "Reading your menu…" : "Read this menu photo"}
+              {busy
+                ? "Reading your photo…"
+                : photoKind === "DISH"
+                  ? "Analyse this meal"
+                  : "Read this menu photo"}
             </button>
           </>
         )}
@@ -424,7 +481,12 @@ export function RestaurantSetup() {
             ))}
             {rows.map((r, i) => (
               <div key={i} className="border-t border-line py-4 space-y-3">
-                <p className="text-xs text-mute">Photo text: {r.source}</p>
+                <p className="text-xs text-mute">
+                  {draft.draft.kind === "DISH"
+                    ? "Visible in your photo: "
+                    : "Photo text: "}
+                  {r.source}
+                </p>
                 {r.issues.length > 0 && (
                   <p className="text-sm text-bad">
                     Please check: {r.issues.join(" · ")}
@@ -454,7 +516,7 @@ export function RestaurantSetup() {
                       min={0}
                       required
                       value={r.price ?? ""}
-                      placeholder="Check the photo and enter price"
+                      placeholder="Enter your selling price"
                       onChange={(e) => {
                         setRows(
                           rows.map((v, j) =>
@@ -640,6 +702,9 @@ export function RestaurantSetup() {
                     {money(shop?.currency ?? "", Math.round(item.price * 100))}
                   </p>
                 </div>
+                <div className="basis-full">
+                  <DishPhotoEditor item={item} onSaved={refresh} />
+                </div>
                 <button
                   className="btn btn-secondary"
                   disabled={busy}
@@ -734,7 +799,7 @@ export function RestaurantSetup() {
             checked={p.allowAssistant}
             onChange={(e) => set("allowAssistant", e.target.checked)}
           />
-          Let guests ask Yebo AI about the approved menu
+          Let guests chat with Yebo AI about dishes and meal photos
         </label>
         <p className="text-xs text-mute">
           Uses your AI plan allowance. The assistant suggests dishes; guests

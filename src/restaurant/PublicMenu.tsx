@@ -6,7 +6,15 @@ import {
   useParams,
   useSearchParams,
 } from "react-router-dom";
-import { call, money, type PublicMenu as Menu, type Ticket } from "./api";
+import { DishPhoto } from "./photos";
+import { MenuAssistant } from "./MenuAssistant";
+import {
+  call,
+  money,
+  type MenuItem,
+  type PublicMenu as Menu,
+  type Ticket,
+} from "./api";
 import { ErrorMessage, Field, Loading, Section } from "./shared";
 const orderKey = (id: string) => "yebomart-order:" + id;
 function secret() {
@@ -38,12 +46,7 @@ export function RestaurantWebsite() {
   const [review, setReview] = useState(false);
   const [error, setError] = useState<unknown>();
   const [busy, setBusy] = useState(false);
-  const [question, setQuestion] = useState("");
-  const [answer, setAnswer] = useState<{
-    answer: string;
-    suggestedItems: { productId: string; quantity: number }[];
-  }>();
-  const [asking, setAsking] = useState(false);
+  const [focusDish, setFocusDish] = useState<MenuItem>();
   const [pending, setPending] = useState<any>(() => {
     const raw = sessionStorage.getItem("yebomart-pending:" + slug);
     return raw ? JSON.parse(raw) : null;
@@ -228,76 +231,28 @@ export function RestaurantWebsite() {
             </div>
           </details>
           {m.allowAssistant && (
-            <section className="bg-sand border border-line p-5 mb-8 space-y-4">
-              <h2 className="font-semibold text-xl">
-                What are you in the mood for?
-              </h2>
-              <p className="text-sm text-mute">
-                Ask about this menu. Yebo AI can suggest dishes for your basket.
-              </p>
-              <form
-                className="flex gap-2"
-                onSubmit={async (e) => {
-                  e.preventDefault();
-                  setAsking(true);
-                  setError(null);
-                  try {
-                    setAnswer(
-                      await call("/restaurants/" + slug + "/ask", "POST", {
-                        question,
-                      }),
-                    );
-                  } catch (e) {
-                    setError(e);
-                  } finally {
-                    setAsking(false);
-                  }
-                }}
-              >
-                <input
-                  aria-label="Ask about the menu"
-                  className="input min-w-0"
-                  maxLength={1000}
-                  value={question}
-                  onChange={(e) => setQuestion(e.target.value)}
-                  placeholder="What would you suggest for lunch?"
-                />
-                <button
-                  className="btn btn-primary"
-                  disabled={asking || question.trim().length < 3}
-                >
-                  {asking ? "Thinking…" : "Ask"}
-                </button>
-              </form>
-              {answer && (
-                <div className="text-sm space-y-3">
-                  <p>{answer.answer}</p>
-                  {answer.suggestedItems.length > 0 && (
-                    <button
-                      className="btn btn-secondary"
-                      onClick={() => {
-                        answer.suggestedItems.forEach((i) =>
-                          setBasket((b) => ({
-                            ...b,
-                            [i.productId]: {
-                              quantity: Math.min(
-                                20,
-                                (b[i.productId]?.quantity ?? 0) + i.quantity,
-                              ),
-                              notes: b[i.productId]?.notes ?? "",
-                            },
-                          })),
-                        );
-                        setReview(false);
-                        setAnswer(undefined);
-                      }}
-                    >
-                      Add suggestions to my basket
-                    </button>
-                  )}
-                </div>
-              )}
-            </section>
+            <MenuAssistant
+              menu={m}
+              focus={focusDish}
+              onClearFocus={() => setFocusDish(undefined)}
+              basketLocked={!!pending}
+              onSuggestions={(items) => {
+                if (pending) return;
+                items.forEach((i) =>
+                  setBasket((b) => ({
+                    ...b,
+                    [i.productId]: {
+                      quantity: Math.min(
+                        20,
+                        (b[i.productId]?.quantity ?? 0) + i.quantity,
+                      ),
+                      notes: b[i.productId]?.notes ?? "",
+                    },
+                  })),
+                );
+                setReview(false);
+              }}
+            />
           )}
           {groups.map((group) => (
             <section key={group} className="mb-10">
@@ -309,46 +264,68 @@ export function RestaurantWebsite() {
                 .map((i) => (
                   <article
                     key={i.id}
-                    className="flex justify-between items-start gap-4 py-6 border-b border-line"
+                    className="py-6 border-b border-line space-y-4"
                   >
-                    <div>
-                      <h3 className="font-semibold text-lg">{i.name}</h3>
-                      {i.description && (
-                        <p className="text-mute text-sm mt-2">
-                          {i.description}
+                    {i.imageUrl && (
+                      <DishPhoto
+                        url={i.imageUrl}
+                        name={i.name}
+                        className="aspect-[4/3] max-h-96 w-full"
+                      />
+                    )}
+                    <div className="flex justify-between items-start gap-4">
+                      <div>
+                        <h3 className="font-semibold text-lg">{i.name}</h3>
+                        {i.description && (
+                          <p className="text-mute text-sm mt-2">
+                            {i.description}
+                          </p>
+                        )}
+                        <p className="m mt-3">
+                          {money(m.currency, Math.round(i.price * 100))}
                         </p>
-                      )}
-                      <p className="m mt-3">
-                        {money(m.currency, Math.round(i.price * 100))}
-                      </p>
-                      {!i.available && (
-                        <p className="text-sm text-bad mt-2">
-                          Sold out for now
-                        </p>
+                        {!i.available && (
+                          <p className="text-sm text-bad mt-2">
+                            Sold out for now
+                          </p>
+                        )}
+                      </div>
+                      {m.acceptingOrders && i.available && (
+                        <div className="flex items-center gap-3 shrink-0">
+                          <button
+                            className="btn btn-secondary px-3"
+                            aria-label={"Remove one " + i.name}
+                            disabled={!basket[i.id]?.quantity}
+                            onClick={() => change(i.id, -1)}
+                          >
+                            −
+                          </button>
+                          <span className="m" aria-live="polite">
+                            {basket[i.id]?.quantity ?? 0}
+                          </span>
+                          <button
+                            className="btn btn-secondary px-3"
+                            aria-label={"Add one " + i.name}
+                            disabled={basket[i.id]?.quantity >= 20}
+                            onClick={() => change(i.id, 1)}
+                          >
+                            +
+                          </button>
+                        </div>
                       )}
                     </div>
-                    {m.acceptingOrders && i.available && (
-                      <div className="flex items-center gap-3 shrink-0">
-                        <button
-                          className="btn btn-secondary px-3"
-                          aria-label={"Remove one " + i.name}
-                          disabled={!basket[i.id]?.quantity}
-                          onClick={() => change(i.id, -1)}
-                        >
-                          −
-                        </button>
-                        <span className="m" aria-live="polite">
-                          {basket[i.id]?.quantity ?? 0}
-                        </span>
-                        <button
-                          className="btn btn-secondary px-3"
-                          aria-label={"Add one " + i.name}
-                          disabled={basket[i.id]?.quantity >= 20}
-                          onClick={() => change(i.id, 1)}
-                        >
-                          +
-                        </button>
-                      </div>
+                    {m.allowAssistant && i.imageUrl && (
+                      <button
+                        className="btn btn-ghost"
+                        onClick={() => {
+                          setFocusDish(i);
+                          document
+                            .getElementById("menu-assistant")
+                            ?.scrollIntoView({ behavior: "smooth" });
+                        }}
+                      >
+                        Ask Yebo about this dish
+                      </button>
                     )}
                   </article>
                 ))}
@@ -625,7 +602,17 @@ export function RestaurantWebsite() {
           </div>
         </aside>
       </main>
-      {lines.length>0&&<a href="#your-order" className="fixed bottom-0 left-0 right-0 z-40 bg-ink text-cream px-5 py-4 flex justify-between items-center lg:hidden safe-area-bottom"><span>View my basket · {lines.reduce((n,l)=>n+l.quantity,0)}</span><span className="m">{money(m.currency,total)} →</span></a>}
+      {lines.length > 0 && (
+        <a
+          href="#your-order"
+          className="fixed bottom-0 left-0 right-0 z-40 bg-ink text-cream px-5 py-4 flex justify-between items-center lg:hidden safe-area-bottom"
+        >
+          <span>
+            View my basket · {lines.reduce((n, l) => n + l.quantity, 0)}
+          </span>
+          <span className="m">{money(m.currency, total)} →</span>
+        </a>
+      )}
       <footer className="border-t border-line p-6 text-center text-xs text-mute">
         {m.name} · Powered by{" "}
         <a href="https://yebomart.com" className="underline">
