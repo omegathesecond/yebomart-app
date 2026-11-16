@@ -60,7 +60,7 @@ export function RestaurantSetup() {
   const [reviewed, setReviewed] = useState(false);
   const [key, setKey] = useState("");
   const [photo, setPhoto] = useState<File>();
-  const [photoKind, setPhotoKind] = useState<"MENU" | "DISH">("MENU");
+  const [photoKind, setPhotoKind] = useState<"MENU" | "DISH">("DISH");
   const [photoUrl, setPhotoUrl] = useState("");
   const [qr, setQr] = useState("");
   const [qrTable, setQrTable] = useState("");
@@ -362,9 +362,10 @@ export function RestaurantSetup() {
       </Section>
       <Section number="02" title="Show us your menu—or just a meal">
         <p className="text-mute">
-          Take a clear photo of one page or section. Yebo AI reads the names and
-          prices; you check them before they become products. Menu reading uses
-          your AI allowance or 1 credit when the allowance is used.
+          Start with a photo of a meal, or photograph your printed menu. Yebo AI
+          prepares a draft for you to check before it becomes a product. Each
+          analysis uses your AI allowance or 1 credit when the allowance is
+          used.
         </p>
         {!query.data ? (
           <p className="text-sm">Save your business details first.</p>
@@ -395,8 +396,16 @@ export function RestaurantSetup() {
               establish ingredients, allergens or a price from appearance.
             </p>
             <Field
-              label="Take or choose a menu photo"
-              help="JPG, PNG or WebP, up to 6 MB. Photograph prices clearly."
+              label={
+                photoKind === "DISH"
+                  ? "Take or choose a meal photo"
+                  : "Take or choose a menu photo"
+              }
+              help={
+                photoKind === "DISH"
+                  ? "Photograph one meal in good light. JPG, PNG or WebP, up to 20 MB before resizing."
+                  : "JPG, PNG or WebP, up to 6 MB. Photograph prices clearly."
+              }
             >
               <input
                 className="input"
@@ -505,7 +514,7 @@ export function RestaurantSetup() {
                       min={0}
                       required
                       value={r.price ?? ""}
-                      placeholder="Check the photo and enter price"
+                      placeholder="Enter your selling price"
                       onChange={(e) => {
                         setRows(
                           rows.map((v, j) =>
