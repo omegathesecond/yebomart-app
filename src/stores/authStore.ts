@@ -120,8 +120,8 @@ export const useAuthStore = create<AuthState>()(
             const isCurrent = currentAuthAttempt(revision);
             setSyncContext(null);
             const { data, error } = await api.staffLogin(phone, pin, isCurrent);
-            if (revision !== authRevision) return false;
-            if (error || !data) return false;
+            if (revision !== authRevision || (error && !isCurrent())) return false;
+            if (error || !data) throw new Error(error || 'Sign-in returned no account.');
             if (localStorage.getItem('yebomart_staff_token') !== data.token ||
               localStorage.getItem('yebomart.accessToken')) return false;
 
@@ -138,7 +138,7 @@ export const useAuthStore = create<AuthState>()(
             return true;
           } catch (err) {
             console.error('Staff login failed:', err);
-            return false;
+            throw err;
           }
         },
 

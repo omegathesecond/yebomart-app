@@ -200,9 +200,9 @@ export function Reports() {
             p.category,
             p.quantitySold,
             ...accountingValues(p).map(round),
-            round(p.cost),
-            round(p.profit),
-            round(p.margin),
+            (p.profitComplete===false?'Costs incomplete':round(p.cost)),
+            (p.profitComplete===false?'Costs incomplete':round(p.profit)),
+            (p.profitComplete===false?'Costs incomplete':round(p.margin)),
             round(p.averagePrice),
           ]),
           ...evidenceCsv(productReport.adjustments),
@@ -251,10 +251,10 @@ export function Reports() {
         ...evidenceCsv(m.accounting),
 
         ...(m.totalTax > 0 ? [['Net VAT', round(m.totalTax)]] : []),
-        ['Cost of Goods', round(m.totalCost)],
-        ['Gross Profit', round(m.grossProfit)],
+        ['Cost of Goods', (m.accounting.profitComplete?round(m.totalCost): 'Costs incomplete')],
+        ['Gross Profit', (m.accounting.profitComplete?round(m.grossProfit): 'Costs incomplete')],
         ['Expenses', round(m.periodExpenses)],
-        ['Net Profit', round(m.netProfit)],
+        ['Net Profit', (m.accounting.profitComplete?round(m.netProfit): 'Costs incomplete')],
         ['Transactions', m.totalTransactions],
         ['Average Basket', round(m.avgBasket)],
         ['Stock Value', round(m.stockValue)],
@@ -379,7 +379,7 @@ export function Reports() {
                     </div>
                     <div>
                       <p className="text-sm text-mute">Net Profit</p>
-                      <p className="m text-2xl font-bold text-ink">{formatCurrency(m.netProfit)}</p>
+                      <p className="m text-2xl font-bold text-ink">{(m.accounting.profitComplete?formatCurrency(m.netProfit): 'Costs incomplete')}</p>
                     </div>
                   </div>
                 </Card>
@@ -485,11 +485,11 @@ export function Reports() {
                   )}
                   <div className="text-center p-4 bg-shade/30 rounded-sharp">
                     <p className="text-sm text-mute">Cost of Goods</p>
-                    <p className="m text-xl font-bold text-bad">{formatCurrency(m.totalCost)}</p>
+                    <p className="m text-xl font-bold text-bad">{(m.accounting.profitComplete?formatCurrency(m.totalCost): 'Costs incomplete')}</p>
                   </div>
                   <div className="text-center p-4 bg-shade/30 rounded-sharp">
                     <p className="text-sm text-mute">Gross Profit</p>
-                    <p className="m text-xl font-bold text-ink">{formatCurrency(m.grossProfit)}</p>
+                    <p className="m text-xl font-bold text-ink">{(m.accounting.profitComplete?formatCurrency(m.grossProfit): 'Costs incomplete')}</p>
                   </div>
                   <div className="text-center p-4 bg-shade/30 rounded-sharp">
                     <p className="text-sm text-mute">Expenses</p>
@@ -498,9 +498,9 @@ export function Reports() {
                   <div className="text-center p-4 bg-shade/30 rounded-sharp">
                     <p className="text-sm text-mute">Net Profit</p>
                     <p className={`text-xl font-bold ${m.netProfit >= 0 ? 'text-ok' : 'text-bad'}`}>
-                      {formatCurrency(m.netProfit)}
+                      {(m.accounting.profitComplete?formatCurrency(m.netProfit): 'Costs incomplete')}
                     </p>
-                    {m.totalRevenue > 0 && (
+                    {m.accounting.profitComplete && m.totalRevenue > 0 && (
                       <p className="text-xs text-mute">
                         {((m.netProfit / m.totalRevenue) * 100).toFixed(1)}% {t('reports.margin').toLowerCase()}
                       </p>
@@ -558,9 +558,9 @@ export function Reports() {
                       <td className="py-2 px-4 text-right text-body">{p.quantitySold}</td>
                       <AccountingCells totals={p} />
                       <td className={`m py-2 px-4 text-right ${p.profit >= 0 ? 'text-ink' : 'text-bad'}`}>
-                        {formatCurrency(p.profit)}
+                        {(p.profitComplete===false?'Costs incomplete':formatCurrency(p.profit))}
                       </td>
-                      <td className="py-2 pl-4 text-right text-body">{p.margin.toFixed(1)}%</td>
+                      <td className="py-2 pl-4 text-right text-body">{(p.profitComplete===false?'—':p.margin.toFixed(1))}%</td>
                     </tr>
                   ))}
                 </tbody>
@@ -716,10 +716,10 @@ function PrintableReport({
             {[
               ...summaryAdjustments(summary.accounting).map(([label, value]) => [label, formatCurrency(value)]),
 
-              ['Cost of Goods', formatCurrency(summary.costOfGoods)],
-              ['Gross Profit', formatCurrency(summary.grossProfit)],
+              ['Cost of Goods', (summary.accounting.profitComplete?formatCurrency(summary.costOfGoods): 'Costs incomplete')],
+              ['Gross Profit', (summary.accounting.profitComplete?formatCurrency(summary.grossProfit): 'Costs incomplete')],
               ['Expenses', formatCurrency(summary.expenses)],
-              ['Net Profit', formatCurrency(summary.netProfit)],
+              ['Net Profit', (summary.accounting.profitComplete?formatCurrency(summary.netProfit): 'Costs incomplete')],
               ['Transactions', String(summary.transactions)],
               ['Average Basket', formatCurrency(summary.avgBasket)],
               ['Stock Value', formatCurrency(summary.stockValue)],
@@ -753,8 +753,8 @@ function PrintableReport({
                 <td className={td}>{p.category}</td>
                 <td className={`${td} text-right`}>{p.quantitySold}</td>
                 <AccountingCells totals={p} />
-                <td className={`${td} text-right`}>{formatCurrency(p.profit)}</td>
-                <td className={`${td} text-right`}>{p.margin.toFixed(1)}%</td>
+                <td className={`${td} text-right`}>{(p.profitComplete===false?'Costs incomplete':formatCurrency(p.profit))}</td>
+                <td className={`${td} text-right`}>{(p.profitComplete===false?'—':p.margin.toFixed(1))}%</td>
               </tr>
             ))}
           </tbody>
@@ -857,6 +857,7 @@ function EvidenceNotice({ evidence }: { evidence?: ReportEvidence | null }) {
           revenue, VAT and profit. Original evidence is required to value them.
         </p>
       )}
+      {evidence?.unknownCostCount>0&&<p className="text-bad font-semibold">Profit is incomplete: {evidence.unknownCostCount} sale lines have no confirmed item cost. Enter real costs for future sales; historical unknown costs stay unvalued.</p>}
     </div>
   );
 }
@@ -881,7 +882,8 @@ function evidenceCsv(e: ReportEvidence): (string | number)[][] {
   return [
     ['Receiptless adjustments excluded (unknown tax/cost)', e.receiptlessReturns],
     ['Unvalued exchanges excluded (unknown tax/cost)', e.unvaluedExchange],
-    ['Profit complete', e.receiptlessCount === 0 && e.unvaluedExchangeCount === 0 ? 'Yes' : 'No'],
+    ['Sale lines with unknown costs', e.unknownCostCount??0],
+    ['Profit complete', e.receiptlessCount === 0 && e.unvaluedExchangeCount === 0 && !(e.unknownCostCount>0) ? 'Yes' : 'No'],
     [
       'Basis',
       'Completion date; original cashier for returns; exchange processor for outgoing merchandise. Credits are not cash payouts.',

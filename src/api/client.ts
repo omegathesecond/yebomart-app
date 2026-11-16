@@ -330,6 +330,7 @@ export interface ReportTotals {
   netRevenue: number; grossProfit: number;
 }
 export interface ReportEvidence {
+  unknownCostCount?: number;
   receiptlessReturns: number; receiptlessCount: number;
   unvaluedExchange: number; unvaluedExchangeCount: number;
 }
@@ -344,6 +345,7 @@ export interface SalesReport {
 
 /** Per-product performance row from GET /api/reports/products. */
 export interface ProductReportRow extends ReportTotals {
+  profitComplete?: boolean;
   id: string;
   name: string;
   category: string;
@@ -510,7 +512,7 @@ class ApiClient {
 
   // ── Request core ──────────────────────────────────────────────────────
 
-  private async request<T>(
+  async request<T>(
     endpoint: string,
     options: RequestInit = {},
     opts: { retried?: boolean; token?: string; isCurrent?: () => boolean } = {},
@@ -575,7 +577,7 @@ class ApiClient {
       return { error: errorMessage, details, code: json.code, meta: json.meta, status: response.status };
     }
 
-    return { data: json.data ?? json, message: json.message, status: response.status };
+    return { data: Object.prototype.hasOwnProperty.call(json, 'data') ? json.data : json, message: json.message, status: response.status };
   }
 
   // ── Auth ──────────────────────────────────────────────────────────────
